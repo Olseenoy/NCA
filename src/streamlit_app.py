@@ -34,6 +34,10 @@ def main():
         st.sidebar.success(f'Loaded {len(df)} rows from {uploaded.name}')
         st.session_state['raw_df'] = df
 
+        # RAW DATA PREVIEW
+        st.subheader("Raw Data Preview")
+        st.dataframe(df.head(50))
+
         # Preprocess
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
         text_cols = st.multiselect('Text columns to use', options=df.columns.tolist(), default=default_text_cols)
