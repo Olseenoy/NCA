@@ -2,7 +2,7 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
-from .config import EMBEDDING_MODEL
+from config import EMBEDDING_MODEL
 
 _model = None
 _index = None
