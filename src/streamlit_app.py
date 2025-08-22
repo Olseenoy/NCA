@@ -1,14 +1,15 @@
 # src/streamlit_app.py
 import streamlit as st
 import pandas as pd
-from .ingestion import ingest_csv, save_processed
-from .preprocessing import preprocess_df
-from .embeddings import embed_texts, build_faiss_index, query_top_k
-from .clustering import fit_kmeans
-from .visualization import pareto_plot, cluster_scatter
-from .pareto import pareto_table
-from .rca_engine import rule_based_rca_suggestions, five_whys
-from .db import init_db, SessionLocal, CAPA
+from ingestion import ingest_csv, save_processed
+from preprocessing import preprocess_df
+from embeddings import embed_texts, build_faiss_index, query_top_k
+from clustering import fit_kmeans
+from visualization import pareto_plot, cluster_scatter
+from pareto import pareto_table
+from rca_engine import rule_based_rca_suggestions, five_whys
+from db import init_db, SessionLocal, CAPA
+
 
 
 def main():
