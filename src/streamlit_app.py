@@ -21,11 +21,6 @@ from rca_engine import rule_based_rca_suggestions, five_whys, ai_rca_with_fallba
 from fishbone_visualizer import visualize_fishbone
 import plotly.graph_objects as go
 
-# >>> SPC import <<<
-# Create src/spc.py with a function `generate_spc_chart(values: list[float]) -> plotly.graph_objects.Figure`
-from spc import generate_spc_chart
-
-
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
@@ -75,21 +70,6 @@ def main():
             tab = pareto_table(p, cat_col)
             fig = pareto_plot(tab)
             st.plotly_chart(fig, use_container_width=True)
-
-        # >>> SPC section <<<
-        st.subheader("Statistical Process Control (SPC)")
-        numeric_cols = p.select_dtypes(include='number').columns.tolist()
-        if not numeric_cols:
-            st.info("No numeric columns found for SPC. Please ensure your dataset has measurement columns (e.g., defect_rate, thickness, weight, cycle_time).")
-        else:
-            spc_col = st.selectbox('Select numeric column for SPC', options=numeric_cols, key='spc_col')
-            if st.button('Show SPC', key='spc_btn'):
-                try:
-                    values = p[spc_col].astype(float).tolist()
-                    spc_fig = generate_spc_chart(values)
-                    st.plotly_chart(spc_fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"SPC chart failed: {e}")
 
         # RCA section
         st.subheader("Root Cause Analysis (RCA)")
@@ -174,17 +154,10 @@ def main():
                 # For simplicity store combined corrective+preventive as corrective_action field and set due_date based on due_days
                 from datetime import datetime, timedelta
                 due_date = datetime.utcnow() + timedelta(days=int(due_days))
-                capa = CAPA(
-                    issue_id=issue_id,
-                    description=desc,
-                    corrective_action=(corrective + "\n\nPreventive:\n" + preventive),
-                    owner=owner,
-                    due_date=due_date
-                )
+                capa = CAPA(issue_id=issue_id, description=desc, corrective_action=(corrective + "\n\nPreventive:\n" + preventive), owner=owner, due_date=due_date)
                 db.add(capa)
                 db.commit()
                 st.success("CAPA created and saved to DB")
-
 
 if __name__ == "__main__":
     main()
