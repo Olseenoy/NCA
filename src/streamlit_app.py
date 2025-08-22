@@ -48,7 +48,6 @@ def main():
             embeddings = embed_texts(p['clean_text'].tolist())
             st.session_state['embeddings'] = embeddings
             st.success('Embeddings computed')
-
  
 
     # Main workflow after preprocessing
