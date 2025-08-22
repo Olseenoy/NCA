@@ -8,7 +8,7 @@ if FILE_DIR not in sys.path:
 
 import streamlit as st
 import pandas as pd
-from ingestion import ingest_csv, save_processed
+from ingestion import ingest_file, save_processed
 from preprocessing import preprocess_df
 from embeddings import embed_texts
 from clustering import fit_kmeans
