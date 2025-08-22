@@ -1,13 +1,14 @@
 # src/streamlit_app.py
 import os
 import sys
+import streamlit as st
+import pandas as pd
+
 # ensure src is on path when running from project root
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 if FILE_DIR not in sys.path:
     sys.path.insert(0, FILE_DIR)
 
-import streamlit as st
-import pandas as pd
 from ingestion import ingest_file, save_processed
 from preprocessing import preprocess_df
 from embeddings import embed_texts
@@ -15,11 +16,8 @@ from clustering import fit_kmeans
 from visualization import pareto_plot, cluster_scatter
 from pareto import pareto_table
 from db import init_db, SessionLocal, CAPA
-
-# updated RCA engine that uses LLM with fallback
 from rca_engine import rule_based_rca_suggestions, five_whys, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
-import plotly.graph_objects as go
 
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
@@ -29,11 +27,10 @@ def main():
 
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
+
     if uploaded:
-        if uploaded.name.endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(uploaded)
-        else:
-            df = pd.read_csv(uploaded)
+        # Use ingest_file from ingestion.py (handles both CSV & Excel)
+        df = ingest_file(uploaded)
         st.sidebar.success(f'Loaded {len(df)} rows from {uploaded.name}')
         st.session_state['raw_df'] = df
 
@@ -47,6 +44,8 @@ def main():
             embeddings = embed_texts(p['clean_text'].tolist())
             st.session_state['embeddings'] = embeddings
             st.success('Embeddings computed')
+
+ 
 
     # Main workflow after preprocessing
     if 'processed' in st.session_state and 'embeddings' in st.session_state:
