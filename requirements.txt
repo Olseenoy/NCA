@@ -18,4 +18,5 @@ fastapi
 pydantic
 sqlalchemy
 alembic
+openai
 psycopg2-binary  # if you use Postgres
