@@ -2,7 +2,7 @@
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import numpy as np
-from .config import CLUSTERING_K, RANDOM_STATE
+from config import CLUSTERING_K, RANDOM_STATE
 
 
 def fit_kmeans(embeddings: np.ndarray, k: int = CLUSTERING_K):
