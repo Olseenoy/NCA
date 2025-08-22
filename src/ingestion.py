@@ -1,7 +1,7 @@
 # src/ingestion.py
 import pandas as pd
 from pathlib import Path
-from .config import RAW_DIR, PROCESSED_DIR
+from config import RAW_DIR, PROCESSED_DIR
 
 
 def ingest_csv(path: Path | str) -> pd.DataFrame:
