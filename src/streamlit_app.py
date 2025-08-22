@@ -1,4 +1,13 @@
 # src/streamlit_app.py
+import os
+import sys
+# Ensure the local `src/` directory is on sys.path so modules like `ingestion`,
+# `preprocessing`, `config`, etc. can be imported when running
+# `streamlit run src/streamlit_app.py` from the project root.
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+if FILE_DIR not in sys.path:
+    sys.path.insert(0, FILE_DIR)
+
 import streamlit as st
 import pandas as pd
 from ingestion import ingest_csv, save_processed
@@ -9,7 +18,8 @@ from visualization import pareto_plot, cluster_scatter
 from pareto import pareto_table
 from rca_engine import rule_based_rca_suggestions, five_whys
 from db import init_db, SessionLocal, CAPA
-
+# LLM RCA
+from llm_rca import generate_rca_with_llm
 
 
 def main():
@@ -71,6 +81,21 @@ def main():
             if st.button('Save 5Whys'):
                 chain = five_whys(row['combined_text'], whys)
                 st.write(chain)
+
+            # Automated LLM RCA
+            st.write('Automated RCA (LLM)')
+            if st.button('Generate automated RCA & CAPA (LLM)'):
+                with st.spinner('Contacting LLM...'):
+                    try:
+                        rca_result = generate_rca_with_llm(row['combined_text'])
+                        st.subheader('LLM suggested root causes')
+                        st.json(rca_result.get('root_causes'))
+                        st.subheader('LLM suggested 5-Whys chain')
+                        st.write(rca_result.get('five_whys'))
+                        st.subheader('LLM suggested CAPA')
+                        st.write(rca_result.get('capa'))
+                    except Exception as e:
+                        st.error(f'LLM RCA failed: {e}')
 
         # CAPA quick create
         st.header('CAPA')
