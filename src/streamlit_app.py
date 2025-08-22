@@ -56,13 +56,15 @@ def main():
         p = st.session_state['processed']
         embeddings = st.session_state['embeddings']
 
-        # Clustering
-        if st.button('Cluster & Visualize'):
-            km, labels, score = fit_kmeans(embeddings)
-            st.write(f'Silhouette score: {score:.3f}')
-            st.session_state['labels'] = labels
-            fig = cluster_scatter(embeddings, labels)
-            st.plotly_chart(fig, use_container_width=True)
+       # Clustering
+    if st.button('Cluster & Visualize'):
+        km, labels, score, interpretation = fit_kmeans(embeddings)
+        st.write(f"Silhouette score: {score:.3f}")
+        st.info(interpretation)
+        st.session_state['labels'] = labels
+        fig = cluster_scatter(embeddings, labels)
+        st.plotly_chart(fig, use_container_width=True)
+
 
         # Pareto
         st.subheader("Pareto analysis")
