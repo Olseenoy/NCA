@@ -28,16 +28,14 @@ def main():
     init_db()
 
     st.sidebar.header('Upload')
-    uploaded = st.sidebar.file_uploader('Upload CSV', type=['csv'])
+    uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
     if uploaded:
-        df = pd.read_csv(uploaded)
-        st.sidebar.success(f'Loaded {len(df)} rows')
+        if uploaded.name.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(uploaded)
+        else:
+            df = pd.read_csv(uploaded)
+        st.sidebar.success(f'Loaded {len(df)} rows from {uploaded.name}')
         st.session_state['raw_df'] = df
-
-    if 'raw_df' in st.session_state:
-        df = st.session_state['raw_df']
-        st.subheader("Raw data (preview)")
-        st.dataframe(df.head())
 
         # Preprocess
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
