@@ -1,0 +1,21 @@
+pandas
+numpy
+scikit-learn
+sentence-transformers
+transformers
+torch
+faiss-cpu
+streamlit
+plotly
+matplotlib
+seaborn
+nltk
+pyyaml
+joblib
+python-dateutil
+uvicorn
+fastapi
+pydantic
+sqlalchemy
+alembic
+psycopg2-binary  # if you use Postgres
