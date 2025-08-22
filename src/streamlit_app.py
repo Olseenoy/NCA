@@ -71,6 +71,18 @@ def main():
             fig = pareto_plot(tab)
             st.plotly_chart(fig, use_container_width=True)
 
+        # SPC Section
+        st.subheader("Statistical Process Control (SPC)")
+        num_cols = p.select_dtypes(include=['number']).columns.tolist()
+        if num_cols:
+            spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
+            if st.button('Show SPC Chart'):
+                fig_spc = plot_spc_chart(p, spc_col)
+                st.plotly_chart(fig_spc, use_container_width=True)
+        else:
+            st.info("No numeric columns available for SPC analysis.")
+
+
         # RCA section
         st.subheader("Root Cause Analysis (RCA)")
         idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
