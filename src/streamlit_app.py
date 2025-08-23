@@ -14,7 +14,6 @@ from preprocessing import preprocess_df
 from embeddings import embed_texts
 from clustering import fit_kmeans
 from visualization import pareto_plot, cluster_scatter
-from visualization import plot_spc_chart, plot_trend_dashboard
 from pareto import pareto_table
 from db import init_db, SessionLocal, CAPA
 from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
