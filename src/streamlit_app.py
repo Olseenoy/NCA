@@ -27,13 +27,12 @@ def main():
     # Initialize database
     init_db()
 
-    # Sidebar upload
+    # Sidebar - Upload & Manual Entry
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
 
-    # Sidebar data input
     st.sidebar.header("Data Input Method")
-    source_choice = st.sidebar.radio("Select Input Method", ["Upload File", "Manual Entry"])
+    source_choice = st.sidebar.radio("Choose Input", ["Upload File", "Manual Entry"])
 
     # Initialize session state
     if "df" not in st.session_state:
@@ -45,28 +44,37 @@ def main():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
-    # --- Check for input method switch ---
+    # --- Detect Input Method Switch ---
     if st.session_state.df is not None and st.session_state.active_input_method != source_choice:
-        st.sidebar.warning("Switching input method will terminate ongoing analysis.")
+        st.sidebar.warning("Switching will terminate ongoing analysis.")
         col1, col2 = st.sidebar.columns(2)
+
         with col1:
             if st.button("Cancel"):
-                st.experimental_rerun()  # just refresh page
+                st.session_state.active_input_method = st.session_state.active_input_method
+                st.experimental_rerun()
+
         with col2:
             if st.button("Continue"):
-                st.experimental_rerun()  # refresh page to start fresh
+                # Reset all states
+                st.session_state.df = None
+                st.session_state.logs = []
+                st.session_state.current_log = 1
+                st.session_state.active_input_method = source_choice
+                st.experimental_rerun()
 
-    # --- File Upload ---
+    # Set current method
+    st.session_state.active_input_method = source_choice
+
+    # --- Upload File ---
     if source_choice == "Upload File":
-        if uploaded is None:
-            return  # do nothing until a file is uploaded
-        df = ingest_file(uploaded)
-        if df is not None and not df.empty:
-            st.session_state.df = df
-            save_processed(df, "uploaded_data.parquet")
-        else:
-            st.warning("Uploaded file is empty or invalid.")
-            st.experimental_rerun()  # refresh if file is closed or invalid
+        if uploaded:
+            df = ingest_file(uploaded)
+            if df is not None and not df.empty:
+                st.session_state.df = df
+                save_processed(df, "uploaded_data.parquet")
+            else:
+                st.warning("Uploaded file is empty or invalid.")
 
     # --- Manual Entry ---
     elif source_choice == "Manual Entry":
@@ -75,16 +83,11 @@ def main():
             st.session_state.df = df
             save_processed(df, "manual_data.parquet")
 
-    # --- Display Raw Data ---
+    # --- Display Data ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         st.subheader("Raw Data Preview")
         df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
         st.dataframe(df_display.head(50))
-
-        # --- Preprocessing: safe default text columns ---
-        default_text_cols = [c for c in st.session_state.df.columns if st.session_state.df[c].dtype == 'object'][:2]
-        text_cols = st.multiselect('Text columns to use', options=st.session_state.df.columns.tolist(), default=default_text_cols)
-
 
 
 
