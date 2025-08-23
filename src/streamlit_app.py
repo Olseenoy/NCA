@@ -86,12 +86,12 @@ def main():
             st.session_state.df = df
             save_processed(df, "manual_data.parquet")
 
-
-
-
-        # --- Raw Data Preview (single, row numbers start at 1) ---
+      # --- Display Data ---
+    if st.session_state.df is not None and not st.session_state.df.empty:
         st.subheader("Raw Data Preview")
-        st.dataframe(df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0).head(50))
+        df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
+        st.dataframe(df_display.head(50))
+
 
         # --- Preprocess & Embed ---
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
