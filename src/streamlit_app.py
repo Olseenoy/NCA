@@ -20,7 +20,7 @@ from rca_engine import rule_based_rca_suggestions, five_whys, ai_rca_with_fallba
 from fishbone_visualizer import visualize_fishbone
 
 
-    def main():
+def main():
         st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
         st.title('Smart Non-Conformance Analyzer')
     
