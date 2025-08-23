@@ -1,6 +1,7 @@
 import pandas as pd
 from config import PROCESSED_DIR
 import streamlit as st
+import os
 
 def ingest_file(file_obj):
     """Reads CSV or Excel from Streamlit uploader or local path."""
@@ -18,10 +19,12 @@ def ingest_file(file_obj):
     else:
         return pd.read_csv(file_obj)
 
+
 def manual_log_entry():
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
     Uses session state for navigation & auto-fills field names from Log 1.
+    Returns final DataFrame after save, otherwise None.
     """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
@@ -75,5 +78,12 @@ def manual_log_entry():
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
             df[col] = df[col].astype(str)
-        st.write("### Raw Data Preview", df)
-        r
+        return df  # Pass DataFrame back to streamlit_app for preview
+    return None
+
+
+def save_processed(df, filename):
+    """Save DataFrame to parquet in processed dir."""
+    os.makedirs(PROCESSED_DIR, exist_ok=True)
+    file_path = os.path.join(PROCESSED_DIR, filename)
+    df.to_parquet(file_path, index=False)
