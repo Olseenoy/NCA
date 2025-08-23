@@ -13,7 +13,7 @@ from ingestion import ingest_file, manual_log_entry, save_processed
 from preprocessing import preprocess_df
 from embeddings import embed_texts
 from clustering import fit_kmeans
-from visualization import pareto_plot, cluster_scatter
+from visualization import pareto_plot, cluster_scatter, plot_trend_dashboard, plot_time_series_trend
 from pareto import pareto_table
 from db import init_db, SessionLocal, CAPA
 from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
@@ -140,7 +140,35 @@ def main():
                     st.plotly_chart(fig_spc, use_container_width=True)
             else:
                 st.info("No numeric columns available for SPC analysis.")
+            # --- Trend Dashboard ---
+            st.subheader("Trend Dashboard")
+            if st.button("Show Dashboard"):
+                try:
+                    fig_trend = plot_trend_dashboard(p)
+                    st.plotly_chart(fig_trend, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Trend dashboard failed: {e}")
 
+            # --- Time-Series Trend Analysis ---
+            st.subheader("Time-Series Trend Analysis")
+            time_cols = p.select_dtypes(include=['datetime64']).columns.tolist()
+            if time_cols:
+                time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
+                value_col = st.selectbox(
+                    "Select value column for trend",
+                    options=p.select_dtypes(include=['number']).columns.tolist()
+                )
+                if st.button("Plot Time-Series Trend"):
+                    try:
+                        fig_time = plot_time_series_trend(p, time_col, value_col)
+                        st.plotly_chart(fig_time, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Time-series trend failed: {e}")
+            else:
+                st.info("No datetime column detected for time-series analysis.")
+
+            
+            
             # --- Root Cause Analysis (RCA) ---
             st.subheader("Root Cause Analysis (RCA)")
             idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
