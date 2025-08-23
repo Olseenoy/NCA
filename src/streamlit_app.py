@@ -21,6 +21,10 @@ from fishbone_visualizer import visualize_fishbone
 
 
 def main():
+    import streamlit as st
+    from ingestion import ingest_file, manual_log_entry, save_processed
+    from db import init_db
+
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
 
@@ -39,35 +43,35 @@ def main():
     if "df" not in st.session_state:
         st.session_state.df = None
 
+    df = None
+
     # --- File Upload Path ---
-    if source_choice == "Upload File":
-        if uploaded:
-            df = ingest_file(uploaded)
-            if df is not None and not df.empty:
-                save_processed(df, "uploaded_data.parquet")
-                st.session_state.df = df
-            else:
-                st.warning("Uploaded file is empty or invalid.")
+    if source_choice == "Upload File" and uploaded:
+        df = ingest_file(uploaded)
+        if df is not None and not df.empty:
+            st.session_state.df = df
+            save_processed(df, "uploaded_data.parquet")
+        else:
+            st.warning("Uploaded file is empty or invalid.")
 
     # --- Manual Entry Path ---
     elif source_choice == "Manual Entry":
         df = manual_log_entry()
         if df is not None and not df.empty:
-            save_processed(df, "manual_data.parquet")
             st.session_state.df = df
+            save_processed(df, "manual_data.parquet")
         else:
             st.warning("No manual log entries yet.")
 
-    # --- Proceed to Processing only when DataFrame is Ready ---
+    # --- Display Raw Data Preview ---
     if st.session_state.df is not None and not st.session_state.df.empty:
-        df_preview = st.session_state.df.head(50)
-        df_preview.index = df_preview.index + 1  # Start numbering from 1
-        st.subheader("Raw Data Preview")
-        st.dataframe(df_preview)
-
         st.success("Data ingestion complete. Proceed to embedding & clustering...")
 
-        # Placeholder for embedding and clustering
+        st.subheader("Raw Data Preview")
+        # Add index starting from 1
+        st.dataframe(st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0).head(50))
+
+        # --- Placeholder for embedding & clustering ---
         # embeddings = compute_embeddings(st.session_state.df)
         # if embeddings is not None:
         #     km, labels, score, interpretation = fit_kmeans(embeddings)
@@ -75,6 +79,7 @@ def main():
         #     st.info(interpretation)
         #     fig = cluster_scatter(embeddings, labels)
         #     st.plotly_chart(fig, use_container_width=True)
+
 
 
         # Preprocess
