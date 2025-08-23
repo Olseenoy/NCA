@@ -65,7 +65,7 @@ def main():
     # --- File Upload ---
     if source_choice == "Upload File":
         if uploaded is None:
-            st.session_state.df = None  # Clear old data preview if no file is uploaded
+            st.session_state.df = None  # Clear preview if no file is uploaded
         else:
             df = ingest_file(uploaded)
             if df is not None and not df.empty:
@@ -74,7 +74,7 @@ def main():
             else:
                 st.warning("Uploaded file is empty or invalid.")
                 st.session_state.df = None
-                st.experimental_rerun()
+                st.rerun()  # refresh to clear old preview
 
     # --- Manual Entry ---
     elif source_choice == "Manual Entry":
@@ -83,17 +83,16 @@ def main():
             st.session_state.df = df
             save_processed(df, "manual_data.parquet")
 
-    # --- Display Raw Data ---
+    # --- Display Raw Data Preview (only once) ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         st.subheader("Raw Data Preview")
         df_display = (
             st.session_state.df.reset_index(drop=True)
             .rename_axis("No")
-            .rename(lambda x: x + 1, axis=0)
+            .rename(lambda x: x + 1, axis=0)  # Start index from 1
         )
         st.dataframe(df_display.head(50))
 
- 
 
         
         # --- Preprocess & Embed ---
