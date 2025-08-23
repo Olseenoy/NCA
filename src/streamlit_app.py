@@ -27,20 +27,18 @@ def main():
     # Initialize database
     init_db()
 
-    # Sidebar for upload
-    st.sidebar.header('Upload')
-    uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
-
-    # Radio button for data input method
-    st.sidebar.header("Data Input Method")
-    source_choice = st.sidebar.radio("Select Input Method", ["Upload File", "Manual Entry"])
+    # --- Sidebar ---
+    st.sidebar.header('Data Input')
+    upload_button = st.sidebar.button("Upload File")
+    manual_button = st.sidebar.button("Manual Entry")
 
     # Ensure session state for DataFrame exists
     if "df" not in st.session_state:
         st.session_state.df = None
 
     # --- File Upload Path ---
-    if source_choice == "Upload File":
+    if upload_button:
+        uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
         if uploaded:
             df = ingest_file(uploaded)
             if df is not None and not df.empty:
@@ -50,7 +48,7 @@ def main():
                 st.warning("Uploaded file is empty or invalid.")
 
     # --- Manual Entry Path ---
-    elif source_choice == "Manual Entry":
+    if manual_button:
         df = manual_log_entry()
         if df is not None and not df.empty:
             st.session_state.df = df
@@ -62,11 +60,11 @@ def main():
     if st.session_state.df is not None and not st.session_state.df.empty:
         df = st.session_state.df
 
-        # --- Raw Data Preview (single, row numbers start at 1) ---
+        # Raw Data Preview (row numbers start at 1)
         st.subheader("Raw Data Preview")
         st.dataframe(df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0).head(50))
 
-        # --- Preprocess & Embed ---
+        # Preprocess & Embed
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
         text_cols = st.multiselect('Text columns to use for embedding', options=df.columns.tolist(), default=default_text_cols)
 
@@ -78,12 +76,12 @@ def main():
             st.session_state['embeddings'] = embeddings
             st.success('Embeddings computed')
 
-        # --- Only show clustering, Pareto, SPC after preprocessing ---
+        # --- Further workflow ---
         if 'processed' in st.session_state and 'embeddings' in st.session_state:
             p = st.session_state['processed']
             embeddings = st.session_state['embeddings']
 
-            # --- Clustering ---
+            # Clustering
             st.subheader("Clustering & Visualization")
             if st.button('Cluster & Visualize'):
                 km, labels, score, interpretation = fit_kmeans(embeddings)
@@ -93,7 +91,7 @@ def main():
                 fig = cluster_scatter(embeddings, labels)
                 st.plotly_chart(fig, use_container_width=True)
 
-            # --- Pareto Analysis ---
+            # Pareto Analysis
             st.subheader("Pareto Analysis")
             cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
             if st.button('Show Pareto'):
@@ -101,7 +99,7 @@ def main():
                 fig = pareto_plot(tab)
                 st.plotly_chart(fig, use_container_width=True)
 
-            # --- SPC Section ---
+            # SPC Section
             st.subheader("Statistical Process Control (SPC)")
             num_cols = p.select_dtypes(include=['number']).columns.tolist()
             if num_cols:
@@ -112,7 +110,7 @@ def main():
             else:
                 st.info("No numeric columns available for SPC analysis.")
 
-            # --- Root Cause Analysis (RCA) ---
+            # RCA Section
             st.subheader("Root Cause Analysis (RCA)")
             idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
             row = p.iloc[int(idx)]
@@ -165,7 +163,7 @@ def main():
                         st.error(f"Fishbone visualization failed: {e}")
                         st.json(fishbone_data)
 
-            # --- Manual 5-Whys & CAPA creation ---
+            # Manual 5-Whys & CAPA
             st.markdown("---")
             st.subheader("Manual 5-Whys & CAPA creation")
             manual_whys = []
