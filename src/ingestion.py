@@ -1,4 +1,3 @@
-# src/ingestion.py
 import pandas as pd
 from config import PROCESSED_DIR
 import streamlit as st
@@ -41,12 +40,26 @@ def manual_log_entry():
 
     if st.button("Save Manual Logs"):
         df = pd.DataFrame(all_entries)
+        # Convert all object columns to string to avoid parquet errors
+        for col in df.columns:
+            if df[col].dtype == 'object':
+                df[col] = df[col].astype(str)
         st.write("### Raw Data Preview", df)
         return df
     return None
 
 def save_processed(df: pd.DataFrame, name: str):
+    """
+    Saves DataFrame as a Parquet file after ensuring object columns are stringified.
+    """
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     path = PROCESSED_DIR / name
-    df.to_parquet(path)
+
+    # Ensure all object columns are strings
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df[col] = df[col].astype(str)
+
+    # Save to Parquet
+    df.to_parquet(path, engine='pyarrow')
     return path
