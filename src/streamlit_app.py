@@ -51,28 +51,22 @@ def main():
         col1, col2 = st.sidebar.columns(2)
         with col1:
             if st.button("Cancel"):
-                # Refresh page without changing active method
-                st.experimental_rerun()
+                st.experimental_rerun()  # just refresh page
         with col2:
             if st.button("Continue"):
-                # Clear previous data and switch method
-                st.session_state.df = None
-                st.session_state.logs = []
-                st.session_state.current_log = 1
-                st.session_state.active_input_method = source_choice
-
-    # Set active method if none
-    st.session_state.active_input_method = source_choice
+                st.experimental_rerun()  # refresh page to start fresh
 
     # --- File Upload ---
     if source_choice == "Upload File":
-        if uploaded:
-            df = ingest_file(uploaded)
-            if df is not None and not df.empty:
-                st.session_state.df = df
-                save_processed(df, "uploaded_data.parquet")
-            else:
-                st.warning("Uploaded file is empty or invalid.")
+        if uploaded is None:
+            return  # do nothing until a file is uploaded
+        df = ingest_file(uploaded)
+        if df is not None and not df.empty:
+            st.session_state.df = df
+            save_processed(df, "uploaded_data.parquet")
+        else:
+            st.warning("Uploaded file is empty or invalid.")
+            st.experimental_rerun()  # refresh if file is closed or invalid
 
     # --- Manual Entry ---
     elif source_choice == "Manual Entry":
@@ -90,6 +84,7 @@ def main():
         # --- Preprocessing: safe default text columns ---
         default_text_cols = [c for c in st.session_state.df.columns if st.session_state.df[c].dtype == 'object'][:2]
         text_cols = st.multiselect('Text columns to use', options=st.session_state.df.columns.tolist(), default=default_text_cols)
+
 
 
 
