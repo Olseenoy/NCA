@@ -51,21 +51,22 @@ def plot_spc_chart(df, column):
     fig.update_layout(title=f"SPC Chart for {column}", xaxis_title="Sample", yaxis_title=column)
     return fig
 
-# --- Time-Series Trend Dashboard ---
-def plot_trend_dashboard(df, date_col, value_col, freq='D'):
-    """
-    Creates a time-series trend chart with rolling mean.
-    """
-    df = df.copy()
+def plot_trend_dashboard(df, date_col, value_col):
+    if date_col not in df.columns or value_col not in df.columns:
+        return None
     df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
-    df = df.dropna(subset=[date_col])
-    df = df.groupby(pd.Grouper(key=date_col, freq=freq))[value_col].mean().reset_index()
+    df = df.dropna(subset=[date_col, value_col])
+    df = df.sort_values(date_col)
+    fig = px.line(df, x=date_col, y=value_col, title="Trend Dashboard")
+    return fig
 
-    fig = px.line(df, x=date_col, y=value_col, title=f"Trend Analysis ({value_col})")
-    fig.add_scatter(
-        x=df[date_col],
-        y=df[value_col].rolling(window=7, min_periods=1).mean(),
-        mode='lines',
-        name='7-Day Rolling Mean'
-    )
+def plot_time_series_trend(df, date_col, value_col):
+    if date_col not in df.columns or value_col not in df.columns:
+        return None
+    df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+    df = df.dropna(subset=[date_col, value_col])
+    df = df.sort_values(date_col)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df[date_col], y=df[value_col], mode='lines+markers'))
+    fig.update_layout(title="Time Series Trend", xaxis_title=date_col, yaxis_title=value_col)
     return fig
