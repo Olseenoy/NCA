@@ -32,18 +32,14 @@ def main():
 
     # Sidebar data input
     st.sidebar.header("Data Input Method")
-    manual_entry_disabled = uploaded is not None  # disable manual entry if file uploaded
-
-    source_choice = st.sidebar.radio(
-        "Select Input Method",
-        ["Upload File", "Manual Entry"],
-        index=0,
-        disabled=[False, manual_entry_disabled]  # disable manual entry if needed
-    )
-
-    # Show prompt if manual entry is disabled
-    if manual_entry_disabled:
+    options = ["Upload File"]
+    manual_entry_disabled = uploaded is not None
+    if not manual_entry_disabled:
+        options.append("Manual Entry")
+    else:
         st.sidebar.info("Close the uploaded file to continue in Manual Entry Mode.")
+
+    source_choice = st.sidebar.radio("Select Input Method", options)
 
     # Initialize session state
     if "df" not in st.session_state:
@@ -78,6 +74,7 @@ def main():
         st.subheader("Raw Data Preview")
         df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
         st.dataframe(df_display.head(50))
+        
         # --- Preprocess & Embed ---
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
         text_cols = st.multiselect('Text columns to use for embedding', options=df.columns.tolist(), default=default_text_cols)
