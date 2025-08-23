@@ -31,13 +31,32 @@ def main():
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
 
-    # Radio button for data input method
+    # Sidebar: Data Input Method
     st.sidebar.header("Data Input Method")
     source_choice = st.sidebar.radio("Select Input Method", ["Upload File", "Manual Entry"])
 
-    # Ensure session state for DataFrame exists
+    # Initialize session state
     if "df" not in st.session_state:
         st.session_state.df = None
+    if "active_input_method" not in st.session_state:
+        st.session_state.active_input_method = None
+
+    # Check if switching input method
+    if st.session_state.df is not None and st.session_state.active_input_method != source_choice:
+        proceed = st.sidebar.warning(
+            "Switching input method will terminate ongoing analysis. Continue?"
+        )
+        if st.sidebar.button("Cancel"):
+            st.experimental_rerun()  # refresh page
+        elif st.sidebar.button("Continue"):
+            st.session_state.df = None
+            st.session_state.active_input_method = source_choice
+            st.session_state.logs = []
+            st.session_state.current_log = 1
+
+    # Set active input method
+    if st.session_state.active_input_method is None:
+        st.session_state.active_input_method = source_choice
 
     # --- File Upload Path ---
     if source_choice == "Upload File":
@@ -61,6 +80,8 @@ def main():
     # --- Proceed only if DataFrame exists ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         df = st.session_state.df
+        st.write("### Raw Data Preview")
+        st.dataframe(df.head(50))
 
         # --- Raw Data Preview (single, row numbers start at 1) ---
         st.subheader("Raw Data Preview")
