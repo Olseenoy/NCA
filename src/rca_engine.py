@@ -1,8 +1,9 @@
-# src/rca_engine.py
 import os
 import json
 from collections import defaultdict
-import openai
+from typing import Dict, Any
+from src.llm_rca import generate_rca_with_llm, LLMRCAException
+import requests
 
 FISHBONE_CATEGORIES = ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
 
@@ -28,50 +29,52 @@ def rule_based_rca_suggestions(clean_text: str) -> dict:
             fishbone[cat].append(kw)
     return fishbone
 
-def ai_rca_with_fallback(original_text: str, clean_text: str) -> dict:
-    api_key = os.getenv("OPENAI_API_KEY")
+def huggingface_rca(issue_text: str) -> Dict[str, Any]:
+    """
+    Uses Hugging Face Inference API for RCA if OpenAI fails.
+    Replace 'MODEL_NAME' with an appropriate model.
+    """
+    api_key = os.getenv("HUGGINGFACE_API_KEY")
     if not api_key:
-        return {"error": "OPENAI_API_KEY not found in Streamlit secrets or environment variables."}
+        return {"error": "HUGGINGFACE_API_KEY not found.", "fishbone": rule_based_rca_suggestions(issue_text)}
 
-    openai.api_key = api_key
-    prompt = f"""
-Perform a root cause analysis (RCA) on this issue:
----
-{original_text}
----
-Output JSON with keys:
-- "root_causes": list of objects with "category" (Man, Machine, Method, Material, Measurement, Environment) and "cause"
-- "five_whys": list of 5 strings
-- "capa": list of objects with "type" (Corrective or Preventive), "action", "owner", "due_in_days"
-"""
+    url = "https://api-inference.huggingface.co/models/MODEL_NAME"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    payload = {"inputs": issue_text}
 
     try:
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "system", "content": "You are an RCA assistant."},
-                      {"role": "user", "content": prompt}],
-            max_tokens=400
-        )
-        raw_text = response.choices[0].message["content"]
-        result = json.loads(raw_text)
-    except json.JSONDecodeError:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        data = response.json()
+        if isinstance(data, dict) and "error" in data:
+            return {"error": f"Hugging Face: {data['error']}", "fishbone": rule_based_rca_suggestions(issue_text)}
+        # Minimal placeholder structure
         return {
-            "error": "AI output not valid JSON. Falling back to rule-based RCA.",
-            "fishbone": rule_based_rca_suggestions(clean_text)
+            "root_causes": [{"cause": "HF RCA cause", "category": "Method"}],
+            "five_whys": ["HF Why1", "HF Why2", "HF Why3", "HF Why4", "HF Why5"],
+            "capa": [
+                {"type": "Corrective", "action": "HF corrective action", "owner": "QA Team", "due_in_days": 7},
+                {"type": "Preventive", "action": "HF preventive action", "owner": "Maintenance", "due_in_days": 14}
+            ],
+            "fishbone": generate_fishbone_skeleton()
         }
     except Exception as e:
-        return {
-            "error": f"LLM RCA failed: {e}",
-            "fishbone": rule_based_rca_suggestions(clean_text)
-        }
+        return {"error": f"Hugging Face RCA call failed: {e}", "fishbone": rule_based_rca_suggestions(issue_text)}
 
-    # Ensure all keys exist
-    return {
-        "root_causes": result.get("root_causes", []),
-        "five_whys": result.get("five_whys", []),
-        "capa": result.get("capa", []),
-        "fishbone": convert_to_fishbone(result.get("root_causes", []))
-    }
+def ai_rca_with_fallback(original_text: str, clean_text: str) -> dict:
+    """
+    Attempt RCA via OpenAI LLM -> Hugging Face -> Rule-based
+    """
+    try:
+        result = generate_rca_with_llm(issue_text=original_text)
+        return {
+            "root_causes": result.get("root_causes", []),
+            "five_whys": result.get("five_whys", []),
+            "capa": result.get("capa", []),
+            "fishbone": convert_to_fishbone(result.get("root_causes", []))
+        }
+    except LLMRCAException as e:
+        # If OpenAI fails, try Hugging Face
+        return huggingface_rca(original_text)
 
 def convert_to_fishbone(root_causes):
     fishbone = generate_fishbone_skeleton()
