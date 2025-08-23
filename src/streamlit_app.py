@@ -19,6 +19,19 @@ from db import init_db, SessionLocal, CAPA
 from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
 
+import os
+import sys
+import streamlit as st
+import pandas as pd
+
+# ensure src is on path
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+if FILE_DIR not in sys.path:
+    sys.path.insert(0, FILE_DIR)
+
+from ingestion import ingest_file, manual_log_entry, save_processed
+from db import init_db
+
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
@@ -52,15 +65,16 @@ def main():
     # --- File Upload ---
     if source_choice == "Upload File":
         if uploaded is None:
-            return
-        df = ingest_file(uploaded)
-        if df is not None and not df.empty:
-            st.session_state.df = df
-            save_processed(df, "uploaded_data.parquet")
+            st.session_state.df = None  # Clear old data preview if no file is uploaded
         else:
-            st.warning("Uploaded file is empty or invalid.")
-            st.session_state.df = None
-            st.experimental_rerun()
+            df = ingest_file(uploaded)
+            if df is not None and not df.empty:
+                st.session_state.df = df
+                save_processed(df, "uploaded_data.parquet")
+            else:
+                st.warning("Uploaded file is empty or invalid.")
+                st.session_state.df = None
+                st.experimental_rerun()
 
     # --- Manual Entry ---
     elif source_choice == "Manual Entry":
@@ -72,8 +86,23 @@ def main():
     # --- Display Raw Data ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         st.subheader("Raw Data Preview")
-        df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
+        df_display = (
+            st.session_state.df.reset_index(drop=True)
+            .rename_axis("No")
+            .rename(lambda x: x + 1, axis=0)
+        )
         st.dataframe(df_display.head(50))
+
+        # Only run if df is valid
+        default_text_cols = [c for c in st.session_state.df.columns 
+                             if st.session_state.df[c].dtype == 'object'][:2]
+        text_cols = st.multiselect(
+            'Text columns to use',
+            options=st.session_state.df.columns.tolist(),
+            default=default_text_cols
+        )
+
+
         
         # --- Preprocess & Embed ---
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
