@@ -93,15 +93,7 @@ def main():
         )
         st.dataframe(df_display.head(50))
 
-        # Only run if df is valid
-        default_text_cols = [c for c in st.session_state.df.columns 
-                             if st.session_state.df[c].dtype == 'object'][:2]
-        text_cols = st.multiselect(
-            'Text columns to use',
-            options=st.session_state.df.columns.tolist(),
-            default=default_text_cols
-        )
-
+ 
 
         
         # --- Preprocess & Embed ---
