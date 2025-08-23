@@ -18,13 +18,14 @@ def ingest_file(file_obj):
     else:
         return pd.read_csv(file_obj)
 
+
 def manual_log_entry():
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
     Uses session state for navigation & auto-fills field names from Log 1.
     """
     st.write("### Manual Log Entry")
-    num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
+    num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1, step=1)
 
     # Initialize session state
     if "current_log" not in st.session_state:
@@ -33,9 +34,9 @@ def manual_log_entry():
         st.session_state.logs = [{} for _ in range(num_logs)]
 
     current_log = st.session_state.current_log
-    st.subheader(f"Log {current_log}")
+    st.subheader(f"Log {current_log} of {num_logs}")
 
-    # Use Log 1 field names as template
+    # Use Log 1 field names as template for remaining logs
     field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
 
     entry = {}
@@ -51,13 +52,19 @@ def manual_log_entry():
             )
 
         with col2:
+            # If field exists in template, prefill value from previous log
+            default_value = st.session_state.logs[current_log - 2].get(field, "") if current_log > 1 else ""
             value = st.text_input(
                 f"Content {i}",
+                value=default_value,
                 key=f"value_{current_log}_{i}"
             )
 
         if field:
             entry[field] = value
+            # Auto-fill for remaining logs
+            for j in range(current_log, num_logs):
+                st.session_state.logs[j][field] = value
 
     # Save current log data to session state
     st.session_state.logs[current_log - 1] = entry
@@ -67,21 +74,26 @@ def manual_log_entry():
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
             st.session_state.current_log -= 1
-            st.rerun()
+            st.experimental_rerun()
     with col_next:
         if current_log < num_logs and st.button("Next Log"):
             st.session_state.current_log += 1
-            st.rerun()
+            st.experimental_rerun()
 
     # Finalize entry
-    if current_log == num_logs and st.button("Save Manual Logs"):
+    if st.button("Save All Logs"):
         df = pd.DataFrame(st.session_state.logs)
+        # Ensure object columns are string type
         for col in df.columns:
             df[col] = df[col].astype(str)
-        st.write("### Raw Data Preview", df)
+        # Reset index numbering from 1
+        df.index = df.index + 1
+        st.write("### Raw Data Preview")
+        st.dataframe(df)
         return df
 
     return None
+
 
 def save_processed(df: pd.DataFrame, name: str):
     """
