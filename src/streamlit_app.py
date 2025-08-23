@@ -47,20 +47,15 @@ def main():
 
     # --- Check for input method switch ---
     if st.session_state.df is not None and st.session_state.active_input_method != source_choice:
-        st.sidebar.warning(
-            "Switching input method will terminate ongoing analysis."
-        )
+        st.sidebar.warning("Switching input method will terminate ongoing analysis.")
         col1, col2 = st.sidebar.columns(2)
         with col1:
             if st.button("Cancel"):
-                # Clear session and rerun
-                st.session_state.df = None
-                st.session_state.logs = []
-                st.session_state.current_log = 1
-                st.session_state.active_input_method = source_choice
+                # Refresh page without changing active method
                 st.experimental_rerun()
         with col2:
             if st.button("Continue"):
+                # Clear previous data and switch method
                 st.session_state.df = None
                 st.session_state.logs = []
                 st.session_state.current_log = 1
@@ -86,11 +81,16 @@ def main():
             st.session_state.df = df
             save_processed(df, "manual_data.parquet")
 
-      # --- Display Data ---
+    # --- Display Raw Data ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         st.subheader("Raw Data Preview")
         df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
         st.dataframe(df_display.head(50))
+
+        # --- Preprocessing: safe default text columns ---
+        default_text_cols = [c for c in st.session_state.df.columns if st.session_state.df[c].dtype == 'object'][:2]
+        text_cols = st.multiselect('Text columns to use', options=st.session_state.df.columns.tolist(), default=default_text_cols)
+
 
 
         # --- Preprocess & Embed ---
