@@ -21,31 +21,66 @@ def ingest_file(file_obj):
 def manual_log_entry():
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
-    Returns DataFrame once all logs are entered.
+    Uses session state for navigation & auto-fills field names from Log 1.
     """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    all_entries = []
+    # Initialize session state
+    if "current_log" not in st.session_state:
+        st.session_state.current_log = 1
+    if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
+        st.session_state.logs = [{} for _ in range(num_logs)]
 
-    for log_num in range(1, num_logs + 1):
-        st.subheader(f"Log {log_num}")
-        entry = {}
-        for i in range(1, 11):  # up to 10 fields
-            field = st.text_input(f"Field {i} Name (Log {log_num})", key=f"field_{log_num}_{i}")
-            value = st.text_input(f"Content {i} (Log {log_num})", key=f"value_{log_num}_{i}")
-            if field:
-                entry[field] = value
-        all_entries.append(entry)
+    current_log = st.session_state.current_log
+    st.subheader(f"Log {current_log}")
 
-    if st.button("Save Manual Logs"):
-        df = pd.DataFrame(all_entries)
-        # Convert all object columns to string to avoid parquet errors
+    # Use Log 1 field names as template
+    field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
+
+    entry = {}
+    for i in range(1, 11):
+        col1, col2 = st.columns([1, 2])
+
+        with col1:
+            default_field = field_template[i-1] if i-1 < len(field_template) else ""
+            field = st.text_input(
+                f"Field {i} Name",
+                value=default_field,
+                key=f"field_{current_log}_{i}"
+            )
+
+        with col2:
+            value = st.text_input(
+                f"Content {i}",
+                key=f"value_{current_log}_{i}"
+            )
+
+        if field:
+            entry[field] = value
+
+    # Save current log data to session state
+    st.session_state.logs[current_log - 1] = entry
+
+    # Navigation buttons
+    col_prev, col_next = st.columns(2)
+    with col_prev:
+        if current_log > 1 and st.button("Previous Log"):
+            st.session_state.current_log -= 1
+            st.rerun()
+    with col_next:
+        if current_log < num_logs and st.button("Next Log"):
+            st.session_state.current_log += 1
+            st.rerun()
+
+    # Finalize entry
+    if current_log == num_logs and st.button("Save Manual Logs"):
+        df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
-            if df[col].dtype == 'object':
-                df[col] = df[col].astype(str)
+            df[col] = df[col].astype(str)
         st.write("### Raw Data Preview", df)
         return df
+
     return None
 
 def save_processed(df: pd.DataFrame, name: str):
@@ -55,11 +90,9 @@ def save_processed(df: pd.DataFrame, name: str):
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     path = PROCESSED_DIR / name
 
-    # Ensure all object columns are strings
     for col in df.columns:
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str)
 
-    # Save to Parquet
     df.to_parquet(path, engine='pyarrow')
     return path
