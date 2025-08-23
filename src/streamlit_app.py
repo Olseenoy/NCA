@@ -9,7 +9,7 @@ FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 if FILE_DIR not in sys.path:
     sys.path.insert(0, FILE_DIR)
 
-from ingestion import ingest_file, save_processed
+from ingestion import ingest_file, manual_log_entry, save_processed
 from preprocessing import preprocess_df
 from embeddings import embed_texts
 from clustering import fit_kmeans
@@ -19,20 +19,47 @@ from db import init_db, SessionLocal, CAPA
 from rca_engine import rule_based_rca_suggestions, five_whys, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
 
-def main():
-    st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
-    st.title('Smart Non-Conformance Analyzer')
 
-    init_db()
+    def main():
+        st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+        st.title('Smart Non-Conformance Analyzer')
+    
+        # Initialize database
+        init_db()
+    
+        # Sidebar for upload
+        st.sidebar.header('Upload')
+        uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
+    
+        # Radio button for data input method
+        st.sidebar.header("Data Input Method")
+        source_choice = st.sidebar.radio("Select Input Method", ["Upload File", "Manual Entry"])
+    
+        df = None
+    
+        # --- File Upload Path ---
+        if source_choice == "Upload File":
+            if uploaded:
+                df = ingest_file(uploaded)
+                st.write("### Raw Data Preview", df)
+                save_processed(df, "uploaded_data.parquet")
+    
+        # --- Manual Entry Path ---
+        elif source_choice == "Manual Entry":
+            df = manual_log_entry()
+            if df is not None:
+                save_processed(df, "manual_data.parquet")
+    
+        # --- Proceed to Processing only when DataFrame is Ready ---
+        if df is not None:
+            st.success("Data ingestion complete. Proceed to embedding & clustering...")
+    
+            # Embedding, clustering and visualization sections can go here
+            # Example:
+            # embeddings = compute_embeddings(df)
+            # if embeddings is not None:
+            #     cluster_and_visualize(embeddings)
 
-    st.sidebar.header('Upload')
-    uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
-
-    if uploaded:
-        # Use ingest_file from ingestion.py (handles both CSV & Excel)
-        df = ingest_file(uploaded)
-        st.sidebar.success(f'Loaded {len(df)} rows from {uploaded.name}')
-        st.session_state['raw_df'] = df
 
         # RAW DATA PREVIEW
         st.subheader("Raw Data Preview")
