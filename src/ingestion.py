@@ -73,12 +73,12 @@ def manual_log_entry():
             st.session_state.current_log += 1
             st.experimental_rerun()
 
-    # Finalize entry
+    # Finalize entry (only returns DataFrame, no preview here)
     if current_log == num_logs and st.button("Save Manual Logs"):
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
             df[col] = df[col].astype(str)
-        return df  # Pass DataFrame back to streamlit_app for preview
+        return df
     return None
 
 
@@ -87,3 +87,4 @@ def save_processed(df, filename):
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     file_path = os.path.join(PROCESSED_DIR, filename)
     df.to_parquet(file_path, index=False)
+
