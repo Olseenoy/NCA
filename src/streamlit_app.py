@@ -43,22 +43,38 @@ def main():
         st.session_state.logs = []
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
+    if "allow_method_switch" not in st.session_state:
+        st.session_state.allow_method_switch = True  # control radio availability
 
-    # --- Check for input method switch ---
+    # --- Block input method switch until confirmed ---
     if st.session_state.df is not None and st.session_state.active_input_method != source_choice:
+        st.session_state.allow_method_switch = False
         st.sidebar.warning("Switching input method will terminate ongoing analysis.")
+
         col1, col2 = st.sidebar.columns(2)
         with col1:
             if st.button("Cancel"):
-                st.experimental_rerun()  # just refresh page
+                st.experimental_rerun()  # stay on current input
         with col2:
             if st.button("Continue"):
+                # Clear previous data and logs
+                st.session_state.df = None
+                st.session_state.logs = []
+                st.session_state.current_log = 1
+                st.session_state.active_input_method = source_choice
+                st.session_state.allow_method_switch = True
                 st.experimental_rerun()  # refresh page to start fresh
+
+    # Disable radio if switch not allowed
+    if not st.session_state.allow_method_switch:
+        st.sidebar.warning("Please confirm before switching input method.")
+        # Override radio to keep previous selection
+        source_choice = st.session_state.active_input_method
 
     # --- File Upload ---
     if source_choice == "Upload File":
         if uploaded is None:
-            return  # do nothing until a file is uploaded
+            return  # do nothing until file uploaded
         df = ingest_file(uploaded)
         if df is not None and not df.empty:
             st.session_state.df = df
