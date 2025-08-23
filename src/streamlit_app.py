@@ -32,20 +32,18 @@ def main():
 
     # Sidebar data input
     st.sidebar.header("Data Input Method")
-    if uploaded is not None:
-        # If file uploaded, Manual Entry disabled
-        st.sidebar.info("Close the uploaded file to continue in Manual Entry Mode")
-        source_choice = st.sidebar.radio(
-            "Select Input Method",
-            ["Upload File"],
-            index=0
-        )
-    else:
-        # Otherwise, allow manual entry
-        source_choice = st.sidebar.radio(
-            "Select Input Method",
-            ["Upload File", "Manual Entry"]
-        )
+    manual_entry_disabled = uploaded is not None  # disable manual entry if file uploaded
+
+    source_choice = st.sidebar.radio(
+        "Select Input Method",
+        ["Upload File", "Manual Entry"],
+        index=0,
+        disabled=[False, manual_entry_disabled]  # disable manual entry if needed
+    )
+
+    # Show prompt if manual entry is disabled
+    if manual_entry_disabled:
+        st.sidebar.info("Close the uploaded file to continue in Manual Entry Mode.")
 
     # Initialize session state
     if "df" not in st.session_state:
@@ -58,13 +56,14 @@ def main():
     # --- File Upload ---
     if source_choice == "Upload File":
         if uploaded is None:
-            return  # wait for file upload
+            return
         df = ingest_file(uploaded)
         if df is not None and not df.empty:
             st.session_state.df = df
             save_processed(df, "uploaded_data.parquet")
         else:
             st.warning("Uploaded file is empty or invalid.")
+            st.session_state.df = None
             st.experimental_rerun()
 
     # --- Manual Entry ---
@@ -79,7 +78,6 @@ def main():
         st.subheader("Raw Data Preview")
         df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
         st.dataframe(df_display.head(50))
-
         # --- Preprocess & Embed ---
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
         text_cols = st.multiselect('Text columns to use for embedding', options=df.columns.tolist(), default=default_text_cols)
