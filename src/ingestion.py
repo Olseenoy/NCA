@@ -18,28 +18,6 @@ def ingest_file(file_obj):
     else:
         return pd.read_csv(file_obj)
 
-def confirm_switch_input(current_method, new_method):
-    """
-    Checks if switching input method while data exists.
-    Returns True to proceed, False to cancel.
-    """
-    if "df" in st.session_state and st.session_state.df is not None:
-        proceed = st.warning(
-            f"You are switching from **{current_method}** to **{new_method}**. "
-            "This will terminate ongoing analysis.", icon="⚠️"
-        )
-        cols = st.columns([1, 1])
-        with cols[0]:
-            if st.button("Continue Switching"):
-                st.session_state.df = None  # Clear current data
-                return True
-        with cols[1]:
-            if st.button("Cancel Switching"):
-                st.experimental_rerun()  # Refresh page without switching
-                return False
-        return False
-    return True
-
 def manual_log_entry():
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
