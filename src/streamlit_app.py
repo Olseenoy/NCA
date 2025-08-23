@@ -19,7 +19,6 @@ from db import init_db, SessionLocal, CAPA
 from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
 
-
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
@@ -27,12 +26,13 @@ def main():
     # Initialize database
     init_db()
 
-    # Sidebar - Upload & Manual Entry
+    # Sidebar upload
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
 
+    # Sidebar data input
     st.sidebar.header("Data Input Method")
-    source_choice = st.sidebar.radio("Choose Input", ["Upload File", "Manual Entry"])
+    source_choice = st.sidebar.radio("Select Input Method", ["Upload File", "Manual Entry"])
 
     # Initialize session state
     if "df" not in st.session_state:
@@ -44,37 +44,28 @@ def main():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
-    # --- Detect Input Method Switch ---
+    # --- Check for input method switch ---
     if st.session_state.df is not None and st.session_state.active_input_method != source_choice:
-        st.sidebar.warning("Switching will terminate ongoing analysis.")
+        st.sidebar.warning("Switching input method will terminate ongoing analysis.")
         col1, col2 = st.sidebar.columns(2)
-
         with col1:
             if st.button("Cancel"):
-                st.session_state.active_input_method = st.session_state.active_input_method
-                st.experimental_rerun()
-
+                st.experimental_rerun()  # just refresh page
         with col2:
             if st.button("Continue"):
-                # Reset all states
-                st.session_state.df = None
-                st.session_state.logs = []
-                st.session_state.current_log = 1
-                st.session_state.active_input_method = source_choice
-                st.experimental_rerun()
+                st.experimental_rerun()  # refresh page to start fresh
 
-    # Set current method
-    st.session_state.active_input_method = source_choice
-
-    # --- Upload File ---
+    # --- File Upload ---
     if source_choice == "Upload File":
-        if uploaded:
-            df = ingest_file(uploaded)
-            if df is not None and not df.empty:
-                st.session_state.df = df
-                save_processed(df, "uploaded_data.parquet")
-            else:
-                st.warning("Uploaded file is empty or invalid.")
+        if uploaded is None:
+            return  # do nothing until a file is uploaded
+        df = ingest_file(uploaded)
+        if df is not None and not df.empty:
+            st.session_state.df = df
+            save_processed(df, "uploaded_data.parquet")
+        else:
+            st.warning("Uploaded file is empty or invalid.")
+            st.experimental_rerun()  # refresh if file is closed or invalid
 
     # --- Manual Entry ---
     elif source_choice == "Manual Entry":
@@ -83,7 +74,7 @@ def main():
             st.session_state.df = df
             save_processed(df, "manual_data.parquet")
 
-    # --- Display Data ---
+    # --- Display Raw Data ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         st.subheader("Raw Data Preview")
         df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
