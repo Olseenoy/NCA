@@ -18,7 +18,6 @@ def ingest_file(file_obj):
     else:
         return pd.read_csv(file_obj)
 
-
 def manual_log_entry():
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
@@ -42,7 +41,6 @@ def manual_log_entry():
     entry = {}
     for i in range(1, 11):
         col1, col2 = st.columns([1, 2])
-
         with col1:
             default_field = field_template[i-1] if i-1 < len(field_template) else ""
             field = st.text_input(
@@ -50,13 +48,11 @@ def manual_log_entry():
                 value=default_field,
                 key=f"field_{current_log}_{i}"
             )
-
         with col2:
             value = st.text_input(
                 f"Content {i}",
                 key=f"value_{current_log}_{i}"
             )
-
         if field:
             entry[field] = value
 
@@ -68,11 +64,11 @@ def manual_log_entry():
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
             st.session_state.current_log -= 1
-            st.rerun()
+            st.experimental_rerun()
     with col_next:
         if current_log < num_logs and st.button("Next Log"):
             st.session_state.current_log += 1
-            st.rerun()
+            st.experimental_rerun()
 
     # Finalize entry
     if current_log == num_logs and st.button("Save Manual Logs"):
@@ -80,21 +76,4 @@ def manual_log_entry():
         for col in df.columns:
             df[col] = df[col].astype(str)
         st.write("### Raw Data Preview", df)
-        return df
-
-    return None
-
-
-def save_processed(df: pd.DataFrame, name: str):
-    """
-    Saves DataFrame as a Parquet file after ensuring object columns are stringified.
-    """
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    path = PROCESSED_DIR / name
-
-    for col in df.columns:
-        if df[col].dtype == 'object':
-            df[col] = df[col].astype(str)
-
-    df.to_parquet(path, engine='pyarrow')
-    return path
+        r
