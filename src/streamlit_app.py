@@ -44,8 +44,6 @@ def main():
         if uploaded:
             df = ingest_file(uploaded)
             if df is not None and not df.empty:
-                st.write("### Raw Data Preview")
-                st.dataframe(df.head(50))
                 save_processed(df, "uploaded_data.parquet")
                 st.session_state.df = df
             else:
@@ -54,23 +52,30 @@ def main():
     # --- Manual Entry Path ---
     elif source_choice == "Manual Entry":
         df = manual_log_entry()
-        if df is not None:
-            st.write("### Raw Data Preview")
-            st.dataframe(df.head(50))
+        if df is not None and not df.empty:
             save_processed(df, "manual_data.parquet")
             st.session_state.df = df
+        else:
+            st.warning("No manual log entries yet.")
 
     # --- Proceed to Processing only when DataFrame is Ready ---
     if st.session_state.df is not None and not st.session_state.df.empty:
-        st.success("Data ingestion complete. Proceed to embedding & clustering...")
-        # Placeholder for further processing
-
-
-
-
-        # RAW DATA PREVIEW
+        df_preview = st.session_state.df.head(50)
+        df_preview.index = df_preview.index + 1  # Start numbering from 1
         st.subheader("Raw Data Preview")
-        st.dataframe(df.head(50))
+        st.dataframe(df_preview)
+
+        st.success("Data ingestion complete. Proceed to embedding & clustering...")
+
+        # Placeholder for embedding and clustering
+        # embeddings = compute_embeddings(st.session_state.df)
+        # if embeddings is not None:
+        #     km, labels, score, interpretation = fit_kmeans(embeddings)
+        #     st.write(f"Silhouette score: {score:.3f}")
+        #     st.info(interpretation)
+        #     fig = cluster_scatter(embeddings, labels)
+        #     st.plotly_chart(fig, use_container_width=True)
+
 
         # Preprocess
         default_text_cols = [c for c in df.columns if df[c].dtype == 'object'][:2]
