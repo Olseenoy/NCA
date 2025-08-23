@@ -35,7 +35,9 @@ def main():
     st.sidebar.header("Data Input Method")
     source_choice = st.sidebar.radio("Select Input Method", ["Upload File", "Manual Entry"])
 
-    df = None
+    # Ensure session state for DataFrame exists
+    if "df" not in st.session_state:
+        st.session_state.df = None
 
     # --- File Upload Path ---
     if source_choice == "Upload File":
@@ -45,31 +47,24 @@ def main():
                 st.write("### Raw Data Preview")
                 st.dataframe(df.head(50))
                 save_processed(df, "uploaded_data.parquet")
+                st.session_state.df = df
             else:
                 st.warning("Uploaded file is empty or invalid.")
 
     # --- Manual Entry Path ---
     elif source_choice == "Manual Entry":
         df = manual_log_entry()
-        if df is not None and not df.empty:
+        if df is not None:
             st.write("### Raw Data Preview")
             st.dataframe(df.head(50))
             save_processed(df, "manual_data.parquet")
-        else:
-            st.warning("No manual log entries yet.")
+            st.session_state.df = df
 
     # --- Proceed to Processing only when DataFrame is Ready ---
-    if df is not None and not df.empty:
+    if st.session_state.df is not None and not st.session_state.df.empty:
         st.success("Data ingestion complete. Proceed to embedding & clustering...")
+        # Placeholder for further processing
 
-        # Placeholder for embedding and clustering
-        # embeddings = compute_embeddings(df)
-        # if embeddings is not None:
-        #     km, labels, score, interpretation = fit_kmeans(embeddings)
-        #     st.write(f"Silhouette score: {score:.3f}")
-        #     st.info(interpretation)
-        #     fig = cluster_scatter(embeddings, labels)
-        #     st.plotly_chart(fig, use_container_width=True)
 
 
 
