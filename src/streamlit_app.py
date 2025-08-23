@@ -60,6 +60,17 @@ def main():
             save_processed(df, "manual_data.parquet")
             st.session_state.df = df
 
+    # --- Proceed to Processing only when DataFrame is Ready ---
+    if st.session_state.df is not None and not st.session_state.df.empty:
+        st.success("Data ingestion complete. Proceed to embedding & clustering...")
+        # Placeholder for further processing
+
+
+
+
+        # RAW DATA PREVIEW
+        st.subheader("Raw Data Preview")
+        st.dataframe(df.head(50))
 
         # RAW DATA PREVIEW
         st.subheader("Raw Data Preview")
