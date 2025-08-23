@@ -4,9 +4,7 @@ from config import PROCESSED_DIR
 import streamlit as st
 
 def ingest_file(file_obj):
-    """
-    Reads CSV or Excel from Streamlit uploader or local path.
-    """
+    """Reads CSV or Excel from Streamlit uploader or local path."""
     if hasattr(file_obj, "name"):
         filename = file_obj.name.lower()
     else:
@@ -23,27 +21,26 @@ def ingest_file(file_obj):
 
 def manual_log_entry():
     """
-    Manual data entry (max 5 logs, 10 fields each).
-    Returns DataFrame after entry.
+    Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
+    Returns DataFrame once all logs are entered.
     """
-    num_logs = st.number_input("Enter number of logs (max 5)", min_value=1, max_value=5, step=1)
-    all_logs = []
+    st.write("### Manual Log Entry")
+    num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    for log_index in range(num_logs):
-        st.subheader(f"Log {log_index+1} of {num_logs}")
-        log_data = {}
-        for field_num in range(1, 11):
-            col1, col2 = st.columns(2)
-            with col1:
-                field = st.text_input(f"Data Field {field_num}", key=f"field_{log_index}_{field_num}")
-            with col2:
-                value = st.text_input(f"Content {field_num}", key=f"value_{log_index}_{field_num}")
+    all_entries = []
+
+    for log_num in range(1, num_logs + 1):
+        st.subheader(f"Log {log_num}")
+        entry = {}
+        for i in range(1, 11):  # up to 10 fields
+            field = st.text_input(f"Field {i} Name (Log {log_num})", key=f"field_{log_num}_{i}")
+            value = st.text_input(f"Content {i} (Log {log_num})", key=f"value_{log_num}_{i}")
             if field:
-                log_data[field] = value
-        all_logs.append(log_data)
+                entry[field] = value
+        all_entries.append(entry)
 
-    if st.button("Generate Preview"):
-        df = pd.DataFrame(all_logs)
+    if st.button("Save Manual Logs"):
+        df = pd.DataFrame(all_entries)
         st.write("### Raw Data Preview", df)
         return df
     return None
