@@ -86,10 +86,7 @@ def main():
             st.session_state.df = df
             save_processed(df, "manual_data.parquet")
 
-    # --- Display Data ---
-    if st.session_state.df is not None and not st.session_state.df.empty:
-        st.write("### Raw Data Preview")
-        st.dataframe(st.session_state.df.head(50))
+
 
 
         # --- Raw Data Preview (single, row numbers start at 1) ---
