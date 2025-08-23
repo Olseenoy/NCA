@@ -78,7 +78,8 @@ def manual_log_entry():
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
             df[col] = df[col].astype(str)
-      
+        return df  # Pass DataFrame back to streamlit_app for preview
+    return None
 
 
 def save_processed(df, filename):
