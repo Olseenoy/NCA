@@ -73,6 +73,13 @@ def main():
         else:
             df = ingest_file(uploaded)
             if df is not None and not df.empty:
+                # Convert potential date columns safely
+                for col in df.columns:
+                    if "date" in col.lower():
+                        try:
+                            df[col] = pd.to_datetime(df[col], errors="coerce")
+                        except Exception:
+                            pass
                 st.session_state.df = df
                 try:
                     save_processed(df, "uploaded_data.parquet")
@@ -81,17 +88,25 @@ def main():
             else:
                 st.warning("Uploaded file is empty or invalid.")
                 st.session_state.df = None
-                st.rerun()  # refresh to clear old preview
+                # Removed st.rerun() to avoid infinite loops
 
     # --- Manual Entry ---
     elif source_choice == "Manual Entry":
         df = manual_log_entry()
         if df is not None and not df.empty:
+            # Convert potential date columns safely
+            for col in df.columns:
+                if "date" in col.lower():
+                    try:
+                        df[col] = pd.to_datetime(df[col], errors="coerce")
+                    except Exception:
+                        pass
             st.session_state.df = df
             try:
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
                 st.info(f"Could not cache manual data: {e}")
+
 
     # --- Display Raw Data Preview (only once) ---
     if st.session_state.df is not None and not st.session_state.df.empty:
