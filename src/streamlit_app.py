@@ -60,30 +60,26 @@ def _make_unique(names):
 
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     """
-    Apply a row from raw_df as header and return updated DataFrame.
-    Row numbering starts from 0 (first row of uploaded file).
+    Apply a row as header, removing it from data completely.
     """
     if raw_df is None or raw_df.empty:
         return raw_df
 
     row_idx = int(max(0, min(row_idx, len(raw_df) - 1)))
 
-    # Extract header values
+    # Extract header
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    # Drop header row from data
+    # Data excluding header row
     df = raw_df.drop(index=row_idx).copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
-    # Try parsing dates for columns with "date" in name
+    # Parse date-like columns
     for col in df.columns:
         if "date" in col.lower():
-            try:
-                df[col] = pd.to_datetime(df[col], errors="coerce")
-            except Exception:
-                pass
+            df[col] = pd.to_datetime(df[col], errors="ignore")
 
     return df
 
@@ -98,7 +94,6 @@ def main():
     except Exception as e:
         st.warning(f"Database init warning: {e}")
 
-    # Sidebar upload
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
 
@@ -118,11 +113,7 @@ def main():
     if "df" not in st.session_state:
         st.session_state.df = None
     if "header_row" not in st.session_state:
-        st.session_state.header_row = None  # None = no header applied yet
-    if "logs" not in st.session_state:
-        st.session_state.logs = []
-    if "current_log" not in st.session_state:
-        st.session_state.current_log = 1
+        st.session_state.header_row = None
 
     # -------- Data Ingestion --------
     if source_choice == "Upload File":
@@ -131,7 +122,6 @@ def main():
             st.session_state.df = None
         else:
             try:
-                # Always read without header so first row is row 0
                 if uploaded.name.endswith('.csv'):
                     df = pd.read_csv(uploaded, header=None)
                 else:
@@ -142,7 +132,7 @@ def main():
 
             if df is not None and not df.empty:
                 st.session_state.raw_df = df
-                st.session_state.header_row = 0  # Default to first row as header
+                st.session_state.header_row = 0
                 st.session_state.df = apply_row_as_header(df, 0)
                 try:
                     save_processed(df, "uploaded_data.parquet")
@@ -171,21 +161,18 @@ def main():
     if st.session_state.raw_df is not None and not st.session_state.raw_df.empty:
         st.subheader("Data Preview")
 
-        # Show current header selection
         max_row = len(st.session_state.raw_df) - 1
         new_header_row = st.number_input(
             "Row number to use as header (0-indexed)",
             min_value=0, max_value=max_row,
             value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
-            step=1,
-            help="Pick a row from the file to become column headers."
+            step=1
         )
 
         if int(new_header_row) != int(st.session_state.header_row):
             st.session_state.header_row = int(new_header_row)
             st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
 
-        # Show updated DataFrame
         df_display = (
             st.session_state.df.reset_index(drop=True)
                                .rename_axis("No")
@@ -222,7 +209,6 @@ def main():
                     st.success('Embeddings computed')
                 except Exception as e:
                     st.error(f"Embedding failed: {e}")
-                    
                         
         # --- Only show clustering, Pareto, SPC after preprocessing ---
         if 'processed' in st.session_state and 'embeddings' in st.session_state:
