@@ -66,19 +66,20 @@ def main():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
+
 def clean_dataframe(df):
-    """Convert dates safely to date-only format and ensure object-like columns are strings."""
-    for col in df.columns:
-        # Handle date-like columns
-        if "date" in col.lower():
-            try:
-                df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
-            except Exception:
-                pass
-        # Handle object-like columns (force to string)
-        elif df[col].dtype == "object":
+        """Convert dates safely and ensure all object-like columns are strings before saving."""
+        for col in df.columns:
+            # Handle date-like columns
+            if "date" in col.lower():
+                try:
+                    df[col] = pd.to_datetime(df[col], errors="coerce")
+                except Exception:
+                    pass
+            # Handle object-like columns (force to string)
+            elif df[col].dtype == "object":
                 df[col] = df[col].astype(str)
-    return df
+        return df
 
     # --- File Upload ---
     if source_choice == "Upload File":
