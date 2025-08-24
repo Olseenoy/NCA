@@ -23,9 +23,8 @@ def ingest_file(file_obj):
 
 def manual_log_entry():
     """
-    Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
-    Uses session state for navigation & auto-fills field names from Log 1.
-    Returns final DataFrame after all logs are filled, otherwise None.
+    Multi-log manual entry using Streamlit session_state.
+    Stores logs in session_state and returns None until "Save Logs" is clicked.
     """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
@@ -35,11 +34,13 @@ def manual_log_entry():
         st.session_state.current_log = 1
     if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
         st.session_state.logs = [{} for _ in range(num_logs)]
+    if "manual_logs_saved" not in st.session_state:
+        st.session_state.manual_logs_saved = False
 
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
-    # Use Log 1 field names as template
+    # Use first log fields as template
     field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
 
     entry = {}
@@ -47,20 +48,13 @@ def manual_log_entry():
         col1, col2 = st.columns([1, 2])
         with col1:
             default_field = field_template[i-1] if i-1 < len(field_template) else ""
-            field = st.text_input(
-                f"Field {i} Name",
-                value=default_field,
-                key=f"field_{current_log}_{i}"
-            )
+            field = st.text_input(f"Field {i} Name", value=default_field, key=f"field_{current_log}_{i}")
         with col2:
-            value = st.text_input(
-                f"Content {i}",
-                key=f"value_{current_log}_{i}"
-            )
+            value = st.text_input(f"Content {i}", key=f"value_{current_log}_{i}")
         if field:
             entry[field] = value
 
-    # Save current log data to session state
+    # Save current log
     st.session_state.logs[current_log - 1] = entry
 
     # Navigation buttons
@@ -72,15 +66,17 @@ def manual_log_entry():
         st.session_state.current_log += 1
         st.experimental_rerun()
 
-    # Only show "Save Logs" button after the last log
+    # Save logs button (only after last log)
     if current_log == num_logs:
         if st.button("Save Manual Logs"):
             df = pd.DataFrame(st.session_state.logs)
             for col in df.columns:
                 df[col] = df[col].astype(str)
-            return df
+            st.session_state.manual_logs_saved = True
+            st.session_state.manual_logs_df = df
+            st.success("Manual logs saved!")
 
-    return None
+    return None  # Always return None; final DataFrame is in session_state
 
 
 def save_processed(df, filename):
