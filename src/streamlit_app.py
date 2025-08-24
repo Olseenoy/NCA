@@ -33,6 +33,14 @@ from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
 
 
+# Safe rerun utility (in case ingestion doesn't handle all calls)
+def safe_rerun():
+    try:
+        st.rerun()
+    except AttributeError:
+        st.experimental_rerun()
+
+
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
@@ -69,13 +77,11 @@ def main():
     def clean_dataframe(df):
         """Convert dates safely and ensure all object-like columns are strings before saving."""
         for col in df.columns:
-            # Handle date-like columns
             if "date" in col.lower():
                 try:
                     df[col] = pd.to_datetime(df[col], errors="coerce")
                 except Exception:
                     pass
-            # Handle object-like columns (force to string)
             elif df[col].dtype == "object":
                 df[col] = df[col].astype(str)
         return df
@@ -107,6 +113,12 @@ def main():
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
                 st.info(f"Could not cache manual data: {e}")
+
+    # (Rest of the code remains exactly the same as before)
+    # No further experimental_rerun calls are inside streamlit_app.py
+    # since reruns are handled by ingestion.py navigation buttons.
+
+
 
     # --- Display Raw Data Preview (only once) ---
     if st.session_state.df is not None and not st.session_state.df.empty:
