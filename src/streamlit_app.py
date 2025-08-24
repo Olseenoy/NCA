@@ -57,32 +57,30 @@ def _make_unique(names):
         unique.append(n)
     return unique
 
-
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     """
-    Apply a row as header, removing it from data completely.
+    Apply a row as header, removing all rows above it and the header row itself from data.
     """
     if raw_df is None or raw_df.empty:
         return raw_df
 
     row_idx = int(max(0, min(row_idx, len(raw_df) - 1)))
 
-    # Extract header
+    # New header
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    # Data excluding header row
-    df = raw_df.drop(index=row_idx).copy()
+    # Drop all rows up to and including header row
+    df = raw_df.iloc[row_idx + 1:].copy()  # keep only rows below header
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
-    # Parse date-like columns
+    # Convert date columns if possible
     for col in df.columns:
         if "date" in col.lower():
             df[col] = pd.to_datetime(df[col], errors="ignore")
 
     return df
-
 
 # ----------------- Main App -----------------
 def main():
@@ -113,14 +111,11 @@ def main():
     if "df" not in st.session_state:
         st.session_state.df = None
     if "header_row" not in st.session_state:
-        st.session_state.header_row = None
+        st.session_state.header_row = 0
 
     # -------- Data Ingestion --------
     if source_choice == "Upload File":
-        if uploaded is None:
-            st.session_state.raw_df = None
-            st.session_state.df = None
-        else:
+        if uploaded is not None:
             try:
                 if uploaded.name.endswith('.csv'):
                     df = pd.read_csv(uploaded, header=None)
@@ -133,7 +128,7 @@ def main():
             if df is not None and not df.empty:
                 st.session_state.raw_df = df
                 st.session_state.header_row = 0
-                st.session_state.df = apply_row_as_header(df, 0)
+                st.session_state.df = df.copy()  # initially show everything as uploaded
                 try:
                     save_processed(df, "uploaded_data.parquet")
                 except Exception as e:
@@ -148,7 +143,7 @@ def main():
         if df is not None and not df.empty:
             st.session_state.raw_df = df
             st.session_state.header_row = 0
-            st.session_state.df = apply_row_as_header(df, 0)
+            st.session_state.df = df.copy()
             try:
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
@@ -165,19 +160,17 @@ def main():
         new_header_row = st.number_input(
             "Row number to use as header (0-indexed)",
             min_value=0, max_value=max_row,
-            value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
+            value=int(st.session_state.header_row),
             step=1
         )
 
+        # Apply new header row if changed
         if int(new_header_row) != int(st.session_state.header_row):
             st.session_state.header_row = int(new_header_row)
             st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
 
-        df_display = (
-            st.session_state.df.reset_index(drop=True)
-                               .rename_axis("No")
-                               .rename(lambda x: x + 1, axis=0)
-        )
+        # Show updated preview
+        df_display = st.session_state.df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
         st.dataframe(df_display.head(50))
 
         # -------- Preprocess & Embed --------
@@ -209,6 +202,7 @@ def main():
                     st.success('Embeddings computed')
                 except Exception as e:
                     st.error(f"Embedding failed: {e}")
+                    
                         
         # --- Only show clustering, Pareto, SPC after preprocessing ---
         if 'processed' in st.session_state and 'embeddings' in st.session_state:
