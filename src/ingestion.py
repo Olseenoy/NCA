@@ -3,6 +3,13 @@ from config import PROCESSED_DIR
 import streamlit as st
 import os
 
+def safe_rerun():
+    """Handles rerun compatibility across Streamlit versions."""
+    try:
+        st.rerun()
+    except AttributeError:
+        st.experimental_rerun()
+
 def ingest_file(file_obj):
     """Reads CSV or Excel from Streamlit uploader or local path."""
     if hasattr(file_obj, "name"):
@@ -67,11 +74,11 @@ def manual_log_entry():
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
             st.session_state.current_log -= 1
-            st.experimental_rerun()
+            safe_rerun()
     with col_next:
         if current_log < num_logs and st.button("Next Log"):
             st.session_state.current_log += 1
-            st.experimental_rerun()
+            safe_rerun()
 
     # Finalize entry (only returns DataFrame, no preview here)
     if current_log == num_logs and st.button("Save Manual Logs"):
