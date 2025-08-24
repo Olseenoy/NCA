@@ -24,7 +24,7 @@ def ingest_file(file_obj):
 def manual_log_entry():
     """
     Multi-log manual entry using Streamlit session_state.
-    Stores logs in session_state and returns None until "Save Logs" is clicked.
+    Stores logs in session_state; returns None.
     """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
@@ -75,8 +75,6 @@ def manual_log_entry():
             st.session_state.manual_logs_saved = True
             st.session_state.manual_logs_df = df
             st.success("Manual logs saved!")
-
-    return None  # Always return None; final DataFrame is in session_state
 
 
 def save_processed(df, filename):
