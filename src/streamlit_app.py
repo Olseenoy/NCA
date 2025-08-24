@@ -1,5 +1,5 @@
 # ================================
-# File: src/streamlit_app.py
+# File: src/streamlit_app.py (rewritten)
 # ================================
 import os
 import sys
@@ -74,8 +74,9 @@ def main():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
-    def clean_dataframe(df):
+    def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         """Convert dates safely and ensure all object-like columns are strings before saving."""
+        df = df.copy()
         for col in df.columns:
             if "date" in col.lower():
                 try:
@@ -83,7 +84,10 @@ def main():
                 except Exception:
                     pass
             elif df[col].dtype == "object":
-                df[col] = df[col].astype(str)
+                try:
+                    df[col] = df[col].astype(str)
+                except Exception:
+                    pass
         return df
 
     # --- File Upload ---
@@ -114,12 +118,6 @@ def main():
             except Exception as e:
                 st.info(f"Could not cache manual data: {e}")
 
-    # (Rest of the code remains exactly the same as before)
-    # No further experimental_rerun calls are inside streamlit_app.py
-    # since reruns are handled by ingestion.py navigation buttons.
-
-
-
     # --- Display Raw Data Preview (only once) ---
     if st.session_state.df is not None and not st.session_state.df.empty:
         df = st.session_state.df  # ensure we reference the active df consistently
@@ -130,26 +128,61 @@ def main():
             .rename(lambda x: x + 1, axis=0)  # Start index from 1
         )
         st.dataframe(df_display.head(50))
-   
 
         # --- Preprocess & Embed ---
+        st.subheader("Text Feature Selection")
+
+        # 1) New: Column number selector (appears ABOVE the existing multiselect)
+        st.caption(
+            "Use the number picker to choose by position (index — column name). If none are chosen, the name-based selector below will be used."
+        )
+        column_indices = st.multiselect(
+            "Column number to pick text columns",
+            options=list(range(len(df.columns))),
+            format_func=lambda i: f"{i} — {df.columns[i]}",
+            help="Pick by column index. Useful when column names vary or are duplicated."
+        )
+        selected_from_numbers = [df.columns[i] for i in column_indices] if column_indices else []
+
+        # 2) Existing: Name-based multiselect (kept as requested)
         object_cols = [c for c in df.columns if df[c].dtype == 'object']
         default_text_cols = object_cols[:2]
-        text_cols = st.multiselect('Text columns to use for embedding', options=df.columns.tolist(), default=default_text_cols)
+        text_cols = st.multiselect(
+            'Text columns to use for embedding',
+            options=df.columns.tolist(),
+            default=default_text_cols,
+            help="If you chose indices above, those will take priority."
+        )
+
+        # 3) Priority logic: indices (if any) override names
+        final_text_cols = selected_from_numbers if selected_from_numbers else text_cols
+
+        # Show a small status of what will be used
+        with st.expander("Selected text columns (effective)", expanded=False):
+            if final_text_cols:
+                st.write(final_text_cols)
+            else:
+                st.info("No text columns selected yet.")
 
         if st.button('Preprocess & Embed'):
-            if not text_cols:
-                st.error("Please select at least one text column.")
+            if not final_text_cols:
+                st.error("Please select at least one text column (by number or by name).")
             else:
-                p = preprocess_df(df, text_cols)
-                st.session_state['processed'] = p
-                st.success('Preprocessing complete')
                 try:
-                    embeddings = embed_texts(p['clean_text'].tolist())
-                    st.session_state['embeddings'] = embeddings
-                    st.success('Embeddings computed')
+                    p = preprocess_df(df, final_text_cols)
+                    st.session_state['processed'] = p
+                    st.success('Preprocessing complete')
                 except Exception as e:
-                    st.error(f"Embedding failed: {e}")
+                    st.error(f"Preprocessing failed: {e}")
+                    p = None
+
+                if p is not None:
+                    try:
+                        embeddings = embed_texts(p['clean_text'].tolist())
+                        st.session_state['embeddings'] = embeddings
+                        st.success('Embeddings computed')
+                    except Exception as e:
+                        st.error(f"Embedding failed: {e}")
 
         # --- Only show clustering, Pareto, SPC after preprocessing ---
         if 'processed' in st.session_state and 'embeddings' in st.session_state:
@@ -206,7 +239,6 @@ def main():
 
             # --- Time-Series Trend Analysis ---
             st.subheader("Time-Series Trend Analysis")
-            # accommodate various datetime dtypes
             time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
             if time_cols:
                 time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
@@ -231,7 +263,7 @@ def main():
                 idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
                 row = p.iloc[int(idx)]
                 st.markdown("**Selected row preview:**")
-                st.write(row.get('combined_text', row.get('clean_text', ''))) 
+                st.write(row.get('combined_text', row.get('clean_text', '')))
 
                 mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
 
@@ -255,7 +287,7 @@ def main():
                             st.markdown("**Root causes:**")
                             st.json(result.get("root_causes"))
                         if result.get("five_whys"):
-                            st.markdown("**5-Whys**")
+                            st.markdown("**5-Whys")
                             for i, w in enumerate(result.get("five_whys"), start=1):
                                 st.write(f"{i}. {w}")
                         if result.get("capa"):
