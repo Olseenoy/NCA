@@ -66,20 +66,19 @@ def main():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
-
-def clean_dataframe(df):
-    """Convert dates safely and ensure all object-like columns are strings before saving."""
-    for col in df.columns:
-         # Handle date-like columns
-        if "date" in col.lower():
-            try:
-                df[col] = pd.to_datetime(df[col], errors="coerce")
-            except Exception:
-                pass
+    def clean_dataframe(df):
+        """Convert dates safely and ensure all object-like columns are strings before saving."""
+        for col in df.columns:
+            # Handle date-like columns
+            if "date" in col.lower():
+                try:
+                    df[col] = pd.to_datetime(df[col], errors="coerce")
+                except Exception:
+                    pass
             # Handle object-like columns (force to string)
-        elif df[col].dtype == "object":
+            elif df[col].dtype == "object":
                 df[col] = df[col].astype(str)
-    return df
+        return df
 
     # --- File Upload ---
     if source_choice == "Upload File":
@@ -225,13 +224,14 @@ def clean_dataframe(df):
 
                 mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
 
-            if st.button("Run RCA"):
+                if st.button("Run RCA"):
                     with st.spinner("Running RCA..."):
                         try:
                             if mode == "AI-Powered (LLM)":
                                 result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
                             else:
-                                result = rule_based_rca_suggestions(str(row.get('clean_text', '')))
+                                fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
+                                result = {"from": "rule_based", "fishbone": fb}
                         except Exception as e:
                             result = {"error": f"RCA failed: {e}"}
 
@@ -309,5 +309,3 @@ def clean_dataframe(df):
 
 if __name__ == "__main__":
     main()
-
-
