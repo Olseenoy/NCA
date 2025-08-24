@@ -224,14 +224,13 @@ def main():
 
                 mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
 
-                if st.button("Run RCA"):
+               if st.button("Run RCA"):
                     with st.spinner("Running RCA..."):
                         try:
                             if mode == "AI-Powered (LLM)":
                                 result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
                             else:
-                                fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
-                                result = {"from": "rule_based", "fishbone": fb}
+                                result = rule_based_rca_suggestions(str(row.get('clean_text', '')))
                         except Exception as e:
                             result = {"error": f"RCA failed: {e}"}
 
