@@ -63,15 +63,16 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     """Return a new DataFrame whose columns come from the given row index of raw_df."""
     if raw_df is None or raw_df.empty:
         return raw_df
-    # clamp row_idx into valid range
     row_idx = int(max(0, min(row_idx, len(raw_df) - 1)))
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    # Drop the header row and reindex
-    df = raw_df.drop(index=raw_df.index[row_idx]).copy()
+    # Keep all rows intact, only change column names
+    df = raw_df.copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
+    return df
+
 
     # Normalize types a bit (keep strings as strings; try parsing date-like columns)
     for col in df.columns:
