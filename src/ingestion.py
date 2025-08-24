@@ -44,7 +44,6 @@ def manual_log_entry():
     if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
         # Reset logs to match num_logs
         st.session_state.logs = [{} for _ in range(num_logs)]
-        # Ensure current_log is valid
         st.session_state.current_log = min(st.session_state.current_log, num_logs)
     if "manual_logs_saved" not in st.session_state:
         st.session_state.manual_logs_saved = False
@@ -57,8 +56,14 @@ def manual_log_entry():
 
     st.subheader(f"Log {current_log}")
 
-    # Use first log fields as template
-    field_template = list(st.session_state.logs[0].keys()) if st.session_state.logs and current_log > 1 else []
+    # Use first log fields as template only if filled
+    field_template = []
+    if (
+        st.session_state.logs 
+        and isinstance(st.session_state.logs[0], dict) 
+        and st.session_state.logs[0]
+    ):
+        field_template = list(st.session_state.logs[0].keys())
 
     entry = {}
     for i in range(1, 11):
@@ -71,7 +76,7 @@ def manual_log_entry():
         if field:
             entry[field] = value
 
-    # Save current log with safety check
+    # Save current log safely
     try:
         if 0 <= current_log - 1 < len(st.session_state.logs):
             st.session_state.logs[current_log - 1] = entry
@@ -82,14 +87,14 @@ def manual_log_entry():
         st.error(f"Failed to save log entry: {e}")
         return
 
-    # Navigation buttons (safe rerun)
+    # Navigation buttons
     col_prev, col_next = st.columns(2)
     if col_prev.button("Previous Log") and current_log > 1:
         st.session_state.current_log -= 1
-        st.rerun()  # Updated from st.experimental_rerun
+        st.rerun()  # Safe rerun
     if col_next.button("Next Log") and current_log < num_logs:
         st.session_state.current_log += 1
-        st.rerun()  # Updated from st.experimental_rerun
+        st.rerun()  # Safe rerun
 
     # Save logs button (only after last log)
     if current_log == num_logs:
@@ -104,8 +109,8 @@ def manual_log_entry():
             except Exception as e:
                 st.error(f"Failed to save manual logs: {e}")
 
-    # Do not return anything; final DataFrame is in session_state
     return None
+
 
 def save_processed(df, filename):
     """Save DataFrame to parquet in processed dir."""
