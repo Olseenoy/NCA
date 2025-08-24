@@ -1,8 +1,18 @@
+# ================================
+# File: src/ingestion.py
+# ================================
 import pandas as pd
 from config import PROCESSED_DIR
 import streamlit as st
 import os
+import streamlit as st_version_check  # For version checking
 
+# Optional: Check Streamlit version to warn about compatibility
+try:
+    if st_version_check.__version__ < "1.10.0":
+        st.warning("Streamlit version is older than 1.10.0. Please upgrade to use `st.rerun()` by running `pip install --upgrade streamlit`.")
+except Exception:
+    pass
 
 def ingest_file(file_obj):
     """Reads CSV or Excel from Streamlit uploader or local path."""
@@ -19,7 +29,6 @@ def ingest_file(file_obj):
         return pd.read_excel(file_obj, engine="openpyxl")
     else:
         return pd.read_csv(file_obj)
-
 
 def manual_log_entry():
     """
@@ -61,10 +70,10 @@ def manual_log_entry():
     col_prev, col_next = st.columns(2)
     if col_prev.button("Previous Log") and current_log > 1:
         st.session_state.current_log -= 1
-        st.experimental_rerun()  # safe now
+        st.rerun()  # Updated from st.experimental_rerun()
     if col_next.button("Next Log") and current_log < num_logs:
         st.session_state.current_log += 1
-        st.experimental_rerun()  # safe now
+        st.rerun()  # Updated from st.experimental_rerun()
 
     # Save logs button (only after last log)
     if current_log == num_logs:
@@ -78,8 +87,6 @@ def manual_log_entry():
 
     # Do not return anything; final DataFrame is in session_state
     return None
-
-
 
 def save_processed(df, filename):
     """Save DataFrame to parquet in processed dir."""
