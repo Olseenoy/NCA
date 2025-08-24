@@ -41,7 +41,7 @@ def safe_rerun():
         st.experimental_rerun()
 
 
-# ---------- Helpers for the new "Row as Header" feature ----------
+# ---------- Helpers ----------
 def _make_unique(names):
     """Ensure column names are unique and non-empty."""
     seen = {}
@@ -58,7 +58,6 @@ def _make_unique(names):
         unique.append(n)
     return unique
 
-
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     """Return a new DataFrame whose columns come from the given row index of raw_df."""
     if raw_df is None or raw_df.empty:
@@ -67,29 +66,23 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    # Keep all rows intact, only change column names
-    df = raw_df.copy()
+    df = raw_df.drop(index=raw_df.index[row_idx]).copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
-    return df
 
-
-    # Normalize types a bit (keep strings as strings; try parsing date-like columns)
     for col in df.columns:
         if "date" in col.lower():
             try:
                 df[col] = pd.to_datetime(df[col], errors="coerce")
             except Exception:
                 pass
-        # leave other columns as-is; preprocessing handles text later
     return df
 
-
+# ---------- Main ----------
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
 
-    # Initialize database
     try:
         init_db()
     except Exception as e:
@@ -99,7 +92,7 @@ def main():
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
 
-    # Sidebar data input
+    # Sidebar input method
     st.sidebar.header("Data Input Method")
     options = ["Upload File"]
     manual_entry_disabled = uploaded is not None
@@ -107,22 +100,21 @@ def main():
         options.append("Manual Entry")
     else:
         st.sidebar.info("Close the uploaded file to continue in Manual Entry Mode.")
-
     source_choice = st.sidebar.radio("Select Input Method", options)
 
-    # ---------- Session state ----------
+    # Session state
     if "raw_df" not in st.session_state:
-        st.session_state.raw_df = None     # the original uploaded/manual dataframe
+        st.session_state.raw_df = None
     if "df" not in st.session_state:
-        st.session_state.df = None         # the working df (after applying header row)
+        st.session_state.df = None
     if "header_row" not in st.session_state:
-        st.session_state.header_row = 0    # selected row index to use as header
+        st.session_state.header_row = 0
     if "logs" not in st.session_state:
         st.session_state.logs = []
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
-    # ---------- Ingestion ----------
+    # Data ingestion
     if source_choice == "Upload File":
         if uploaded is None:
             st.session_state.raw_df = None
@@ -131,23 +123,11 @@ def main():
             df = ingest_file(uploaded)
             if df is not None and not df.empty:
                 st.session_state.raw_df = df
-                # reset header selection for a new file
                 st.session_state.header_row = 0
-                # immediately apply row-as-header to produce working df
-                st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
                 try:
-                    # Try caching the raw df as-is first
-                    save_processed(df, "uploaded_data.parquet")  # cache original upload (raw)
+                    save_processed(df, "uploaded_data.parquet")
                 except Exception as e:
-                    # Fallback: make object columns explicit strings just for caching
-                    try:
-                        df_cache = df.copy()
-                        for c in df_cache.columns:
-                            if df_cache[c].dtype == "object":
-                                df_cache[c] = df_cache[c].astype(str)
-                        save_processed(df_cache, "uploaded_data.parquet")
-                    except Exception as e2:
-                        st.info(f"Could not cache uploaded data: {e2}")
+                    st.info(f"Could not cache uploaded data: {e}")
             else:
                 st.warning("Uploaded file is empty or invalid.")
                 st.session_state.raw_df = None
@@ -158,82 +138,76 @@ def main():
         if df is not None and not df.empty:
             st.session_state.raw_df = df
             st.session_state.header_row = 0
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
             try:
-                # Try caching the raw df as-is first
-                save_processed(df, "manual_data.parquet")  # cache original manual entry (raw)
+                save_processed(df, "manual_data.parquet")
             except Exception as e:
-                # Fallback: make object columns explicit strings just for caching
-                try:
-                    df_cache = df.copy()
-                    for c in df_cache.columns:
-                        if df_cache[c].dtype == "object":
-                            df_cache[c] = df_cache[c].astype(str)
-                    save_processed(df_cache, "manual_data.parquet")
-                except Exception as e2:
-                    st.info(f"Could not cache manual data: {e2}")
+                st.info(f"Could not cache manual data: {e}")
         else:
             st.session_state.raw_df = None
             st.session_state.df = None
 
-    # ---------- UI: Data preview + NEW header selector ----------
+    # UI Section
     if st.session_state.raw_df is not None and not st.session_state.raw_df.empty:
-        st.subheader("Raw Data Preview (after applying selected header row)")
+        # 1. Show RAW file preview
+        st.subheader("Raw File Preview (as uploaded)")
+        st.dataframe(st.session_state.raw_df.head(50))
 
-        # Header row selector (IMMEDIATE EFFECT: changes df on widget change)
+        # 2. Header selection
+        st.markdown("### Select Row as Header")
         max_row = len(st.session_state.raw_df) - 1
         new_header_row = st.number_input(
             "Row number to use as header (0-indexed)",
-            min_value=0, max_value=max_row, value=int(st.session_state.header_row), step=1,
-            help="Choose a row from the original upload to become the column headers. "
-                 "The preview and the text column picker will update immediately."
+            min_value=0,
+            max_value=max_row,
+            value=int(st.session_state.header_row),
+            step=1,
+            help="Choose a row to become the header. Data preview will update."
         )
 
-        # If user changed the row, re-apply header against the ORIGINAL raw_df
-        if int(new_header_row) != int(st.session_state.header_row):
+        if int(new_header_row) != int(st.session_state.header_row) or st.session_state.df is None:
             st.session_state.header_row = int(new_header_row)
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
-            # No manual rerun needed; Streamlit reruns automatically on widget change
+            st.session_state.df = apply_row_as_header(
+                st.session_state.raw_df, st.session_state.header_row
+            )
 
-        # Show preview of the working df (after header application)
-        df = st.session_state.df.copy()
-        df_display = (
-            df.reset_index(drop=True)
-              .rename_axis("No")
-              .rename(lambda x: x + 1, axis=0)  # start index from 1
-        )
-        st.dataframe(df_display.head(50))
+        # 3. Processed preview
+        if st.session_state.df is not None:
+            st.subheader("Processed Data Preview (after header applied)")
+            df_display = (
+                st.session_state.df.reset_index(drop=True)
+                .rename_axis("No")
+                .rename(lambda x: x + 1, axis=0)
+            )
+            st.dataframe(df_display.head(50))
 
-        # ---------- Preprocess & Embed ----------
-        st.markdown("### Text Selection")
-        # Use UPDATED columns (post header-application) to determine object/text-like columns
-        object_cols = [c for c in df.columns if df[c].dtype == 'object']
-        default_text_cols = object_cols[:2]  # you can change to object_cols to default-select all text columns
-        text_cols = st.multiselect(
-            'Text columns to use for embedding',
-            options=df.columns.tolist(),
-            default=default_text_cols
-        )
+            # 4. Preprocess & Embed
+            st.markdown("### Text Selection")
+            object_cols = [c for c in st.session_state.df.columns if st.session_state.df[c].dtype == 'object']
+            default_text_cols = object_cols[:2]
+            text_cols = st.multiselect(
+                'Text columns to use for embedding',
+                options=st.session_state.df.columns.tolist(),
+                default=default_text_cols
+            )
 
-        if st.button('Preprocess & Embed'):
-            if not text_cols:
-                st.error("Please select at least one text column.")
-            else:
-                try:
-                    p = preprocess_df(df, text_cols)
-                    st.session_state['processed'] = p
-                    st.success('Preprocessing complete')
-                except Exception as e:
-                    st.error(f"Preprocessing failed: {e}")
-                    return
-
-                try:
-                    embeddings = embed_texts(p['clean_text'].tolist())
-                    st.session_state['embeddings'] = embeddings
-                    st.success('Embeddings computed')
-                except Exception as e:
-                    st.error(f"Embedding failed: {e}")
-
+            if st.button('Preprocess & Embed'):
+                if not text_cols:
+                    st.error("Please select at least one text column.")
+                else:
+                    try:
+                        p = preprocess_df(st.session_state.df, text_cols)
+                        st.session_state['processed'] = p
+                        st.success('Preprocessing complete')
+                    except Exception as e:
+                        st.error(f"Preprocessing failed: {e}")
+                        return
+                    try:
+                        embeddings = embed_texts(p['clean_text'].tolist())
+                        st.session_state['embeddings'] = embeddings
+                        st.success('Embeddings computed')
+                    except Exception as e:
+                        st.error(f"Embedding failed: {e}")
+                        
         # --- Only show clustering, Pareto, SPC after preprocessing ---
         if 'processed' in st.session_state and 'embeddings' in st.session_state:
             p = st.session_state['processed']
