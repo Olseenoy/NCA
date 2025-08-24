@@ -68,18 +68,18 @@ def main():
 
 
 def clean_dataframe(df):
-        """Convert dates safely and ensure all object-like columns are strings before saving."""
-        for col in df.columns:
-            # Handle date-like columns
-            if "date" in col.lower():
-                try:
-                    df[col] = pd.to_datetime(df[col], errors="coerce")
-                except Exception:
-                    pass
+    """Convert dates safely and ensure all object-like columns are strings before saving."""
+    for col in df.columns:
+         # Handle date-like columns
+        if "date" in col.lower():
+            try:
+                df[col] = pd.to_datetime(df[col], errors="coerce")
+            except Exception:
+                pass
             # Handle object-like columns (force to string)
-            elif df[col].dtype == "object":
+        elif df[col].dtype == "object":
                 df[col] = df[col].astype(str)
-        return df
+     return df
 
     # --- File Upload ---
     if source_choice == "Upload File":
