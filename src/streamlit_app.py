@@ -97,12 +97,16 @@ def main():
                 st.warning("Uploaded file is empty or invalid.")
                 st.session_state.df = None
 
-   # --- Manual Entry ---
+    # --- Manual Entry ---
     elif source_choice == "Manual Entry":
-        manual_log_entry()  # no assignment here!
-        if st.session_state.get("manual_logs_saved"):
-            st.session_state.df = st.session_state.manual_logs_df
-
+        df = manual_log_entry()
+        if df is not None and not df.empty:
+            df = clean_dataframe(df)
+            st.session_state.df = df
+            try:
+                save_processed(df, "manual_data.parquet")
+            except Exception as e:
+                st.info(f"Could not cache manual data: {e}")
 
     # --- Display Raw Data Preview (only once) ---
     if st.session_state.df is not None and not st.session_state.df.empty:
@@ -303,4 +307,4 @@ def main():
 
 
 if __name__ == "__main__":
-        main()
+    main()
