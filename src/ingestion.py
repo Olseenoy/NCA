@@ -57,14 +57,14 @@ def manual_log_entry():
     # Save current log
     st.session_state.logs[current_log - 1] = entry
 
-    # Navigation buttons
+    # Navigation buttons (safe rerun)
     col_prev, col_next = st.columns(2)
     if col_prev.button("Previous Log") and current_log > 1:
         st.session_state.current_log -= 1
-        st.experimental_rerun()
+        st.experimental_rerun()  # safe now
     if col_next.button("Next Log") and current_log < num_logs:
         st.session_state.current_log += 1
-        st.experimental_rerun()
+        st.experimental_rerun()  # safe now
 
     # Save logs button (only after last log)
     if current_log == num_logs:
@@ -75,6 +75,10 @@ def manual_log_entry():
             st.session_state.manual_logs_saved = True
             st.session_state.manual_logs_df = df
             st.success("Manual logs saved!")
+
+    # Do not return anything; final DataFrame is in session_state
+    return None
+
 
 
 def save_processed(df, filename):
