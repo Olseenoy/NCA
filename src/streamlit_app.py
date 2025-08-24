@@ -59,7 +59,7 @@ def _make_unique(names):
 
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     """
-    Apply a row as header, removing all rows above it (including the header row) from the preview.
+    Apply a row as header, removing all rows above it and the header row itself from data.
     """
     if raw_df is None or raw_df.empty:
         return raw_df
@@ -70,12 +70,12 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    # Keep only rows below header row (all above removed)
-    df = raw_df.iloc[row_idx + 1:].copy()
+    # Drop all rows up to and including header row
+    df = raw_df.iloc[row_idx + 1:].copy()  # keep only rows below header
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
-    # Attempt to parse date-like columns
+    # Convert date columns if possible
     for col in df.columns:
         if "date" in col.lower():
             df[col] = pd.to_datetime(df[col], errors="ignore")
@@ -128,7 +128,7 @@ def main():
             if df is not None and not df.empty:
                 st.session_state.raw_df = df
                 st.session_state.header_row = 0
-                st.session_state.df = df.copy()  # initial preview: show all rows
+                st.session_state.df = df.copy()  # initially show everything as uploaded
                 try:
                     save_processed(df, "uploaded_data.parquet")
                 except Exception as e:
