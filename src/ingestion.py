@@ -42,15 +42,23 @@ def manual_log_entry():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
     if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
+        # Reset logs to match num_logs
         st.session_state.logs = [{} for _ in range(num_logs)]
+        # Ensure current_log is valid
+        st.session_state.current_log = min(st.session_state.current_log, num_logs)
     if "manual_logs_saved" not in st.session_state:
         st.session_state.manual_logs_saved = False
 
     current_log = st.session_state.current_log
+    if current_log < 1 or current_log > num_logs:
+        st.warning(f"Invalid current_log value: {current_log}. Resetting to 1.")
+        st.session_state.current_log = 1
+        current_log = 1
+
     st.subheader(f"Log {current_log}")
 
     # Use first log fields as template
-    field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
+    field_template = list(st.session_state.logs[0].keys()) if st.session_state.logs and current_log > 1 else []
 
     entry = {}
     for i in range(1, 11):
@@ -63,27 +71,38 @@ def manual_log_entry():
         if field:
             entry[field] = value
 
-    # Save current log
-    st.session_state.logs[current_log - 1] = entry
+    # Save current log with safety check
+    try:
+        if 0 <= current_log - 1 < len(st.session_state.logs):
+            st.session_state.logs[current_log - 1] = entry
+        else:
+            st.error(f"Cannot save log: Invalid index {current_log - 1} for logs list of length {len(st.session_state.logs)}")
+            return
+    except Exception as e:
+        st.error(f"Failed to save log entry: {e}")
+        return
 
     # Navigation buttons (safe rerun)
     col_prev, col_next = st.columns(2)
     if col_prev.button("Previous Log") and current_log > 1:
         st.session_state.current_log -= 1
-        st.rerun()  # Updated from st.experimental_rerun()
+        st.rerun()  # Updated from st.experimental_rerun
     if col_next.button("Next Log") and current_log < num_logs:
         st.session_state.current_log += 1
-        st.rerun()  # Updated from st.experimental_rerun()
+        st.rerun()  # Updated from st.experimental_rerun
 
     # Save logs button (only after last log)
     if current_log == num_logs:
         if st.button("Save Manual Logs"):
-            df = pd.DataFrame(st.session_state.logs)
-            for col in df.columns:
-                df[col] = df[col].astype(str)
-            st.session_state.manual_logs_saved = True
-            st.session_state.manual_logs_df = df
-            st.success("Manual logs saved!")
+            try:
+                df = pd.DataFrame(st.session_state.logs)
+                for col in df.columns:
+                    df[col] = df[col].astype(str)
+                st.session_state.manual_logs_saved = True
+                st.session_state.manual_logs_df = df
+                st.success("Manual logs saved!")
+            except Exception as e:
+                st.error(f"Failed to save manual logs: {e}")
 
     # Do not return anything; final DataFrame is in session_state
     return None
