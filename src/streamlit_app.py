@@ -224,7 +224,7 @@ def main():
 
                 mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
 
-               if st.button("Run RCA"):
+            if st.button("Run RCA"):
                     with st.spinner("Running RCA..."):
                         try:
                             if mode == "AI-Powered (LLM)":
