@@ -3,6 +3,7 @@ from config import PROCESSED_DIR
 import streamlit as st
 import os
 
+
 def ingest_file(file_obj):
     """Reads CSV or Excel from Streamlit uploader or local path."""
     if hasattr(file_obj, "name"):
@@ -24,7 +25,7 @@ def manual_log_entry():
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
     Uses session state for navigation & auto-fills field names from Log 1.
-    Returns final DataFrame after save, otherwise None.
+    Returns final DataFrame after all logs are filled, otherwise None.
     """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
@@ -64,21 +65,21 @@ def manual_log_entry():
 
     # Navigation buttons
     col_prev, col_next = st.columns(2)
-    with col_prev:
-        if current_log > 1 and st.button("Previous Log"):
-            st.session_state.current_log -= 1
-            st.experimental_rerun()
-    with col_next:
-        if current_log < num_logs and st.button("Next Log"):
-            st.session_state.current_log += 1
-            st.experimental_rerun()
+    if col_prev.button("Previous Log") and current_log > 1:
+        st.session_state.current_log -= 1
+        st.experimental_rerun()
+    if col_next.button("Next Log") and current_log < num_logs:
+        st.session_state.current_log += 1
+        st.experimental_rerun()
 
-    # Finalize entry (only returns DataFrame, no preview here)
-    if current_log == num_logs and st.button("Save Manual Logs"):
-        df = pd.DataFrame(st.session_state.logs)
-        for col in df.columns:
-            df[col] = df[col].astype(str)
-        return df
+    # Only show "Save Logs" button after the last log
+    if current_log == num_logs:
+        if st.button("Save Manual Logs"):
+            df = pd.DataFrame(st.session_state.logs)
+            for col in df.columns:
+                df[col] = df[col].astype(str)
+            return df
+
     return None
 
 
@@ -87,4 +88,3 @@ def save_processed(df, filename):
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     file_path = os.path.join(PROCESSED_DIR, filename)
     df.to_parquet(file_path, index=False)
-
