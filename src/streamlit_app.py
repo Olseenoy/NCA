@@ -79,7 +79,7 @@ def clean_dataframe(df):
             # Handle object-like columns (force to string)
         elif df[col].dtype == "object":
                 df[col] = df[col].astype(str)
-     return df
+    return df
 
     # --- File Upload ---
     if source_choice == "Upload File":
