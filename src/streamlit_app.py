@@ -1,5 +1,5 @@
 # ================================
-# File: src/streamlit_app.py (rewritten)
+# File: src/streamlit_app.py
 # ================================
 import os
 import sys
@@ -15,7 +15,7 @@ for p in [FILE_DIR, PROJECT_ROOT]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-# Local package imports (now safe regardless of run directory)
+# Local package imports
 from ingestion import ingest_file, manual_log_entry, save_processed
 from preprocessing import preprocess_df
 from embeddings import embed_texts
@@ -33,7 +33,6 @@ from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
 
 
-# Safe rerun utility (in case ingestion doesn't handle all calls)
 def safe_rerun():
     try:
         st.rerun()
@@ -55,7 +54,6 @@ def main():
     st.sidebar.header('Upload')
     uploaded = st.sidebar.file_uploader('Upload CSV or Excel', type=['csv', 'xlsx', 'xls'])
 
-    # Sidebar data input
     st.sidebar.header("Data Input Method")
     options = ["Upload File"]
     manual_entry_disabled = uploaded is not None
@@ -66,7 +64,6 @@ def main():
 
     source_choice = st.sidebar.radio("Select Input Method", options)
 
-    # Initialize session state
     if "df" not in st.session_state:
         st.session_state.df = None
     if "logs" not in st.session_state:
@@ -74,9 +71,7 @@ def main():
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
 
-    def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-        """Convert dates safely and ensure all object-like columns are strings before saving."""
-        df = df.copy()
+    def clean_dataframe(df):
         for col in df.columns:
             if "date" in col.lower():
                 try:
@@ -84,10 +79,7 @@ def main():
                 except Exception:
                     pass
             elif df[col].dtype == "object":
-                try:
-                    df[col] = df[col].astype(str)
-                except Exception:
-                    pass
+                df[col] = df[col].astype(str)
         return df
 
     # --- File Upload ---
@@ -118,71 +110,60 @@ def main():
             except Exception as e:
                 st.info(f"Could not cache manual data: {e}")
 
-    # --- Display Raw Data Preview (only once) ---
+    # --- Display Raw Data Preview ---
     if st.session_state.df is not None and not st.session_state.df.empty:
-        df = st.session_state.df  # ensure we reference the active df consistently
+        df = st.session_state.df.copy()
         st.subheader("Raw Data Preview")
         df_display = (
             df.reset_index(drop=True)
             .rename_axis("No")
-            .rename(lambda x: x + 1, axis=0)  # Start index from 1
+            .rename(lambda x: x + 1, axis=0)
         )
         st.dataframe(df_display.head(50))
 
+        # --- NEW FEATURE: ROW AS HEADER ---
+        st.markdown("### Set Row as Header")
+        row_number = st.number_input(
+            "Select row number to use as header",
+            min_value=0,
+            max_value=len(df) - 1,
+            value=0,
+            step=1
+        )
+
+        if st.button("Apply Row as Header"):
+            new_header = df.iloc[row_number]
+            df = df[1:].copy() if row_number == 0 else df.drop(index=row_number).copy()
+            df.columns = new_header
+            df.reset_index(drop=True, inplace=True)
+            st.session_state.df = df
+            st.success(f"Row {row_number} applied as header!")
+            safe_rerun()
+
         # --- Preprocess & Embed ---
-        st.subheader("Text Feature Selection")
-
-        # 1) New: Column number selector (appears ABOVE the existing multiselect)
-        st.caption(
-            "Use the number picker to choose by position (index — column name). If none are chosen, the name-based selector below will be used."
-        )
-        column_indices = st.multiselect(
-            "Column number to pick text columns",
-            options=list(range(len(df.columns))),
-            format_func=lambda i: f"{i} — {df.columns[i]}",
-            help="Pick by column index. Useful when column names vary or are duplicated."
-        )
-        selected_from_numbers = [df.columns[i] for i in column_indices] if column_indices else []
-
-        # 2) Existing: Name-based multiselect (kept as requested)
         object_cols = [c for c in df.columns if df[c].dtype == 'object']
         default_text_cols = object_cols[:2]
         text_cols = st.multiselect(
             'Text columns to use for embedding',
             options=df.columns.tolist(),
-            default=default_text_cols,
-            help="If you chose indices above, those will take priority."
+            default=default_text_cols
         )
 
-        # 3) Priority logic: indices (if any) override names
-        final_text_cols = selected_from_numbers if selected_from_numbers else text_cols
-
-        # Show a small status of what will be used
-        with st.expander("Selected text columns (effective)", expanded=False):
-            if final_text_cols:
-                st.write(final_text_cols)
-            else:
-                st.info("No text columns selected yet.")
-
         if st.button('Preprocess & Embed'):
-            if not final_text_cols:
-                st.error("Please select at least one text column (by number or by name).")
+            if not text_cols:
+                st.error("Please select at least one text column.")
             else:
+                p = preprocess_df(df, text_cols)
+                st.session_state['processed'] = p
+                st.success('Preprocessing complete')
                 try:
-                    p = preprocess_df(df, final_text_cols)
-                    st.session_state['processed'] = p
-                    st.success('Preprocessing complete')
+                    embeddings = embed_texts(p['clean_text'].tolist())
+                    st.session_state['embeddings'] = embeddings
+                    st.success('Embeddings computed')
                 except Exception as e:
-                    st.error(f"Preprocessing failed: {e}")
-                    p = None
+                    st.error(f"Embedding failed: {e}")
 
-                if p is not None:
-                    try:
-                        embeddings = embed_texts(p['clean_text'].tolist())
-                        st.session_state['embeddings'] = embeddings
-                        st.success('Embeddings computed')
-                    except Exception as e:
-                        st.error(f"Embedding failed: {e}")
+
 
         # --- Only show clustering, Pareto, SPC after preprocessing ---
         if 'processed' in st.session_state and 'embeddings' in st.session_state:
