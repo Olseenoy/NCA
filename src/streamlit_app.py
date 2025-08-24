@@ -109,22 +109,22 @@ def main():
                 st.info(f"Could not cache manual data: {e}")
 
     # --- Display Raw Data Preview (only once) ---
-if st.session_state.df is not None and not st.session_state.df.empty:
-    df = st.session_state.df  # underlying DataFrame for processing
-
-    # Make a copy for display purposes
-    df_display = df.copy()
-
-    # Format date columns for display
-    for col in df_display.columns:
-        if pd.api.types.is_datetime64_any_dtype(df_display[col]):
-            df_display[col] = df_display[col].dt.strftime('%Y-%m-%d')
-
-    # Reset index and rename for better display
-    df_display = df_display.reset_index(drop=True).rename_axis("No").rename(lambda x: x+1, axis=0)
-
-    st.subheader("Raw Data Preview")
-    st.dataframe(df_display.head(50), use_container_width=True)
+        if st.session_state.df is not None and not st.session_state.df.empty:
+            df = st.session_state.df  # underlying DataFrame for processing
+        
+            # Make a copy for display purposes
+            df_display = df.copy()
+        
+            # Format date columns for display
+            for col in df_display.columns:
+                if pd.api.types.is_datetime64_any_dtype(df_display[col]):
+                    df_display[col] = df_display[col].dt.strftime('%Y-%m-%d')
+        
+            # Reset index and rename for better display
+            df_display = df_display.reset_index(drop=True).rename_axis("No").rename(lambda x: x+1, axis=0)
+        
+            st.subheader("Raw Data Preview")
+            st.dataframe(df_display.head(50), use_container_width=True)
 
    
 
