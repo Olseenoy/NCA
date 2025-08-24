@@ -67,16 +67,16 @@ def main():
         st.session_state.current_log = 1
 
 def clean_dataframe(df):
-        """Convert dates safely to date-only format and ensure object-like columns are strings."""
+     """Convert dates safely to date-only format and ensure object-like columns are strings."""
         for col in df.columns:
             # Handle date-like columns
-            if "date" in col.lower():
-                try:
-                    df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+    if "date" in col.lower():
+            try:
+                df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
                 except Exception:
-                    pass
+                pass
             # Handle object-like columns (force to string)
-            elif df[col].dtype == "object":
+        elif df[col].dtype == "object":
                 df[col] = df[col].astype(str)
         return df
 
