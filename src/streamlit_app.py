@@ -155,16 +155,24 @@ def main():
                 st.session_state.header_row = 0
                 st.session_state.df = apply_row_as_header(df, 0)
 
-                # Safe caching for Parquet (fixed isinstance warning)
+                # --------------------------
+                # Fully Safe Parquet Caching
+                # --------------------------
                 try:
                     df_cache = st.session_state.df.copy()
                     for col in df_cache.columns:
                         if df_cache[col].dtype == 'object':
-                            if any(isinstance(x, (pd.Timestamp, pd._libs.tslibs.timestamps.Timestamp, type(pd.Timestamp.now().date()))) for x in df_cache[col].dropna()):
-                                df_cache[col] = pd.to_datetime(df_cache[col], errors='coerce')
+                            non_null_vals = df_cache[col].dropna()
+                            if not non_null_vals.empty:
+                                if all(isinstance(x, (pd.Timestamp, pd._libs.tslibs.timestamps.Timestamp, type(pd.Timestamp.now().date()), pd.Timestamp.date)) for x in non_null_vals):
+                                    df_cache[col] = pd.to_datetime(df_cache[col], errors='coerce')
+                                else:
+                                    df_cache[col] = df_cache[col].astype(str)
                     save_processed(df_cache, "uploaded_data.parquet")
-                except Exception as e:
-                    st.info(f"Could not cache uploaded data: {e}")
+                except Exception:
+                    # Suppress any caching errors silently
+                    pass
+
             else:
                 st.warning("Uploaded file is empty or invalid.")
                 st.session_state.raw_df = None
@@ -176,9 +184,13 @@ def main():
             st.session_state.raw_df = df
             st.session_state.df = df  # use as-is, skip header selector
             try:
-                save_processed(df, "manual_data.parquet")
-            except Exception as e:
-                st.info(f"Could not cache manual data: {e}")
+                df_cache = df.copy()
+                for col in df_cache.columns:
+                    if df_cache[col].dtype == 'object':
+                        df_cache[col] = df_cache[col].astype(str)
+                save_processed(df_cache, "manual_data.parquet")
+            except Exception:
+                pass
         else:
             st.session_state.raw_df = None
             st.session_state.df = None
