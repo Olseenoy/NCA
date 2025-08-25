@@ -157,8 +157,8 @@ def main():
         df = manual_log_entry()
         if df is not None and not df.empty:
             st.session_state.raw_df = df
-            st.session_state.header_row = 0
-            st.session_state.df = apply_row_as_header(df, 0)
+            st.session_state.header_row = None  # No header selection for manual entry
+            st.session_state.df = df
             try:
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
@@ -167,25 +167,9 @@ def main():
             st.session_state.raw_df = None
             st.session_state.df = None
 
-    # -------- UI: Raw Data Preview + Header Selector --------
+    # -------- UI: Raw Data Preview --------
     if st.session_state.raw_df is not None and not st.session_state.raw_df.empty:
         st.subheader("Data Preview")
-
-        # Show current header selection
-        max_row = len(st.session_state.raw_df) - 1
-        new_header_row = st.number_input(
-            "Row number to use as header (0-indexed)",
-            min_value=0, max_value=max_row,
-            value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
-            step=1,
-            help="Pick a row from the file to become column headers."
-        )
-
-        if int(new_header_row) != int(st.session_state.header_row):
-            st.session_state.header_row = int(new_header_row)
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
-
-        # Show updated DataFrame
         df_display = (
             st.session_state.df.reset_index(drop=True)
                                .rename_axis("No")
@@ -193,7 +177,22 @@ def main():
         )
         st.dataframe(df_display.head(50))
 
-        # -------- Preprocess & Embed --------
+        # -------- Header Row Selector (Upload Only) --------
+        if source_choice == "Upload File":
+            max_row = len(st.session_state.raw_df) - 1
+            new_header_row = st.number_input(
+                "Row number to use as header (0-indexed)",
+                min_value=0, max_value=max_row,
+                value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
+                step=1,
+                help="Pick a row from the file to become column headers."
+            )
+            if int(new_header_row) != st.session_state.header_row:
+                st.session_state.header_row = int(new_header_row)
+                st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
+
+    # -------- Preprocess & Embed --------
+    if st.session_state.df is not None and not st.session_state.df.empty:
         st.markdown("### Text Selection")
         df = st.session_state.df
         object_cols = [c for c in df.columns if df[c].dtype == 'object']
