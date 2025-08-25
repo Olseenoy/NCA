@@ -157,8 +157,7 @@ def main():
         df = manual_log_entry()
         if df is not None and not df.empty:
             st.session_state.raw_df = df
-            st.session_state.header_row = 0
-            st.session_state.df = apply_row_as_header(df, 0)
+            st.session_state.df = df  # **Use as-is, no header row selector**
             try:
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
@@ -171,31 +170,30 @@ def main():
     if st.session_state.raw_df is not None and not st.session_state.raw_df.empty:
         st.subheader("Data Preview")
 
-        # Show current header selection
-        max_row = len(st.session_state.raw_df) - 1
-        new_header_row = st.number_input(
-            "Row number to use as header (0-indexed)",
-            min_value=0, max_value=max_row,
-            value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
-            step=1,
-            help="Pick a row from the file to become column headers."
-        )
+        df = st.session_state.df
 
-        if int(new_header_row) != int(st.session_state.header_row):
-            st.session_state.header_row = int(new_header_row)
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
+        # Only show header row selector for upload mode
+        if source_choice == "Upload File":
+            max_row = len(st.session_state.raw_df) - 1
+            new_header_row = st.number_input(
+                "Row number to use as header (0-indexed)",
+                min_value=0, max_value=max_row,
+                value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
+                step=1,
+                help="Pick a row from the file to become column headers."
+            )
+
+            if int(new_header_row) != int(st.session_state.header_row):
+                st.session_state.header_row = int(new_header_row)
+                st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
+                df = st.session_state.df
 
         # Show updated DataFrame
-        df_display = (
-            st.session_state.df.reset_index(drop=True)
-                               .rename_axis("No")
-                               .rename(lambda x: x + 1, axis=0)
-        )
+        df_display = df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
         st.dataframe(df_display.head(50))
 
         # -------- Preprocess & Embed --------
         st.markdown("### Text Selection")
-        df = st.session_state.df
         object_cols = [c for c in df.columns if df[c].dtype == 'object']
         default_text_cols = object_cols[:2]
         text_cols = st.multiselect(
