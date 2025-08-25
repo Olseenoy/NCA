@@ -41,54 +41,6 @@ def safe_rerun():
         st.experimental_rerun()
 
 
-# ----------------- Date Helpers (NEW) -----------------
-_DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y")
-
-def _best_parse_datetime(series: pd.Series) -> pd.Series | None:
-    """
-    Try multiple explicit formats to parse a Series to datetime (no inference).
-    Returns a parsed Series (datetime64[ns]) if any format yields at least one valid value;
-    otherwise returns None.
-
-    Note: we do *not* raise warnings because we never call to_datetime without a format.
-    """
-    # Work with original series; no global coercion to string to preserve NaNs
-    best = None
-    best_valid = -1
-    for fmt in _DATE_FORMATS:
-        try:
-            parsed = pd.to_datetime(series, format=fmt, errors="coerce")
-        except Exception:
-            continue
-        valid = parsed.notna().sum()
-        if valid > best_valid:
-            best = parsed
-            best_valid = valid
-    return best if best_valid > 0 else None
-
-def _parse_dates_strict_to_date(series: pd.Series) -> pd.Series | None:
-    """
-    Parse strictly to date objects (python date), only if *all* non-null values parse.
-    Mirrors your existing 'all valid -> convert to .dt.date' behavior, but without warnings.
-    Returns a Series of date objects or None if strict condition is not met.
-    """
-    parsed = _best_parse_datetime(series)
-    if parsed is None:
-        return None
-    non_null = series.notna()
-    # Strict: require every non-null to be parsed into a valid datetime
-    if parsed[non_null].notna().all():
-        return parsed.dt.date
-    return None
-
-def _parse_dates_best_effort_datetime(series: pd.Series) -> pd.Series | None:
-    """
-    Parse to datetime64[ns] (best-effort) for caching use.
-    Returns parsed Series if there is at least one valid datetime; else None.
-    """
-    return _best_parse_datetime(series)
-
-
 # ----------------- Helpers -----------------
 def _make_unique(names):
     """Ensure column names are unique and non-empty."""
@@ -126,15 +78,12 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
-    # Convert columns with "date" in name to date-only (STRICT, like before)
+    # Convert columns with "date" in name to date-only
     for col in df.columns:
         if "date" in col.lower():
             try:
-                parsed_date = _parse_dates_strict_to_date(df[col])
-                if parsed_date is not None:
-                    df[col] = parsed_date
+                df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
             except Exception:
-                # keep original if parsing fails
                 pass
 
     return df
@@ -194,13 +143,13 @@ def main():
                 df = None
 
             if df is not None and not df.empty:
-                # Convert date-like columns to date-only for display (STRICT behavior preserved)
+                # Convert date-like columns to date-only for display
                 for col in df.columns:
                     if pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_datetime64_any_dtype(df[col]):
                         try:
-                            parsed_date = _parse_dates_strict_to_date(df[col])
-                            if parsed_date is not None:
-                                df[col] = parsed_date
+                            temp = pd.to_datetime(df[col], errors='coerce')
+                            if temp.notna().all():
+                                df[col] = temp.dt.date
                         except Exception:
                             pass
 
@@ -217,12 +166,9 @@ def main():
                         if df_cache[col].dtype == 'object':
                             non_null_vals = df_cache[col].dropna()
                             if not non_null_vals.empty:
-                                # Try to coerce object columns that look like dates into datetime64[ns]
-                                parsed_dt = _parse_dates_best_effort_datetime(df_cache[col])
-                                if parsed_dt is not None and parsed_dt.notna().any():
-                                    df_cache[col] = parsed_dt
+                                if all(isinstance(x, (pd.Timestamp, pd._libs.tslibs.timestamps.Timestamp, type(pd.Timestamp.now().date()), pd.Timestamp.date)) for x in non_null_vals):
+                                    df_cache[col] = pd.to_datetime(df_cache[col], errors='coerce')
                                 else:
-                                    # keep consistent strings to avoid mixed object types
                                     df_cache[col] = df_cache[col].astype(str)
                     save_processed(df_cache, "uploaded_data.parquet")
                 except Exception:
@@ -473,3 +419,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
