@@ -19,6 +19,8 @@ def clean_text(s: str) -> str:
 
 def preprocess_df(df: pd.DataFrame, text_cols: list) -> pd.DataFrame:
     df = df.copy()
+    # ensure all selected columns are strings
+    df[text_cols] = df[text_cols].astype(str)
     # create single text field
     df['combined_text'] = df[text_cols].fillna('').agg(' '.join, axis=1)
     df['clean_text'] = df['combined_text'].apply(clean_text)
