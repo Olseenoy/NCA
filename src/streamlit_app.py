@@ -124,6 +124,8 @@ def main():
         st.session_state.logs = []
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
+    if "manual_saved" not in st.session_state:
+        st.session_state.manual_saved = False
 
     # -------- Data Ingestion --------
     if source_choice == "Upload File":
@@ -170,7 +172,6 @@ def main():
                                     df_cache[col] = df_cache[col].astype(str)
                     save_processed(df_cache, "uploaded_data.parquet")
                 except Exception:
-                    # Suppress any caching errors silently
                     pass
 
             else:
@@ -179,21 +180,21 @@ def main():
                 st.session_state.df = None
 
     elif source_choice == "Manual Entry":
-        df = manual_log_entry()
-        if df is not None and not df.empty:
-            st.session_state.raw_df = df
-            st.session_state.df = df  # use as-is, skip header selector
-            try:
-                df_cache = df.copy()
-                for col in df_cache.columns:
-                    if df_cache[col].dtype == 'object':
-                        df_cache[col] = df_cache[col].astype(str)
-                save_processed(df_cache, "manual_data.parquet")
-            except Exception:
-                pass
+        if not st.session_state.manual_saved:
+            df = manual_log_entry()
+            if df is not None and not df.empty:
+                # Mark manual logs as saved and store dataframe
+                st.session_state.df = df
+                st.session_state.raw_df = df
+                st.session_state.manual_saved = True
+                # Reset manual entry session variables
+                st.session_state.current_log = 1
+                st.session_state.logs = []
+                # Force rerun to show data preview
+                safe_rerun()
         else:
-            st.session_state.raw_df = None
-            st.session_state.df = None
+            # Manual logs already saved, just use session_state.df
+            df = st.session_state.df
 
     # -------- UI: Raw Data Preview + Header Selector --------
     if st.session_state.raw_df is not None and not st.session_state.raw_df.empty:
