@@ -119,7 +119,7 @@ def main():
     if "df" not in st.session_state:
         st.session_state.df = None
     if "header_row" not in st.session_state:
-        st.session_state.header_row = None  # None = no header applied yet
+        st.session_state.header_row = None
     if "logs" not in st.session_state:
         st.session_state.logs = []
     if "current_log" not in st.session_state:
@@ -132,7 +132,6 @@ def main():
             st.session_state.df = None
         else:
             try:
-                # read file
                 if uploaded.name.endswith('.csv'):
                     df = pd.read_csv(uploaded, header=None)
                 else:
@@ -142,24 +141,27 @@ def main():
                 df = None
 
             if df is not None and not df.empty:
-                # --- NEW: Convert date-like columns to date-only ---
+                # Convert date-like columns to date-only for display
                 for col in df.columns:
-                    # detect object or datetime columns
                     if pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_datetime64_any_dtype(df[col]):
                         try:
                             temp = pd.to_datetime(df[col], errors='coerce')
-                            # if all values parse as valid dates
                             if temp.notna().all():
                                 df[col] = temp.dt.date
                         except Exception:
                             pass
-                # --- END NEW ---
 
                 st.session_state.raw_df = df
-                st.session_state.header_row = 0  # default
+                st.session_state.header_row = 0
                 st.session_state.df = apply_row_as_header(df, 0)
+
+                # Safe caching for Parquet
                 try:
-                    save_processed(df, "uploaded_data.parquet")
+                    df_cache = st.session_state.df.copy()
+                    for col in df_cache.columns:
+                        if df_cache[col].dtype == 'object' and df_cache[col].apply(lambda x: isinstance(x, pd._libs.tslibs.nattype.NaTType) or isinstance(x, pd.Timestamp) or isinstance(x, pd.Timestamp.date) or isinstance(x, type(pd.Timestamp.now().date()))).any():
+                            df_cache[col] = pd.to_datetime(df_cache[col], errors='coerce')
+                    save_processed(df_cache, "uploaded_data.parquet")
                 except Exception as e:
                     st.info(f"Could not cache uploaded data: {e}")
             else:
@@ -171,7 +173,7 @@ def main():
         df = manual_log_entry()
         if df is not None and not df.empty:
             st.session_state.raw_df = df
-            st.session_state.df = df  # use as-is, skip header row selection
+            st.session_state.df = df  # use as-is, skip header selector
             try:
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
@@ -186,7 +188,7 @@ def main():
 
         df = st.session_state.df
 
-        # Only show header row selector for upload mode
+        # Header selector only for upload mode
         if source_choice == "Upload File":
             max_row = len(st.session_state.raw_df) - 1
             new_header_row = st.number_input(
