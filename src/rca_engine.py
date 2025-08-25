@@ -2,14 +2,24 @@
 # File: src/rca_engine.py
 # ================================
 import json
+from typing import Dict, Any, List, Union
 from src.llm_rca import generate_rca_with_llm, LLMRCAException
 
+# Standard fishbone categories
 FISHBONE_CATEGORIES = ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
 
-def generate_fishbone_skeleton() -> dict:
+
+def generate_fishbone_skeleton() -> Dict[str, List[str]]:
+    """
+    Creates an empty fishbone diagram structure with categories as keys.
+    """
     return {cat: [] for cat in FISHBONE_CATEGORIES}
 
-def convert_to_fishbone(root_causes):
+
+def convert_to_fishbone(root_causes: List[Dict[str, str]]) -> Dict[str, List[str]]:
+    """
+    Converts root causes from LLM RCA output into a fishbone diagram structure.
+    """
     fishbone = generate_fishbone_skeleton()
     for rc in root_causes:
         if isinstance(rc, dict):
@@ -17,7 +27,11 @@ def convert_to_fishbone(root_causes):
             fishbone.setdefault(cat, []).append(rc.get("cause", ""))
     return fishbone
 
-def rule_based_rca_suggestions(clean_text: str) -> dict:
+
+def rule_based_rca_suggestions(clean_text: str) -> Dict[str, List[str]]:
+    """
+    Provides fallback RCA suggestions using simple keyword mapping.
+    """
     keywords_map = {
         'operator': 'Man', 'training': 'Man', 'calibration': 'Measurement',
         'machine': 'Machine', 'overheat': 'Machine', 'contamination': 'Material',
@@ -29,9 +43,10 @@ def rule_based_rca_suggestions(clean_text: str) -> dict:
             fishbone[cat].append(kw)
     return fishbone
 
-def huggingface_rca(issue_text: str) -> dict:
+
+def huggingface_rca(issue_text: str) -> Dict[str, Any]:
     """
-    Lightweight fallback RCA output for when LLM fails.
+    Lightweight fallback RCA output for when LLM and local pipeline both fail.
     """
     return {
         "root_causes": [{"cause": "Manual RCA required", "category": "Method"}],
@@ -60,12 +75,17 @@ def huggingface_rca(issue_text: str) -> dict:
         "confidence": "low"
     }
 
-def ai_rca_with_fallback(original_text: str, clean_text: str, mode: str = "local") -> Dict[str, Any]:
+
+def ai_rca_with_fallback(original_text: str,
+                         clean_text: str,
+                         mode: str = "local") -> Dict[str, Any]:
     """
-    Primary RCA inference pipeline with error handling & fallback.
+    Primary RCA inference pipeline with multiple fallback layers.
+    - Tries LLM-based RCA first.
+    - Falls back to HuggingFace or rule-based approach on failure.
     """
     try:
-        raw_result = generate_rca_with_llm(issue_text=original_text, mode=mode)
+        raw_result: Union[str, Dict[str, Any]] = generate_rca_with_llm(issue_text=original_text, mode=mode)
 
         if isinstance(raw_result, str):
             try:
@@ -73,21 +93,22 @@ def ai_rca_with_fallback(original_text: str, clean_text: str, mode: str = "local
             except json.JSONDecodeError:
                 return {
                     "error": "LLM returned invalid JSON.",
-                    "fishbone": rule_based_rca_suggestions(original_text),
+                    "fishbone": rule_based_rca_suggestions(clean_text),
                     "confidence": "low"
                 }
         elif isinstance(raw_result, dict):
             result = raw_result
         else:
             return {
-                "error": "LLM returned unexpected type.",
-                "fishbone": rule_based_rca_suggestions(original_text),
+                "error": "LLM returned unexpected response type.",
+                "fishbone": rule_based_rca_suggestions(clean_text),
                 "confidence": "low"
             }
 
-        root_causes = result.get("root_causes") or []
-        five_whys_chain = result.get("five_whys") or []
-        capa_actions = result.get("capa") or []
+        # Extract RCA components with safe defaults
+        root_causes = result.get("root_causes", [])
+        five_whys_chain = result.get("five_whys", [])
+        capa_actions = result.get("capa", [])
         confidence = result.get("confidence", "medium")
 
         return {
@@ -99,10 +120,13 @@ def ai_rca_with_fallback(original_text: str, clean_text: str, mode: str = "local
         }
 
     except LLMRCAException:
+        # If LLM RCA fails entirely, return HuggingFace fallback response
         return huggingface_rca(original_text)
+
     except Exception as e:
+        # Final fallback: rule-based + error note
         return {
             "error": f"RCA Engine Failure: {e}",
-            "fishbone": rule_based_rca_suggestions(original_text),
+            "fishbone": rule_based_rca_suggestions(clean_text),
             "confidence": "low"
         }
