@@ -40,6 +40,7 @@ def safe_rerun():
     except AttributeError:
         st.experimental_rerun()
 
+
 # ----------------- Helpers -----------------
 def _make_unique(names):
     """Ensure column names are unique and non-empty."""
@@ -81,7 +82,7 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     for col in df.columns:
         if "date" in col.lower():
             try:
-                df[col] = pd.to_datetime(df[col], errors="coerce")
+                df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
             except Exception:
                 pass
 
@@ -131,7 +132,7 @@ def main():
             st.session_state.df = None
         else:
             try:
-                # Always read without header so first row is row 0
+                # read file
                 if uploaded.name.endswith('.csv'):
                     df = pd.read_csv(uploaded, header=None)
                 else:
@@ -141,8 +142,21 @@ def main():
                 df = None
 
             if df is not None and not df.empty:
+                # --- NEW: Convert date-like columns to date-only ---
+                for col in df.columns:
+                    # detect object or datetime columns
+                    if pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_datetime64_any_dtype(df[col]):
+                        try:
+                            temp = pd.to_datetime(df[col], errors='coerce')
+                            # if all values parse as valid dates
+                            if temp.notna().all():
+                                df[col] = temp.dt.date
+                        except Exception:
+                            pass
+                # --- END NEW ---
+
                 st.session_state.raw_df = df
-                st.session_state.header_row = 0  # Default to first row as header
+                st.session_state.header_row = 0  # default
                 st.session_state.df = apply_row_as_header(df, 0)
                 try:
                     save_processed(df, "uploaded_data.parquet")
@@ -157,7 +171,7 @@ def main():
         df = manual_log_entry()
         if df is not None and not df.empty:
             st.session_state.raw_df = df
-            st.session_state.df = df  # **Use as-is, no header row selector**
+            st.session_state.df = df  # use as-is, skip header row selection
             try:
                 save_processed(df, "manual_data.parquet")
             except Exception as e:
