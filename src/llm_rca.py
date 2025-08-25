@@ -22,27 +22,24 @@ class LLMRCAException(Exception):
     pass
 
 def _get_api_key(provider="openai") -> str | None:
+    """Retrieve API key from Streamlit secrets or environment variables."""
     if provider == "openai":
         if st:
-            try:
-                key = st.secrets.get("OPENAI_API_KEY")
-                if key:
-                    return key
-            except Exception:
-                pass
+            key = st.secrets.get("OPENAI_API_KEY", None)
+            if key:
+                return key
         return os.getenv("OPENAI_API_KEY")
     elif provider == "huggingface":
         if st:
-            try:
-                key = st.secrets.get("HUGGINGFACE_API_KEY")
-                if key:
-                    return key
-            except Exception:
-                pass
+            key = st.secrets.get("HUGGINGFACE_API_KEY", None)
+            if key:
+                return key
         return os.getenv("HUGGINGFACE_API_KEY")
+    return None
 
-PROMPT_TEMPLATE = '''You are an expert Quality Assurance engineer specializing in manufacturing Root Cause Analysis (RCA).
-Given the non-conformance report below, produce a JSON-only response (no extra text) with this exact schema:
+PROMPT_TEMPLATE = '''
+You are an expert Quality Assurance engineer specializing in manufacturing Root Cause Analysis (RCA).
+Given the non-conformance report below, produce a JSON-only response with this exact schema:
 
 {
   "root_causes": [
@@ -55,57 +52,84 @@ Given the non-conformance report below, produce a JSON-only response (no extra t
   "confidence": "<low|medium|high>"
 }
 
-Be concise. Give 3-5 root_causes, exactly 5 five_whys entries, 2 CAPA entries (one corrective, one preventive) with realistic due_in_days.
+Constraints:
+- Return 3 to 5 root causes.
+- Exactly 5 five_whys entries.
+- Exactly 2 CAPA entries (1 Corrective, 1 Preventive).
+- Respond ONLY with valid JSON.
+
 Issue:
 \"\"\"{issue_text}\"\"\"
-Respond only with valid JSON that matches the schema above.
 '''
 
 def _parse_json_from_text(text: str) -> dict:
+    """Extract and validate JSON from LLM text output."""
     text = text.strip()
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
+        return _validate_schema(parsed)
     except json.JSONDecodeError:
         pass
+
+    # Attempt to extract JSON-like structure
     m = re.search(r'\{.*\}', text, re.S)
     if m:
         candidate = m.group(0)
         candidate = re.sub(r',\s*}', '}', candidate)
         candidate = re.sub(r',\s*\]', ']', candidate)
         try:
-            return json.loads(candidate)
+            parsed = json.loads(candidate)
+            return _validate_schema(parsed)
         except json.JSONDecodeError:
             pass
     raise LLMRCAException(f"Could not parse JSON from LLM response:\n{text[:300]}...")
 
-def generate_rca_with_llm(issue_text: str, mode: str = "local",
-                          max_retries: int = 2, temperature: float = 0.0) -> Dict[str, Any]:
+def _validate_schema(parsed: dict) -> dict:
+    """Ensure parsed JSON contains required fields."""
+    required_keys = ["root_causes", "five_whys", "capa"]
+    for key in required_keys:
+        if key not in parsed:
+            raise LLMRCAException(f"Missing key in RCA response: {key}")
+    return parsed
+
+def generate_rca_with_llm(issue_text: str,
+                          mode: str = "local",
+                          max_retries: int = 2,
+                          temperature: float = 0.0) -> Dict[str, Any]:
+    """
+    Generate RCA analysis using preferred LLM mode with retries.
+    Modes: openai | api_hf | local
+    """
     if mode == "openai":
         try:
             return _openai_rca(issue_text, "gpt-4o-mini", max_retries, temperature)
         except LLMRCAException:
             pass
+
     if mode == "api_hf":
         try:
             return _huggingface_api_rca(issue_text)
         except LLMRCAException:
             pass
-    # Default to local Hugging Face pipeline with CrewAI orchestration
+
     return _local_hf_crew_rca(issue_text)
 
 def _openai_rca(issue_text: str, model: str, max_retries: int, temperature: float) -> Dict[str, Any]:
+    """Use OpenAI API for RCA generation."""
     api_key = _get_api_key("openai")
     if not api_key:
         raise LLMRCAException("OPENAI_API_KEY not found.")
+
     try:
         import openai
-    except ImportError as e:
-        raise LLMRCAException("openai package not installed.") from e
+    except ImportError:
+        raise LLMRCAException("openai package not installed.")
+
     openai.api_key = api_key
     prompt = PROMPT_TEMPLATE.format(issue_text=issue_text)
-    attempt = 0
     last_err = None
-    while attempt <= max_retries:
+
+    for attempt in range(max_retries + 1):
         try:
             resp = openai.ChatCompletion.create(
                 model=model,
@@ -117,30 +141,28 @@ def _openai_rca(issue_text: str, model: str, max_retries: int, temperature: floa
                 temperature=temperature,
             )
             content = resp["choices"][0]["message"]["content"]
-            parsed = _parse_json_from_text(content)
-            if not all(k in parsed for k in ["root_causes", "five_whys", "capa"]):
-                raise LLMRCAException("Incomplete JSON from OpenAI RCA.")
-            return parsed
+            return _parse_json_from_text(content)
         except Exception as e:
             last_err = e
-            attempt += 1
-            time.sleep(1.0 * attempt)
-            continue
+            time.sleep(1.0 * (attempt + 1))
     raise LLMRCAException(f"OpenAI RCA failed after retries. Last error: {last_err}")
 
 def _huggingface_api_rca(issue_text: str) -> Dict[str, Any]:
+    """Use Hugging Face API for RCA generation."""
     api_key = _get_api_key("huggingface")
     if not api_key:
         raise LLMRCAException("HUGGINGFACE_API_KEY not found.")
+
     url = "https://api-inference.huggingface.co/models/MODEL_NAME"
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {"inputs": issue_text}
+
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         data = response.json()
         if isinstance(data, dict) and "error" in data:
             raise LLMRCAException(f"Hugging Face RCA error: {data['error']}")
-        return {
+        return _validate_schema({
             "root_causes": [{"cause": "HF RCA cause", "category": "Method"}],
             "five_whys": ["HF Why1", "HF Why2", "HF Why3", "HF Why4", "HF Why5"],
             "capa": [
@@ -148,22 +170,16 @@ def _huggingface_api_rca(issue_text: str) -> Dict[str, Any]:
                 {"type": "Preventive", "action": "HF preventive action", "owner": "Maintenance", "due_in_days": 14}
             ],
             "confidence": "medium"
-        }
+        })
     except Exception as e:
         raise LLMRCAException(f"Hugging Face RCA failed: {e}")
 
 def _local_hf_crew_rca(issue_text: str) -> Dict[str, Any]:
-    # Setup local model pipeline
+    """Fallback to local Hugging Face pipeline using CrewAI."""
     local_pipeline = pipeline("text-generation", model="distilgpt2")
     llm = HuggingFacePipeline(pipeline=local_pipeline)
+    template = PromptTemplate(input_variables=["issue_text"], template=PROMPT_TEMPLATE)
 
-    # Define prompt
-    template = PromptTemplate(
-        input_variables=["issue_text"],
-        template=PROMPT_TEMPLATE
-    )
-
-    # Define CrewAI agents
     rca_agent = Agent(
         role="RCA Specialist",
         goal="Identify root causes and CAPA",
