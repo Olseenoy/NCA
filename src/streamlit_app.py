@@ -78,7 +78,7 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
-    # Try parsing dates for columns with "date" in name
+    # Convert columns with "date" in name to date-only
     for col in df.columns:
         if "date" in col.lower():
             try:
@@ -155,12 +155,13 @@ def main():
                 st.session_state.header_row = 0
                 st.session_state.df = apply_row_as_header(df, 0)
 
-                # Safe caching for Parquet
+                # Safe caching for Parquet (fixed isinstance warning)
                 try:
                     df_cache = st.session_state.df.copy()
                     for col in df_cache.columns:
-                        if df_cache[col].dtype == 'object' and df_cache[col].apply(lambda x: isinstance(x, pd._libs.tslibs.nattype.NaTType) or isinstance(x, pd.Timestamp) or isinstance(x, pd.Timestamp.date) or isinstance(x, type(pd.Timestamp.now().date()))).any():
-                            df_cache[col] = pd.to_datetime(df_cache[col], errors='coerce')
+                        if df_cache[col].dtype == 'object':
+                            if any(isinstance(x, (pd.Timestamp, pd._libs.tslibs.timestamps.Timestamp, type(pd.Timestamp.now().date()))) for x in df_cache[col].dropna()):
+                                df_cache[col] = pd.to_datetime(df_cache[col], errors='coerce')
                     save_processed(df_cache, "uploaded_data.parquet")
                 except Exception as e:
                     st.info(f"Could not cache uploaded data: {e}")
