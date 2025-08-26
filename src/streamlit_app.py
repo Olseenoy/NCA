@@ -7,6 +7,7 @@ import streamlit as st
 import pandas as pd
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
+import json
 
 # -----------------------------
 # Ensure import paths are correct
@@ -17,7 +18,7 @@ for p in [FILE_DIR, PROJECT_ROOT]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-# Local package imports (ingestion functions expected to be present)
+# Local package imports
 from ingestion import (
     ingest_file,
     ingest_google_sheet,
@@ -28,7 +29,6 @@ from ingestion import (
     manual_log_entry,
     save_processed,
 )
-
 from preprocessing import preprocess_df
 from embeddings import embed_texts
 from clustering import fit_kmeans
@@ -54,10 +54,8 @@ def safe_rerun():
     except AttributeError:
         st.experimental_rerun()
 
-
 # ----------------- Helpers -----------------
 def _make_unique(names):
-    """Ensure column names are unique and non-empty."""
     seen = {}
     unique = []
     for i, n in enumerate(names):
@@ -72,36 +70,22 @@ def _make_unique(names):
         unique.append(n)
     return unique
 
-
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
-    """
-    Apply a row from raw_df as header and return updated DataFrame.
-    Row numbering starts from 0 (first row of uploaded file).
-    """
     if raw_df is None or raw_df.empty:
         return raw_df
-
     row_idx = int(max(0, min(row_idx, len(raw_df) - 1)))
-
-    # Extract header values
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
-
-    # Drop header row from data
     df = raw_df.drop(index=row_idx).copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
-
-    # Convert columns with "date" in name to date-only
     for col in df.columns:
         if "date" in col.lower():
             try:
                 df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
             except Exception:
                 pass
-
     return df
-
 
 # ----------------- Credentials helpers -----------------
 CRED_KEYS = {
@@ -117,41 +101,26 @@ CRED_KEYS = {
 }
 
 def get_cred_value(key):
-    """
-    Credential resolution order:
-      1. st.session_state['creds'][key] if session override exists
-      2. environment variable
-      3. empty string
-    """
     sess_creds = st.session_state.get("creds", {})
     if key in sess_creds and sess_creds.get(key) not in (None, ""):
         return sess_creds.get(key)
     return os.getenv(key, "")
 
-
 def save_creds_to_session(new_creds: dict):
-    """Save credentials to session (temporary override)."""
     if "creds" not in st.session_state:
         st.session_state["creds"] = {}
     st.session_state["creds"].update(new_creds)
     st.success("Credentials saved to session (temporary).")
 
-
 def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
-    """Persist credentials to .env file."""
-    # find or create .env
     env_file = find_dotenv()
     if not env_file:
-        # create .env in project root
         env_file = os.path.join(PROJECT_ROOT, ".env")
-        open(env_file, "a").close()  # touch
-    # write keys
+        open(env_file, "a").close()
     for k, v in new_creds.items():
-        # set_key returns tuple (filename, key, value) or raises
         set_key(env_file, k, v)
     load_dotenv(override=True)
     st.success(f"Credentials written to {env_file}.")
-
 
 # ----------------- Main App -----------------
 def main():
@@ -163,175 +132,119 @@ def main():
     except Exception as e:
         st.warning(f"Database init warning: {e}")
 
-    # Ensure session defaults
-    if "raw_df" not in st.session_state:
-        st.session_state.raw_df = None
-    if "df" not in st.session_state:
-        st.session_state.df = None
-    if "header_row" not in st.session_state:
-        st.session_state.header_row = None
-    if "logs" not in st.session_state:
-        st.session_state.logs = []
-    if "current_log" not in st.session_state:
-        st.session_state.current_log = 1
-    if "manual_saved" not in st.session_state:
-        st.session_state.manual_saved = False
-    if "creds" not in st.session_state:
-        st.session_state.creds = {}
+    # ---------------- Session defaults ----------------
+    defaults = ["raw_df", "df", "header_row", "logs", "current_log", "manual_saved", "processed", "embeddings", "labels", "creds", "source_choice"]
+    for key in defaults:
+        if key not in st.session_state:
+            if key == "current_log":
+                st.session_state[key] = 1
+            elif key == "manual_saved":
+                st.session_state[key] = False
+            elif key == "creds":
+                st.session_state[key] = {}
+            else:
+                st.session_state[key] = None
 
     # ---------------- Sidebar: Source + Auth settings ----------------
     st.sidebar.header("Data Input")
-    source_choice = st.sidebar.selectbox(
+    options = [
+        "Upload File (CSV/Excel)",
+        "Google Sheets",
+        "OneDrive / SharePoint",
+        "REST API (ERP/MES/QMS)",
+        "SQL Database",
+        "MongoDB",
+        "Manual Entry",
+    ]
+    new_choice = st.sidebar.selectbox(
         "Select input method",
-        [
-            "Upload File (CSV/Excel)",
-            "Google Sheets",
-            "OneDrive / SharePoint",
-            "REST API (ERP/MES/QMS)",
-            "SQL Database",
-            "MongoDB",
-            "Manual Entry",
-        ],
+        options,
+        index=0 if st.session_state.source_choice is None else options.index(st.session_state.source_choice)
     )
 
-    # Sidebar expandable credentials settings
+    # Detect source switch
+    if st.session_state.source_choice and new_choice != st.session_state.source_choice:
+        st.warning("Switching data source will end the current session and clear all data.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Yes, end session and switch"):
+                keys_to_clear = ["raw_df","df","header_row","logs","current_log","manual_saved","processed","embeddings","labels"]
+                for k in keys_to_clear:
+                    if k in st.session_state:
+                        del st.session_state[k]
+                st.session_state.source_choice = new_choice
+                safe_rerun()
+        with col2:
+            if st.button("No, keep current session"):
+                new_choice = st.session_state.source_choice
+
+    st.session_state.source_choice = new_choice
+    source_choice = new_choice
+
+    # ---------------- Sidebar: Auth ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
-        st.markdown("Credentials are loaded from environment variables by default. Use these fields to override for this session, or save to `.env` permanently.")
+        st.markdown("Credentials loaded from environment variables by default.")
         cred_inputs = {}
         for k, label in CRED_KEYS.items():
             is_secret = "SECRET" in k or "TOKEN" in k or "PASSWORD" in k
             default = get_cred_value(k)
-            # show masked value if available
             cred_inputs[k] = st.text_input(label, value=default, key=f"cred_{k}", type="password" if is_secret else "default")
 
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Save for Session Only"):
-                # Save entered values to session
-                session_pairs = {k: v for k, v in cred_inputs.items() if v}
+                session_pairs = {k:v for k,v in cred_inputs.items() if v}
                 save_creds_to_session(session_pairs)
         with col2:
             if st.button("Save to .env Permanently"):
-                env_pairs = {k: v for k, v in cred_inputs.items() if v}
+                env_pairs = {k:v for k,v in cred_inputs.items() if v}
                 try:
                     save_creds_to_env(env_pairs)
                 except Exception as e:
                     st.error(f"Failed to write to .env: {e}")
 
-    # ----------------- Ingestion UI per source -----------------
+    # ----------------- Ingestion logic -----------------
     df = None
-    st.sidebar.markdown("---")
 
     if source_choice == "Upload File (CSV/Excel)":
-        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
+        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv','xlsx','xls'])
         if uploaded:
-            try:
-                df = ingest_file(uploaded)
-            except Exception as e:
-                st.error(f"File ingestion failed: {e}")
+            try: df = ingest_file(uploaded)
+            except Exception as e: st.error(f"File ingestion failed: {e}")
 
     elif source_choice == "Google Sheets":
-        st.sidebar.write("Google Sheets options")
-        sheet_url = st.sidebar.text_input("Sheet URL or ID", value="")
+        sheet_url = st.sidebar.text_input("Sheet URL or ID")
         sa_path = get_cred_value("GOOGLE_SERVICE_ACCOUNT_JSON")
         api_key = get_cred_value("GOOGLE_API_KEY")
-        use_service_account = st.sidebar.checkbox("Use service account JSON (preferred)", value=bool(sa_path))
-        if use_service_account:
-            sa_input = st.sidebar.text_input("Service account JSON path (or leave to use env var)", value=sa_path or "")
-            if st.sidebar.button("Load Google Sheet"):
-                try:
-                    df = ingest_google_sheet(sa_input or sa_path or sheet_url, service_account_json_path=sa_input or sa_path, api_key=api_key)
-                except Exception as e:
-                    st.error(f"Google Sheets ingestion failed: {e}")
-        else:
-            # CSV export mode
-            api_key_in = st.sidebar.text_input("Optional: Google API Key (for public sheets)", value=api_key or "")
-            if st.sidebar.button("Load Google Sheet (CSV export)"):
-                try:
-                    df = ingest_google_sheet(sheet_url, service_account_json_path=None, api_key=api_key_in)
-                except Exception as e:
-                    st.error(f"Google Sheets CSV ingestion failed: {e}")
+        use_service_account = st.sidebar.checkbox("Use service account JSON", value=bool(sa_path))
+        if st.sidebar.button("Load Google Sheet"):
+            try: df = ingest_google_sheet(sheet_url, service_account_json_path=sa_path if use_service_account else None, api_key=api_key)
+            except Exception as e: st.error(f"Google Sheets ingestion failed: {e}")
 
     elif source_choice == "OneDrive / SharePoint":
-        st.sidebar.write("OneDrive / SharePoint options")
-        od_file = st.sidebar.text_input("File path or sharing URL", value="")
-        od_token = get_cred_value("ONEDRIVE_ACCESS_TOKEN")
-        od_client_id = get_cred_value("ONEDRIVE_CLIENT_ID")
-        od_client_secret = get_cred_value("ONEDRIVE_CLIENT_SECRET")
-        od_tenant = get_cred_value("ONEDRIVE_TENANT_ID")
-
-        # allow overriding in UI
-        od_token_ui = st.sidebar.text_input("Access Token (optional, short-lived)", value=od_token or "", type="password")
-        od_client_id_ui = st.sidebar.text_input("Client ID (if using client credentials)", value=od_client_id or "")
-        od_client_secret_ui = st.sidebar.text_input("Client Secret (if using client credentials)", value=od_client_secret or "", type="password")
-        od_tenant_ui = st.sidebar.text_input("Tenant ID (if using client credentials)", value=od_tenant or "")
-
+        od_file = st.sidebar.text_input("File path / URL")
         if st.sidebar.button("Load from OneDrive"):
-            try:
-                df = ingest_onedrive(
-                    od_file,
-                    access_token=od_token_ui or od_token or None,
-                    client_id=od_client_id_ui or od_client_id or None,
-                    client_secret=od_client_secret_ui or od_client_secret or None,
-                    tenant_id=od_tenant_ui or od_tenant or None,
-                )
-            except Exception as e:
-                st.error(f"OneDrive ingestion failed: {e}")
+            try: df = ingest_onedrive(od_file)
+            except Exception as e: st.error(f"OneDrive ingestion failed: {e}")
 
     elif source_choice == "REST API (ERP/MES/QMS)":
-        st.sidebar.write("REST API options")
-        api_url = st.sidebar.text_input("API Endpoint URL", value="")
-        api_token = get_cred_value("API_TOKEN")
-        api_token_ui = st.sidebar.text_input("API Token (optional)", value=api_token or "", type="password")
-        extra_headers = st.sidebar.text_area("Additional headers (JSON)", value="{}")
-        method = st.sidebar.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE"])
+        api_url = st.sidebar.text_input("API URL")
         if st.sidebar.button("Fetch API"):
-            try:
-                headers = {}
-                try:
-                    headers = json.loads(extra_headers)
-                except Exception:
-                    st.warning("Invalid JSON for extra headers; ignoring.")
-                    headers = {}
-                if api_token_ui:
-                    headers.setdefault("Authorization", f"Bearer {api_token_ui}")
-                df = ingest_rest_api(api_url, method=method, headers=headers)
-            except Exception as e:
-                st.error(f"REST API ingestion failed: {e}")
+            try: df = ingest_rest_api(api_url)
+            except Exception as e: st.error(f"REST API ingestion failed: {e}")
 
     elif source_choice == "SQL Database":
-        st.sidebar.write("SQL Database options")
-        db_conn_env = get_cred_value("DB_CONN")
-        db_conn_ui = st.sidebar.text_input("DB connection string (or leave to use env DB_CONN)", value=db_conn_env or "")
         sql_query = st.sidebar.text_area("SQL Query", value="SELECT * FROM my_table LIMIT 100")
+        db_conn = get_cred_value("DB_CONN")
         if st.sidebar.button("Run Query"):
-            conn_str = db_conn_ui or db_conn_env
-            if not conn_str:
-                st.error("No DB connection string supplied (env DB_CONN or enter here).")
-            else:
-                try:
-                    df = ingest_database(conn_str, sql_query)
-                except Exception as e:
-                    st.error(f"Database ingestion failed: {e}")
+            try: df = ingest_database(db_conn, sql_query)
+            except Exception as e: st.error(f"Database ingestion failed: {e}")
 
     elif source_choice == "MongoDB":
-        st.sidebar.write("MongoDB options")
-        mongo_uri_env = get_cred_value("MONGO_URI")
-        mongo_uri_ui = st.sidebar.text_input("Mongo URI (or leave to use env MONGO_URI)", value=mongo_uri_env or "")
-        mongo_db = st.sidebar.text_input("Database name")
-        mongo_coll = st.sidebar.text_input("Collection name")
-        mongo_query_text = st.sidebar.text_area("Query (JSON)", value="{}")
+        mongo_uri = get_cred_value("MONGO_URI")
         if st.sidebar.button("Load MongoDB"):
-            try:
-                q = {}
-                try:
-                    q = json.loads(mongo_query_text)
-                except Exception:
-                    st.warning("Invalid JSON for Mongo query; using empty query {}.")
-                    q = {}
-                df = ingest_mongodb(mongo_uri_ui or mongo_uri_env, mongo_db, mongo_coll, query=q)
-            except Exception as e:
-                st.error(f"MongoDB ingestion failed: {e}")
+            try: df = ingest_mongodb(mongo_uri, "db_name","collection_name")
+            except Exception as e: st.error(f"MongoDB ingestion failed: {e}")
 
     elif source_choice == "Manual Entry":
         if not st.session_state.manual_saved:
@@ -346,14 +259,13 @@ def main():
         else:
             df = st.session_state.df
 
-    # ----------------- Data Preview and downstream workflow -----------------
-    # If ingestion produced a df, set session_state vars for preview & further steps
+    # ----------------- Data Preview & downstream workflow -----------------
     if df is not None:
-        if isinstance(df, pd.DataFrame) and not df.empty:
+        if isinstance(df,pd.DataFrame) and not df.empty:
             st.session_state.raw_df = df
             st.session_state.header_row = 0
             st.session_state.df = apply_row_as_header(df, 0)
-            st.success(f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns.")
+            st.success(f"Data loaded: {len(df)} rows, {len(df.columns)} columns.")
         else:
             st.warning("Ingested data is empty or not a DataFrame.")
 
