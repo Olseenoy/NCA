@@ -336,135 +336,143 @@ def main():
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
 
-            # Only show analytics if processed + embeddings present
-            if 'processed' in st.session_state and 'embeddings' in st.session_state:
-                p = st.session_state['processed']
-                embeddings = st.session_state['embeddings']
+            # Only show analytics if preprocessing + embeddings are done
+if 'processed' in st.session_state and isinstance(st.session_state['processed'], pd.DataFrame) \
+        and 'embeddings' in st.session_state and st.session_state['embeddings'] is not None:
 
-                # Clustering
-                st.subheader("Clustering & Visualization")
-                if st.button('Cluster & Visualize'):
-                    try:
-                        km, labels, score, interpretation = fit_kmeans(embeddings)
-                        st.write(f"Silhouette score: {score:.3f}")
-                        if interpretation:
-                            st.info(interpretation)
-                        st.session_state['labels'] = labels
-                        fig = cluster_scatter(embeddings, labels)
-                        st.plotly_chart(fig, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Clustering failed: {e}")
+    p = st.session_state['processed']
+    embeddings = st.session_state['embeddings']
 
-                # Pareto
-                st.subheader("Pareto Analysis")
-                cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
-                if st.button('Show Pareto'):
-                    try:
-                        tab = pareto_table(p, cat_col)
-                        fig = pareto_plot(tab)
-                        st.plotly_chart(fig, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Pareto failed: {e}")
+    # ---------------- Clustering ----------------
+    st.subheader("Clustering & Visualization")
+    if st.button('Cluster & Visualize'):
+        try:
+            km, labels, score, interpretation = fit_kmeans(embeddings)
+            st.write(f"Silhouette score: {score:.3f}")
+            if interpretation:
+                st.info(interpretation)
+            st.session_state['labels'] = labels
+            fig = cluster_scatter(embeddings, labels)
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"Clustering failed: {e}")
 
-                # SPC
-                st.subheader("Statistical Process Control (SPC)")
-                num_cols = p.select_dtypes(include=['number']).columns.tolist()
-                if num_cols:
-                    spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
-                    if st.button('Show SPC Chart'):
-                        try:
-                            fig_spc = plot_spc_chart(p, spc_col)
-                            st.plotly_chart(fig_spc, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"SPC chart failed: {e}")
-                else:
-                    st.info("No numeric columns available for SPC analysis.")
+    # ---------------- Pareto ----------------
+    st.subheader("Pareto Analysis")
+    if not p.empty:
+        cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+        if st.button('Show Pareto'):
+            try:
+                tab = pareto_table(p, cat_col)
+                fig = pareto_plot(tab)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Pareto failed: {e}")
+    else:
+        st.info("Data is empty; Pareto analysis not available.")
 
-                # Trend Dashboard
-                st.subheader("Trend Dashboard")
-                if st.button("Show Dashboard"):
-                    try:
-                        fig_trend = plot_trend_dashboard(p)
-                        st.plotly_chart(fig_trend, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Trend dashboard failed: {e}")
+    # ---------------- SPC ----------------
+    st.subheader("Statistical Process Control (SPC)")
+    num_cols = p.select_dtypes(include=['number']).columns.tolist()
+    if num_cols:
+        spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
+        if st.button('Show SPC Chart'):
+            try:
+                fig_spc = plot_spc_chart(p, spc_col)
+                st.plotly_chart(fig_spc, use_container_width=True)
+            except Exception as e:
+                st.error(f"SPC chart failed: {e}")
+    else:
+        st.info("No numeric columns available for SPC analysis.")
 
-                # Time-Series Trend
-                st.subheader("Time-Series Trend Analysis")
-                time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
-                if time_cols:
-                    time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
-                    value_col = st.selectbox(
-                        "Select value column for trend",
-                        options=p.select_dtypes(include=['number']).columns.tolist()
-                    )
-                    if st.button("Plot Time-Series Trend"):
-                        try:
-                            fig_time = plot_time_series_trend(p, time_col, value_col)
-                            st.plotly_chart(fig_time, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Time-series trend failed: {e}")
-                else:
-                    st.info("No datetime column detected for time-series analysis.")
+    # ---------------- Trend Dashboard ----------------
+    st.subheader("Trend Dashboard")
+    if st.button("Show Dashboard"):
+        try:
+            fig_trend = plot_trend_dashboard(p)
+            st.plotly_chart(fig_trend, use_container_width=True)
+        except Exception as e:
+            st.error(f"Trend dashboard failed: {e}")
 
-                # RCA
-                st.subheader("Root Cause Analysis (RCA)")
-                if len(p) == 0:
-                    st.info("No rows to analyze.")
-                else:
-                    idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
-                    row = p.iloc[int(idx)]
-                    st.markdown("**Selected row preview:**")
-                    st.write(row.get('combined_text', row.get('clean_text', '')))
+    # ---------------- Time-Series Trend ----------------
+    st.subheader("Time-Series Trend Analysis")
+    time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
+    if time_cols:
+        time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
+        value_cols = p.select_dtypes(include=['number']).columns.tolist()
+        if value_cols:
+            value_col = st.selectbox("Select value column for trend", options=value_cols)
+            if st.button("Plot Time-Series Trend"):
+                try:
+                    fig_time = plot_time_series_trend(p, time_col, value_col)
+                    st.plotly_chart(fig_time, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Time-series trend failed: {e}")
+        else:
+            st.info("No numeric columns available for time-series trend.")
+    else:
+        st.info("No datetime columns detected for time-series trend analysis.")
 
-                    mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
+    # ---------------- Root Cause Analysis (RCA) ----------------
+    st.subheader("Root Cause Analysis (RCA)")
+    if not p.empty:
+        idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
+        row = p.iloc[int(idx)]
+        st.markdown("**Selected row preview:**")
+        st.write(row.get('combined_text', row.get('clean_text', '')))
 
-                    if st.button("Run RCA"):
-                        with st.spinner("Running RCA..."):
-                            try:
-                                if mode == "AI-Powered (LLM)":
-                                    result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
-                                else:
-                                    fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
-                                    result = {"from": "rule_based", "fishbone": fb}
-                            except Exception as e:
-                                result = {"error": f"RCA failed: {e}"}
+        mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
 
-                        col1, col2 = st.columns([1, 1])
-                        with col1:
-                            st.markdown("### RCA - Details")
-                            if result.get("error"):
-                                st.error(result.get("error"))
-                            if result.get("root_causes"):
-                                st.markdown("**Root causes:**")
-                                st.json(result.get("root_causes"))
-                            if result.get("five_whys"):
-                                st.markdown("**5-Whys")
-                                for i, w in enumerate(result.get("five_whys"), start=1):
-                                    st.write(f"{i}. {w}")
-                            if result.get("capa"):
-                                st.markdown("**CAPA Recommendations**")
-                                for capa in result.get("capa"):
-                                    st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} (Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
-                            if result.get("fishbone") and not result.get("root_causes"):
-                                st.markdown("**Fishbone (rule-based)**")
-                                st.json(result.get("fishbone"))
+        if st.button("Run RCA"):
+            with st.spinner("Running RCA..."):
+                try:
+                    if mode == "AI-Powered (LLM)":
+                        result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
+                    else:
+                        fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
+                        result = {"from": "rule_based", "fishbone": fb}
+                except Exception as e:
+                    result = {"error": f"RCA failed: {e}"}
 
-                        with col2:
-                            st.markdown("### Fishbone Diagram")
-                            fishbone_data = result.get("fishbone") or {}
-                            if not fishbone_data:
-                                fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
-                                for rc in (result.get("root_causes") or []):
-                                    if isinstance(rc, dict):
-                                        cat = rc.get("category") or "Method"
-                                        fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
-                            try:
-                                fig = visualize_fishbone(fishbone_data)
-                                st.plotly_chart(fig, use_container_width=True)
-                            except Exception as e:
-                                st.error(f"Fishbone visualization failed: {e}")
-                                st.json(fishbone_data)
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                st.markdown("### RCA - Details")
+                if result.get("error"):
+                    st.error(result.get("error"))
+                if result.get("root_causes"):
+                    st.markdown("**Root causes:**")
+                    st.json(result.get("root_causes"))
+                if result.get("five_whys"):
+                    st.markdown("**5-Whys**")
+                    for i, w in enumerate(result.get("five_whys"), start=1):
+                        st.write(f"{i}. {w}")
+                if result.get("capa"):
+                    st.markdown("**CAPA Recommendations**")
+                    for capa in result.get("capa"):
+                        st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} (Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
+                if result.get("fishbone") and not result.get("root_causes"):
+                    st.markdown("**Fishbone (rule-based)**")
+                    st.json(result.get("fishbone"))
+
+            with col2:
+                st.markdown("### Fishbone Diagram")
+                fishbone_data = result.get("fishbone") or {}
+                if not fishbone_data:
+                    fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
+                    for rc in (result.get("root_causes") or []):
+                        if isinstance(rc, dict):
+                            cat = rc.get("category") or "Method"
+                            fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
+                try:
+                    fig = visualize_fishbone(fishbone_data)
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Fishbone visualization failed: {e}")
+                    st.json(fishbone_data)
+
+else:
+    st.info("Run preprocessing first to enable clustering, Pareto, SPC, trends, and RCA.")
+
 
                 # Manual 5-Whys & CAPA creation
                 st.markdown("---")
