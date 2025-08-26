@@ -376,17 +376,17 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=20, value=1)
 
-    # Initialize session state
+    # Initialize session state safely
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
-    if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
+    if "logs" not in st.session_state or len(st.session_state.get("logs", [])) != num_logs:
         st.session_state.logs = [{} for _ in range(num_logs)]
 
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
     # Use Log 1 field names as template
-    field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
+    field_template = list(st.session_state.logs[0].keys()) if st.session_state.logs and current_log > 1 else []
 
     entry = {}
     for i in range(1, 11):
@@ -431,6 +431,7 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         return df
 
     return None
+
 
 # -----------------------------------------
 # Save processed DataFrame to PROCESSED_DIR
