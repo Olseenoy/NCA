@@ -21,3 +21,5 @@ alembic
 openai
 psycopg2-binary  # if you use Postgres
 openpyxl
+python-dotenv
+streamlit-option-menu
