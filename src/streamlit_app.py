@@ -5,7 +5,7 @@ import os
 import sys
 import streamlit as st
 import pandas as pd
-from typing import Optional
+from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 
 # -----------------------------
