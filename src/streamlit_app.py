@@ -74,25 +74,19 @@ def _make_unique(names):
 
 
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
-    """
-    Apply a row from raw_df as header and return updated DataFrame.
-    Row numbering starts from 0 (first row of uploaded file).
-    """
+    """Apply a row from raw_df as header and return updated DataFrame."""
     if raw_df is None or raw_df.empty:
         return raw_df
 
     row_idx = int(max(0, min(row_idx, len(raw_df) - 1)))
 
-    # Extract header values
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    # Drop header row from data
     df = raw_df.drop(index=row_idx).copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
-    # Convert columns with "date" in name to date-only
     for col in df.columns:
         if "date" in col.lower():
             try:
@@ -117,12 +111,6 @@ CRED_KEYS = {
 }
 
 def get_cred_value(key):
-    """
-    Credential resolution order:
-      1. st.session_state['creds'][key] if session override exists
-      2. environment variable
-      3. empty string
-    """
     sess_creds = st.session_state.get("creds", {})
     if key in sess_creds and sess_creds.get(key) not in (None, ""):
         return sess_creds.get(key)
@@ -130,7 +118,6 @@ def get_cred_value(key):
 
 
 def save_creds_to_session(new_creds: dict):
-    """Save credentials to session (temporary override)."""
     if "creds" not in st.session_state:
         st.session_state["creds"] = {}
     st.session_state["creds"].update(new_creds)
@@ -138,16 +125,11 @@ def save_creds_to_session(new_creds: dict):
 
 
 def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
-    """Persist credentials to .env file."""
-    # find or create .env
     env_file = find_dotenv()
     if not env_file:
-        # create .env in project root
         env_file = os.path.join(PROJECT_ROOT, ".env")
-        open(env_file, "a").close()  # touch
-    # write keys
+        open(env_file, "a").close()
     for k, v in new_creds.items():
-        # set_key returns tuple (filename, key, value) or raises
         set_key(env_file, k, v)
     load_dotenv(override=True)
     st.success(f"Credentials written to {env_file}.")
@@ -164,7 +146,30 @@ def main():
         st.warning(f"Database init warning: {e}")
 
     # ---------------- Sidebar: Source + Auth settings ----------------
-    st.sidebar.header("Data Input")
+    def on_source_change():
+        """Reset all relevant session variables when data source changes"""
+        for key in [
+            "raw_df", "df", "header_row", "logs", "current_log", "manual_saved",
+            "processed", "embeddings", "labels"
+        ]:
+            if key == "logs":
+                st.session_state[key] = []
+            elif key == "current_log":
+                st.session_state[key] = 1
+            elif key == "manual_saved":
+                st.session_state[key] = False
+            else:
+                st.session_state[key] = None
+
+        st.session_state.prev_source_choice = st.session_state.source_choice
+        st.experimental_rerun()
+
+
+    if "source_choice" not in st.session_state:
+        st.session_state.source_choice = "Upload File (CSV/Excel)"
+    if "prev_source_choice" not in st.session_state:
+        st.session_state.prev_source_choice = None
+
     source_choice = st.sidebar.selectbox(
         "Select input method",
         [
@@ -176,25 +181,10 @@ def main():
             "MongoDB",
             "Manual Entry",
         ],
+        index=0,
+        key="source_choice",
+        on_change=on_source_change
     )
-
-    # ===== Reset session if source changes =====
-    if "prev_source_choice" not in st.session_state:
-        st.session_state.prev_source_choice = None
-
-    if st.session_state.prev_source_choice != source_choice:
-        st.session_state.raw_df = None
-        st.session_state.df = None
-        st.session_state.header_row = None
-        st.session_state.logs = []
-        st.session_state.current_log = 1
-        st.session_state.manual_saved = False
-        st.session_state.processed = None
-        st.session_state.embeddings = None
-        st.session_state.labels = None
-
-        st.session_state.prev_source_choice = source_choice
-        safe_rerun()
 
     # ---------------- Sidebar expandable credentials settings ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
