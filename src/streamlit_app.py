@@ -163,22 +163,6 @@ def main():
     except Exception as e:
         st.warning(f"Database init warning: {e}")
 
-    # Ensure session defaults
-    if "raw_df" not in st.session_state:
-        st.session_state.raw_df = None
-    if "df" not in st.session_state:
-        st.session_state.df = None
-    if "header_row" not in st.session_state:
-        st.session_state.header_row = None
-    if "logs" not in st.session_state:
-        st.session_state.logs = []
-    if "current_log" not in st.session_state:
-        st.session_state.current_log = 1
-    if "manual_saved" not in st.session_state:
-        st.session_state.manual_saved = False
-    if "creds" not in st.session_state:
-        st.session_state.creds = {}
-
     # ---------------- Sidebar: Source + Auth settings ----------------
     st.sidebar.header("Data Input")
     source_choice = st.sidebar.selectbox(
@@ -194,20 +178,36 @@ def main():
         ],
     )
 
-    # Sidebar expandable credentials settings
+    # ===== Reset session if source changes =====
+    if "prev_source_choice" not in st.session_state:
+        st.session_state.prev_source_choice = None
+
+    if st.session_state.prev_source_choice != source_choice:
+        st.session_state.raw_df = None
+        st.session_state.df = None
+        st.session_state.header_row = None
+        st.session_state.logs = []
+        st.session_state.current_log = 1
+        st.session_state.manual_saved = False
+        st.session_state.processed = None
+        st.session_state.embeddings = None
+        st.session_state.labels = None
+
+        st.session_state.prev_source_choice = source_choice
+        safe_rerun()
+
+    # ---------------- Sidebar expandable credentials settings ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
         st.markdown("Credentials are loaded from environment variables by default. Use these fields to override for this session, or save to `.env` permanently.")
         cred_inputs = {}
         for k, label in CRED_KEYS.items():
             is_secret = "SECRET" in k or "TOKEN" in k or "PASSWORD" in k
             default = get_cred_value(k)
-            # show masked value if available
             cred_inputs[k] = st.text_input(label, value=default, key=f"cred_{k}", type="password" if is_secret else "default")
 
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Save for Session Only"):
-                # Save entered values to session
                 session_pairs = {k: v for k, v in cred_inputs.items() if v}
                 save_creds_to_session(session_pairs)
         with col2:
