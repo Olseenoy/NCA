@@ -5,9 +5,7 @@ import os
 import sys
 import streamlit as st
 import pandas as pd
-from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
-import json
 
 # -----------------------------
 # Ensure import paths are correct
@@ -18,7 +16,7 @@ for p in [FILE_DIR, PROJECT_ROOT]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-# Local package imports
+# Local package imports (ingestion functions expected to be present)
 from ingestion import (
     ingest_file,
     ingest_google_sheet,
@@ -29,6 +27,7 @@ from ingestion import (
     manual_log_entry,
     save_processed,
 )
+
 from preprocessing import preprocess_df
 from embeddings import embed_texts
 from clustering import fit_kmeans
@@ -54,8 +53,10 @@ def safe_rerun():
     except AttributeError:
         st.experimental_rerun()
 
+
 # ----------------- Helpers -----------------
 def _make_unique(names):
+    """Ensure column names are unique and non-empty."""
     seen = {}
     unique = []
     for i, n in enumerate(names):
@@ -70,22 +71,36 @@ def _make_unique(names):
         unique.append(n)
     return unique
 
+
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
+    """
+    Apply a row from raw_df as header and return updated DataFrame.
+    Row numbering starts from 0 (first row of uploaded file).
+    """
     if raw_df is None or raw_df.empty:
         return raw_df
+
     row_idx = int(max(0, min(row_idx, len(raw_df) - 1)))
+
+    # Extract header values
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
+
+    # Drop header row from data
     df = raw_df.drop(index=row_idx).copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
+
+    # Convert columns with "date" in name to date-only
     for col in df.columns:
         if "date" in col.lower():
             try:
                 df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
             except Exception:
                 pass
+
     return df
+
 
 # ----------------- Credentials helpers -----------------
 CRED_KEYS = {
@@ -101,26 +116,41 @@ CRED_KEYS = {
 }
 
 def get_cred_value(key):
+    """
+    Credential resolution order:
+      1. st.session_state['creds'][key] if session override exists
+      2. environment variable
+      3. empty string
+    """
     sess_creds = st.session_state.get("creds", {})
     if key in sess_creds and sess_creds.get(key) not in (None, ""):
         return sess_creds.get(key)
     return os.getenv(key, "")
 
+
 def save_creds_to_session(new_creds: dict):
+    """Save credentials to session (temporary override)."""
     if "creds" not in st.session_state:
         st.session_state["creds"] = {}
     st.session_state["creds"].update(new_creds)
     st.success("Credentials saved to session (temporary).")
 
+
 def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
+    """Persist credentials to .env file."""
+    # find or create .env
     env_file = find_dotenv()
     if not env_file:
+        # create .env in project root
         env_file = os.path.join(PROJECT_ROOT, ".env")
-        open(env_file, "a").close()
+        open(env_file, "a").close()  # touch
+    # write keys
     for k, v in new_creds.items():
+        # set_key returns tuple (filename, key, value) or raises
         set_key(env_file, k, v)
     load_dotenv(override=True)
     st.success(f"Credentials written to {env_file}.")
+
 
 # ----------------- Main App -----------------
 def main():
@@ -132,119 +162,175 @@ def main():
     except Exception as e:
         st.warning(f"Database init warning: {e}")
 
-    # ---------------- Session defaults ----------------
-    defaults = ["raw_df", "df", "header_row", "logs", "current_log", "manual_saved", "processed", "embeddings", "labels", "creds", "source_choice"]
-    for key in defaults:
-        if key not in st.session_state:
-            if key == "current_log":
-                st.session_state[key] = 1
-            elif key == "manual_saved":
-                st.session_state[key] = False
-            elif key == "creds":
-                st.session_state[key] = {}
-            else:
-                st.session_state[key] = None
+    # Ensure session defaults
+    if "raw_df" not in st.session_state:
+        st.session_state.raw_df = None
+    if "df" not in st.session_state:
+        st.session_state.df = None
+    if "header_row" not in st.session_state:
+        st.session_state.header_row = None
+    if "logs" not in st.session_state:
+        st.session_state.logs = []
+    if "current_log" not in st.session_state:
+        st.session_state.current_log = 1
+    if "manual_saved" not in st.session_state:
+        st.session_state.manual_saved = False
+    if "creds" not in st.session_state:
+        st.session_state.creds = {}
 
     # ---------------- Sidebar: Source + Auth settings ----------------
     st.sidebar.header("Data Input")
-    options = [
-        "Upload File (CSV/Excel)",
-        "Google Sheets",
-        "OneDrive / SharePoint",
-        "REST API (ERP/MES/QMS)",
-        "SQL Database",
-        "MongoDB",
-        "Manual Entry",
-    ]
-    new_choice = st.sidebar.selectbox(
+    source_choice = st.sidebar.selectbox(
         "Select input method",
-        options,
-        index=0 if st.session_state.source_choice is None else options.index(st.session_state.source_choice)
+        [
+            "Upload File (CSV/Excel)",
+            "Google Sheets",
+            "OneDrive / SharePoint",
+            "REST API (ERP/MES/QMS)",
+            "SQL Database",
+            "MongoDB",
+            "Manual Entry",
+        ],
     )
 
-    # Detect source switch
-    if st.session_state.source_choice and new_choice != st.session_state.source_choice:
-        st.warning("Switching data source will end the current session and clear all data.")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Yes, end session and switch"):
-                keys_to_clear = ["raw_df","df","header_row","logs","current_log","manual_saved","processed","embeddings","labels"]
-                for k in keys_to_clear:
-                    if k in st.session_state:
-                        del st.session_state[k]
-                st.session_state.source_choice = new_choice
-                safe_rerun()
-        with col2:
-            if st.button("No, keep current session"):
-                new_choice = st.session_state.source_choice
-
-    st.session_state.source_choice = new_choice
-    source_choice = new_choice
-
-    # ---------------- Sidebar: Auth ----------------
+    # Sidebar expandable credentials settings
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
-        st.markdown("Credentials loaded from environment variables by default.")
+        st.markdown("Credentials are loaded from environment variables by default. Use these fields to override for this session, or save to `.env` permanently.")
         cred_inputs = {}
         for k, label in CRED_KEYS.items():
             is_secret = "SECRET" in k or "TOKEN" in k or "PASSWORD" in k
             default = get_cred_value(k)
+            # show masked value if available
             cred_inputs[k] = st.text_input(label, value=default, key=f"cred_{k}", type="password" if is_secret else "default")
 
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Save for Session Only"):
-                session_pairs = {k:v for k,v in cred_inputs.items() if v}
+                # Save entered values to session
+                session_pairs = {k: v for k, v in cred_inputs.items() if v}
                 save_creds_to_session(session_pairs)
         with col2:
             if st.button("Save to .env Permanently"):
-                env_pairs = {k:v for k,v in cred_inputs.items() if v}
+                env_pairs = {k: v for k, v in cred_inputs.items() if v}
                 try:
                     save_creds_to_env(env_pairs)
                 except Exception as e:
                     st.error(f"Failed to write to .env: {e}")
 
-    # ----------------- Ingestion logic -----------------
+    # ----------------- Ingestion UI per source -----------------
     df = None
+    st.sidebar.markdown("---")
 
     if source_choice == "Upload File (CSV/Excel)":
-        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv','xlsx','xls'])
+        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
         if uploaded:
-            try: df = ingest_file(uploaded)
-            except Exception as e: st.error(f"File ingestion failed: {e}")
+            try:
+                df = ingest_file(uploaded)
+            except Exception as e:
+                st.error(f"File ingestion failed: {e}")
 
     elif source_choice == "Google Sheets":
-        sheet_url = st.sidebar.text_input("Sheet URL or ID")
+        st.sidebar.write("Google Sheets options")
+        sheet_url = st.sidebar.text_input("Sheet URL or ID", value="")
         sa_path = get_cred_value("GOOGLE_SERVICE_ACCOUNT_JSON")
         api_key = get_cred_value("GOOGLE_API_KEY")
-        use_service_account = st.sidebar.checkbox("Use service account JSON", value=bool(sa_path))
-        if st.sidebar.button("Load Google Sheet"):
-            try: df = ingest_google_sheet(sheet_url, service_account_json_path=sa_path if use_service_account else None, api_key=api_key)
-            except Exception as e: st.error(f"Google Sheets ingestion failed: {e}")
+        use_service_account = st.sidebar.checkbox("Use service account JSON (preferred)", value=bool(sa_path))
+        if use_service_account:
+            sa_input = st.sidebar.text_input("Service account JSON path (or leave to use env var)", value=sa_path or "")
+            if st.sidebar.button("Load Google Sheet"):
+                try:
+                    df = ingest_google_sheet(sa_input or sa_path or sheet_url, service_account_json_path=sa_input or sa_path, api_key=api_key)
+                except Exception as e:
+                    st.error(f"Google Sheets ingestion failed: {e}")
+        else:
+            # CSV export mode
+            api_key_in = st.sidebar.text_input("Optional: Google API Key (for public sheets)", value=api_key or "")
+            if st.sidebar.button("Load Google Sheet (CSV export)"):
+                try:
+                    df = ingest_google_sheet(sheet_url, service_account_json_path=None, api_key=api_key_in)
+                except Exception as e:
+                    st.error(f"Google Sheets CSV ingestion failed: {e}")
 
     elif source_choice == "OneDrive / SharePoint":
-        od_file = st.sidebar.text_input("File path / URL")
+        st.sidebar.write("OneDrive / SharePoint options")
+        od_file = st.sidebar.text_input("File path or sharing URL", value="")
+        od_token = get_cred_value("ONEDRIVE_ACCESS_TOKEN")
+        od_client_id = get_cred_value("ONEDRIVE_CLIENT_ID")
+        od_client_secret = get_cred_value("ONEDRIVE_CLIENT_SECRET")
+        od_tenant = get_cred_value("ONEDRIVE_TENANT_ID")
+
+        # allow overriding in UI
+        od_token_ui = st.sidebar.text_input("Access Token (optional, short-lived)", value=od_token or "", type="password")
+        od_client_id_ui = st.sidebar.text_input("Client ID (if using client credentials)", value=od_client_id or "")
+        od_client_secret_ui = st.sidebar.text_input("Client Secret (if using client credentials)", value=od_client_secret or "", type="password")
+        od_tenant_ui = st.sidebar.text_input("Tenant ID (if using client credentials)", value=od_tenant or "")
+
         if st.sidebar.button("Load from OneDrive"):
-            try: df = ingest_onedrive(od_file)
-            except Exception as e: st.error(f"OneDrive ingestion failed: {e}")
+            try:
+                df = ingest_onedrive(
+                    od_file,
+                    access_token=od_token_ui or od_token or None,
+                    client_id=od_client_id_ui or od_client_id or None,
+                    client_secret=od_client_secret_ui or od_client_secret or None,
+                    tenant_id=od_tenant_ui or od_tenant or None,
+                )
+            except Exception as e:
+                st.error(f"OneDrive ingestion failed: {e}")
 
     elif source_choice == "REST API (ERP/MES/QMS)":
-        api_url = st.sidebar.text_input("API URL")
+        st.sidebar.write("REST API options")
+        api_url = st.sidebar.text_input("API Endpoint URL", value="")
+        api_token = get_cred_value("API_TOKEN")
+        api_token_ui = st.sidebar.text_input("API Token (optional)", value=api_token or "", type="password")
+        extra_headers = st.sidebar.text_area("Additional headers (JSON)", value="{}")
+        method = st.sidebar.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE"])
         if st.sidebar.button("Fetch API"):
-            try: df = ingest_rest_api(api_url)
-            except Exception as e: st.error(f"REST API ingestion failed: {e}")
+            try:
+                headers = {}
+                try:
+                    headers = json.loads(extra_headers)
+                except Exception:
+                    st.warning("Invalid JSON for extra headers; ignoring.")
+                    headers = {}
+                if api_token_ui:
+                    headers.setdefault("Authorization", f"Bearer {api_token_ui}")
+                df = ingest_rest_api(api_url, method=method, headers=headers)
+            except Exception as e:
+                st.error(f"REST API ingestion failed: {e}")
 
     elif source_choice == "SQL Database":
+        st.sidebar.write("SQL Database options")
+        db_conn_env = get_cred_value("DB_CONN")
+        db_conn_ui = st.sidebar.text_input("DB connection string (or leave to use env DB_CONN)", value=db_conn_env or "")
         sql_query = st.sidebar.text_area("SQL Query", value="SELECT * FROM my_table LIMIT 100")
-        db_conn = get_cred_value("DB_CONN")
         if st.sidebar.button("Run Query"):
-            try: df = ingest_database(db_conn, sql_query)
-            except Exception as e: st.error(f"Database ingestion failed: {e}")
+            conn_str = db_conn_ui or db_conn_env
+            if not conn_str:
+                st.error("No DB connection string supplied (env DB_CONN or enter here).")
+            else:
+                try:
+                    df = ingest_database(conn_str, sql_query)
+                except Exception as e:
+                    st.error(f"Database ingestion failed: {e}")
 
     elif source_choice == "MongoDB":
-        mongo_uri = get_cred_value("MONGO_URI")
+        st.sidebar.write("MongoDB options")
+        mongo_uri_env = get_cred_value("MONGO_URI")
+        mongo_uri_ui = st.sidebar.text_input("Mongo URI (or leave to use env MONGO_URI)", value=mongo_uri_env or "")
+        mongo_db = st.sidebar.text_input("Database name")
+        mongo_coll = st.sidebar.text_input("Collection name")
+        mongo_query_text = st.sidebar.text_area("Query (JSON)", value="{}")
         if st.sidebar.button("Load MongoDB"):
-            try: df = ingest_mongodb(mongo_uri, "db_name","collection_name")
-            except Exception as e: st.error(f"MongoDB ingestion failed: {e}")
+            try:
+                q = {}
+                try:
+                    q = json.loads(mongo_query_text)
+                except Exception:
+                    st.warning("Invalid JSON for Mongo query; using empty query {}.")
+                    q = {}
+                df = ingest_mongodb(mongo_uri_ui or mongo_uri_env, mongo_db, mongo_coll, query=q)
+            except Exception as e:
+                st.error(f"MongoDB ingestion failed: {e}")
 
     elif source_choice == "Manual Entry":
         if not st.session_state.manual_saved:
@@ -259,13 +345,14 @@ def main():
         else:
             df = st.session_state.df
 
-    # ----------------- Data Preview & downstream workflow -----------------
+    # ----------------- Data Preview and downstream workflow -----------------
+    # If ingestion produced a df, set session_state vars for preview & further steps
     if df is not None:
-        if isinstance(df,pd.DataFrame) and not df.empty:
+        if isinstance(df, pd.DataFrame) and not df.empty:
             st.session_state.raw_df = df
             st.session_state.header_row = 0
             st.session_state.df = apply_row_as_header(df, 0)
-            st.success(f"Data loaded: {len(df)} rows, {len(df.columns)} columns.")
+            st.success(f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns.")
         else:
             st.warning("Ingested data is empty or not a DataFrame.")
 
@@ -336,147 +423,139 @@ def main():
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
 
-            # Only show analytics if preprocessing + embeddings are done
-if 'processed' in st.session_state and isinstance(st.session_state['processed'], pd.DataFrame) \
-        and 'embeddings' in st.session_state and st.session_state['embeddings'] is not None:
+            # Only show analytics if processed + embeddings present
+            if 'processed' in st.session_state and 'embeddings' in st.session_state:
+                p = st.session_state['processed']
+                embeddings = st.session_state['embeddings']
 
-    p = st.session_state['processed']
-    embeddings = st.session_state['embeddings']
+                # Clustering
+                st.subheader("Clustering & Visualization")
+                if st.button('Cluster & Visualize'):
+                    try:
+                        km, labels, score, interpretation = fit_kmeans(embeddings)
+                        st.write(f"Silhouette score: {score:.3f}")
+                        if interpretation:
+                            st.info(interpretation)
+                        st.session_state['labels'] = labels
+                        fig = cluster_scatter(embeddings, labels)
+                        st.plotly_chart(fig, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Clustering failed: {e}")
 
-    # ---------------- Clustering ----------------
-    st.subheader("Clustering & Visualization")
-    if st.button('Cluster & Visualize'):
-        try:
-            km, labels, score, interpretation = fit_kmeans(embeddings)
-            st.write(f"Silhouette score: {score:.3f}")
-            if interpretation:
-                st.info(interpretation)
-            st.session_state['labels'] = labels
-            fig = cluster_scatter(embeddings, labels)
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.error(f"Clustering failed: {e}")
+                # Pareto
+                st.subheader("Pareto Analysis")
+                cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+                if st.button('Show Pareto'):
+                    try:
+                        tab = pareto_table(p, cat_col)
+                        fig = pareto_plot(tab)
+                        st.plotly_chart(fig, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Pareto failed: {e}")
 
-    # ---------------- Pareto ----------------
-    st.subheader("Pareto Analysis")
-    if not p.empty:
-        cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
-        if st.button('Show Pareto'):
-            try:
-                tab = pareto_table(p, cat_col)
-                fig = pareto_plot(tab)
-                st.plotly_chart(fig, use_container_width=True)
-            except Exception as e:
-                st.error(f"Pareto failed: {e}")
-    else:
-        st.info("Data is empty; Pareto analysis not available.")
+                # SPC
+                st.subheader("Statistical Process Control (SPC)")
+                num_cols = p.select_dtypes(include=['number']).columns.tolist()
+                if num_cols:
+                    spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
+                    if st.button('Show SPC Chart'):
+                        try:
+                            fig_spc = plot_spc_chart(p, spc_col)
+                            st.plotly_chart(fig_spc, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"SPC chart failed: {e}")
+                else:
+                    st.info("No numeric columns available for SPC analysis.")
 
-    # ---------------- SPC ----------------
-    st.subheader("Statistical Process Control (SPC)")
-    num_cols = p.select_dtypes(include=['number']).columns.tolist()
-    if num_cols:
-        spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
-        if st.button('Show SPC Chart'):
-            try:
-                fig_spc = plot_spc_chart(p, spc_col)
-                st.plotly_chart(fig_spc, use_container_width=True)
-            except Exception as e:
-                st.error(f"SPC chart failed: {e}")
-    else:
-        st.info("No numeric columns available for SPC analysis.")
+                # Trend Dashboard
+                st.subheader("Trend Dashboard")
+                if st.button("Show Dashboard"):
+                    try:
+                        fig_trend = plot_trend_dashboard(p)
+                        st.plotly_chart(fig_trend, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Trend dashboard failed: {e}")
 
-    # ---------------- Trend Dashboard ----------------
-    st.subheader("Trend Dashboard")
-    if st.button("Show Dashboard"):
-        try:
-            fig_trend = plot_trend_dashboard(p)
-            st.plotly_chart(fig_trend, use_container_width=True)
-        except Exception as e:
-            st.error(f"Trend dashboard failed: {e}")
+                # Time-Series Trend
+                st.subheader("Time-Series Trend Analysis")
+                time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
+                if time_cols:
+                    time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
+                    value_col = st.selectbox(
+                        "Select value column for trend",
+                        options=p.select_dtypes(include=['number']).columns.tolist()
+                    )
+                    if st.button("Plot Time-Series Trend"):
+                        try:
+                            fig_time = plot_time_series_trend(p, time_col, value_col)
+                            st.plotly_chart(fig_time, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Time-series trend failed: {e}")
+                else:
+                    st.info("No datetime column detected for time-series analysis.")
 
-    # ---------------- Time-Series Trend ----------------
-    st.subheader("Time-Series Trend Analysis")
-    time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
-    if time_cols:
-        time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
-        value_cols = p.select_dtypes(include=['number']).columns.tolist()
-        if value_cols:
-            value_col = st.selectbox("Select value column for trend", options=value_cols)
-            if st.button("Plot Time-Series Trend"):
-                try:
-                    fig_time = plot_time_series_trend(p, time_col, value_col)
-                    st.plotly_chart(fig_time, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Time-series trend failed: {e}")
-        else:
-            st.info("No numeric columns available for time-series trend.")
-    else:
-        st.info("No datetime columns detected for time-series trend analysis.")
+                # RCA
+                st.subheader("Root Cause Analysis (RCA)")
+                if len(p) == 0:
+                    st.info("No rows to analyze.")
+                else:
+                    idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
+                    row = p.iloc[int(idx)]
+                    st.markdown("**Selected row preview:**")
+                    st.write(row.get('combined_text', row.get('clean_text', '')))
 
-    # ---------------- Root Cause Analysis (RCA) ----------------
-    st.subheader("Root Cause Analysis (RCA)")
-    if not p.empty:
-        idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
-        row = p.iloc[int(idx)]
-        st.markdown("**Selected row preview:**")
-        st.write(row.get('combined_text', row.get('clean_text', '')))
+                    mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
 
-        mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
+                    if st.button("Run RCA"):
+                        with st.spinner("Running RCA..."):
+                            try:
+                                if mode == "AI-Powered (LLM)":
+                                    result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
+                                else:
+                                    fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
+                                    result = {"from": "rule_based", "fishbone": fb}
+                            except Exception as e:
+                                result = {"error": f"RCA failed: {e}"}
 
-        if st.button("Run RCA"):
-            with st.spinner("Running RCA..."):
-                try:
-                    if mode == "AI-Powered (LLM)":
-                        result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
-                    else:
-                        fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
-                        result = {"from": "rule_based", "fishbone": fb}
-                except Exception as e:
-                    result = {"error": f"RCA failed: {e}"}
+                        col1, col2 = st.columns([1, 1])
+                        with col1:
+                            st.markdown("### RCA - Details")
+                            if result.get("error"):
+                                st.error(result.get("error"))
+                            if result.get("root_causes"):
+                                st.markdown("**Root causes:**")
+                                st.json(result.get("root_causes"))
+                            if result.get("five_whys"):
+                                st.markdown("**5-Whys")
+                                for i, w in enumerate(result.get("five_whys"), start=1):
+                                    st.write(f"{i}. {w}")
+                            if result.get("capa"):
+                                st.markdown("**CAPA Recommendations**")
+                                for capa in result.get("capa"):
+                                    st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} (Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
+                            if result.get("fishbone") and not result.get("root_causes"):
+                                st.markdown("**Fishbone (rule-based)**")
+                                st.json(result.get("fishbone"))
 
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                st.markdown("### RCA - Details")
-                if result.get("error"):
-                    st.error(result.get("error"))
-                if result.get("root_causes"):
-                    st.markdown("**Root causes:**")
-                    st.json(result.get("root_causes"))
-                if result.get("five_whys"):
-                    st.markdown("**5-Whys**")
-                    for i, w in enumerate(result.get("five_whys"), start=1):
-                        st.write(f"{i}. {w}")
-                if result.get("capa"):
-                    st.markdown("**CAPA Recommendations**")
-                    for capa in result.get("capa"):
-                        st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} (Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
-                if result.get("fishbone") and not result.get("root_causes"):
-                    st.markdown("**Fishbone (rule-based)**")
-                    st.json(result.get("fishbone"))
-
-            with col2:
-                st.markdown("### Fishbone Diagram")
-                fishbone_data = result.get("fishbone") or {}
-                if not fishbone_data:
-                    fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
-                    for rc in (result.get("root_causes") or []):
-                        if isinstance(rc, dict):
-                            cat = rc.get("category") or "Method"
-                            fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
-                try:
-                    fig = visualize_fishbone(fishbone_data)
-                    st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Fishbone visualization failed: {e}")
-                    st.json(fishbone_data)
-
-else:
-    st.info("Run preprocessing first to enable clustering, Pareto, SPC, trends, and RCA.")
-
+                        with col2:
+                            st.markdown("### Fishbone Diagram")
+                            fishbone_data = result.get("fishbone") or {}
+                            if not fishbone_data:
+                                fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
+                                for rc in (result.get("root_causes") or []):
+                                    if isinstance(rc, dict):
+                                        cat = rc.get("category") or "Method"
+                                        fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
+                            try:
+                                fig = visualize_fishbone(fishbone_data)
+                                st.plotly_chart(fig, use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Fishbone visualization failed: {e}")
+                                st.json(fishbone_data)
 
                 # Manual 5-Whys & CAPA creation
-                    st.markdown("---")
-                    st.subheader("Manual 5-Whys & CAPA creation")
+                st.markdown("---")
+                st.subheader("Manual 5-Whys & CAPA creation")
                 manual_whys = []
                 for i in range(5):
                     manual_whys.append(st.text_input(f"Why {i+1}", key=f"manual_why_{i}"))
