@@ -57,7 +57,6 @@ def safe_rerun():
 
 # ----------------- Helpers -----------------
 def _make_unique(names):
-    """Ensure column names are unique and non-empty."""
     seen = {}
     unique = []
     for i, n in enumerate(names):
@@ -74,7 +73,6 @@ def _make_unique(names):
 
 
 def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
-    """Apply a row from raw_df as header and return updated DataFrame."""
     if raw_df is None or raw_df.empty:
         return raw_df
 
@@ -145,31 +143,24 @@ def main():
     except Exception as e:
         st.warning(f"Database init warning: {e}")
 
-    # ---------------- Sidebar: Source + Auth settings ----------------
-    def on_source_change():
-        """Reset all relevant session variables when data source changes"""
-        for key in [
-            "raw_df", "df", "header_row", "logs", "current_log", "manual_saved",
-            "processed", "embeddings", "labels"
-        ]:
+    # ---------------- Initialize session_state ----------------
+    if "current_source" not in st.session_state:
+        st.session_state.current_source = None
+    for key in ["raw_df", "df", "header_row", "logs", "current_log", "manual_saved",
+                "processed", "embeddings", "labels", "creds"]:
+        if key not in st.session_state:
             if key == "logs":
                 st.session_state[key] = []
             elif key == "current_log":
                 st.session_state[key] = 1
             elif key == "manual_saved":
                 st.session_state[key] = False
+            elif key == "creds":
+                st.session_state[key] = {}
             else:
                 st.session_state[key] = None
 
-        st.session_state.prev_source_choice = st.session_state.source_choice
-        st.experimental_rerun()
-
-
-    if "source_choice" not in st.session_state:
-        st.session_state.source_choice = "Upload File (CSV/Excel)"
-    if "prev_source_choice" not in st.session_state:
-        st.session_state.prev_source_choice = None
-
+    # ---------------- Sidebar: Source + Auth settings ----------------
     source_choice = st.sidebar.selectbox(
         "Select input method",
         [
@@ -182,11 +173,27 @@ def main():
             "Manual Entry",
         ],
         index=0,
-        key="source_choice",
-        on_change=on_source_change
     )
 
-    # ---------------- Sidebar expandable credentials settings ----------------
+    # ---------------- Reset on source change ----------------
+    if st.session_state.current_source != source_choice:
+        # Clear all relevant session variables
+        for key in ["raw_df", "df", "header_row", "logs", "current_log", 
+                    "manual_saved", "processed", "embeddings", "labels"]:
+            if key == "logs":
+                st.session_state[key] = []
+            elif key == "current_log":
+                st.session_state[key] = 1
+            elif key == "manual_saved":
+                st.session_state[key] = False
+            else:
+                st.session_state[key] = None
+        # Update current source
+        st.session_state.current_source = source_choice
+        # Rerun app to start clean
+        st.experimental_rerun()
+
+    # ---------------- Sidebar: Credentials ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
         st.markdown("Credentials are loaded from environment variables by default. Use these fields to override for this session, or save to `.env` permanently.")
         cred_inputs = {}
