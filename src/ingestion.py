@@ -1,17 +1,25 @@
-import pandas as pd
-from config import PROCESSED_DIR
-import streamlit as st
 import os
+import pandas as pd
+import streamlit as st
+from config import PROCESSED_DIR
+from sqlalchemy import create_engine
+import requests
+from oauth2client.service_account import ServiceAccountCredentials
+import gspread
 
+# -----------------------------------------
+# Utility to rerun Streamlit
+# -----------------------------------------
 def safe_rerun():
-    """Handles rerun compatibility across Streamlit versions."""
     try:
         st.rerun()
     except AttributeError:
         st.experimental_rerun()
 
+# -----------------------------------------
+# Local file ingestion
+# -----------------------------------------
 def ingest_file(file_obj):
-    """Reads CSV or Excel from Streamlit uploader or local path."""
     if hasattr(file_obj, "name"):
         filename = file_obj.name.lower()
     else:
@@ -26,17 +34,49 @@ def ingest_file(file_obj):
     else:
         return pd.read_csv(file_obj)
 
+# -----------------------------------------
+# Google Sheets ingestion
+# -----------------------------------------
+def ingest_google_sheet(sheet_url):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_path = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
 
+    if not creds_path or not os.path.exists(creds_path):
+        st.error("Google service account JSON not found in environment.")
+        return None
+
+    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open_by_url(sheet_url).sheet1
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+# -----------------------------------------
+# Database ingestion
+# -----------------------------------------
+def ingest_database(connection_string, query):
+    engine = create_engine(connection_string)
+    return pd.read_sql(query, engine)
+
+# -----------------------------------------
+# REST API ingestion (ERP/MES/QMS)
+# -----------------------------------------
+def ingest_api(endpoint_url, headers=None):
+    response = requests.get(endpoint_url, headers=headers)
+    if response.status_code == 200:
+        return pd.DataFrame(response.json())
+    else:
+        st.error(f"API Request failed with status: {response.status_code}")
+        return None
+
+# -----------------------------------------
+# Manual log entry
+# -----------------------------------------
 def manual_log_entry():
-    """
-    Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
-    Uses session state for navigation & auto-fills field names from Log 1.
-    Returns final DataFrame after save, otherwise None.
-    """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    # Initialize session state
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
     if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
@@ -45,7 +85,6 @@ def manual_log_entry():
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
-    # Use Log 1 field names as template
     field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
 
     entry = {}
@@ -66,10 +105,8 @@ def manual_log_entry():
         if field:
             entry[field] = value
 
-    # Save current log data to session state
     st.session_state.logs[current_log - 1] = entry
 
-    # Navigation buttons
     col_prev, col_next = st.columns(2)
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
@@ -80,7 +117,6 @@ def manual_log_entry():
             st.session_state.current_log += 1
             safe_rerun()
 
-    # Finalize entry (only returns DataFrame, no preview here)
     if current_log == num_logs and st.button("Save Manual Logs"):
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
@@ -88,9 +124,10 @@ def manual_log_entry():
         return df
     return None
 
-
+# -----------------------------------------
+# Save DataFrame
+# -----------------------------------------
 def save_processed(df, filename):
-    """Save DataFrame to parquet in processed dir."""
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     file_path = os.path.join(PROCESSED_DIR, filename)
     df.to_parquet(file_path, index=False)
