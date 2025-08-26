@@ -367,25 +367,29 @@ def ingest_mongodb(uri: str, database: str, collection: str, query: Optional[dic
 # -----------------------------------------
 # Manual log entry (Streamlit UI helper)
 # -----------------------------------------
+# -----------------------------------------
+# Manual log entry (Streamlit UI helper) - Old behavior retained
+# -----------------------------------------
 def manual_log_entry() -> Optional[pd.DataFrame]:
     """
     Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
-    Uses session state for navigation & auto-fills field names from Log 1.
+    Retains old behavior for:
+    - Navigation between logs (Previous / Next)
+    - Messages and prompts
+    - Session state handling for switching between logs
     Returns final DataFrame after save, otherwise None.
     """
-    st.write("### Manual Log Entry")
+    st.write("### Manual Log Entry")  # message from old code
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    # Initialize session state
+    # Initialize session state exactly like old code
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
-
-    # ✅ Safe check for logs
-    if "logs" not in st.session_state or len(st.session_state.get("logs", [])) != num_logs:
+    if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
         st.session_state.logs = [{} for _ in range(num_logs)]
 
     current_log = st.session_state.current_log
-    st.subheader(f"Log {current_log}")
+    st.subheader(f"Log {current_log}")  # old-style message
 
     # Use Log 1 field names as template
     field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
@@ -408,10 +412,10 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         if field:
             entry[field] = value
 
-    # Save current log data to session state
+    # Save current log to session state
     st.session_state.logs[current_log - 1] = entry
 
-    # Navigation buttons
+    # Navigation buttons (old behavior)
     col_prev, col_next = st.columns(2)
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
@@ -427,12 +431,10 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
             df[col] = df[col].astype(str)
-        # reset session state so next manual entry starts fresh
-        st.session_state.current_log = 1
-        st.session_state.logs = []
         return df
 
     return None
+
 
 # -----------------------------------------
 # Save processed DataFrame to PROCESSED_DIR
