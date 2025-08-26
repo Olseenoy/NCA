@@ -369,30 +369,32 @@ def ingest_mongodb(uri: str, database: str, collection: str, query: Optional[dic
 # -----------------------------------------
 def manual_log_entry() -> Optional[pd.DataFrame]:
     """
-    Allows manual entry of up to 20 logs with up to 10 fields each via Streamlit.
+    Allows manual entry of up to 5 logs with up to 10 fields each via Streamlit.
     Uses session state for navigation & auto-fills field names from Log 1.
-    Returns final DataFrame after Save (or None while editing).
+    Returns final DataFrame after save, otherwise None.
     """
     st.write("### Manual Log Entry")
-    num_logs = st.number_input("Number of Logs", min_value=1, max_value=20, value=1)
+    num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    # Initialize session state safely
-   if "current_log" not in st.session_state:
-       st.session_state.current_log = 1
-   if "logs" not in st.session_state or len(st.session_state.get("logs", [])) != num_logs:
-       st.session_state.logs = [{} for _ in range(num_logs)]
+    # Initialize session state
+    if "current_log" not in st.session_state:
+        st.session_state.current_log = 1
+
+    # ✅ Safe check for logs
+    if "logs" not in st.session_state or len(st.session_state.get("logs", [])) != num_logs:
+        st.session_state.logs = [{} for _ in range(num_logs)]
 
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
     # Use Log 1 field names as template
-    field_template = list(st.session_state.logs[0].keys()) if st.session_state.logs and current_log > 1 else []
+    field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
 
     entry = {}
     for i in range(1, 11):
         col1, col2 = st.columns([1, 2])
         with col1:
-            default_field = field_template[i - 1] if i - 1 < len(field_template) else f"Field_{i}"
+            default_field = field_template[i-1] if i-1 < len(field_template) else ""
             field = st.text_input(
                 f"Field {i} Name",
                 value=default_field,
@@ -420,18 +422,17 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             st.session_state.current_log += 1
             safe_rerun()
 
-    # Finalize entry (only returns DataFrame after user confirms)
+    # Finalize entry
     if current_log == num_logs and st.button("Save Manual Logs"):
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
             df[col] = df[col].astype(str)
-        # reset navigation so next invocation starts fresh
+        # reset session state so next manual entry starts fresh
         st.session_state.current_log = 1
         st.session_state.logs = []
         return df
 
     return None
-
 
 # -----------------------------------------
 # Save processed DataFrame to PROCESSED_DIR
