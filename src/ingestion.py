@@ -377,10 +377,10 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=20, value=1)
 
     # Initialize session state safely
-    if "current_log" not in st.session_state:
-        st.session_state.current_log = 1
-    if "logs" not in st.session_state or len(st.session_state.get("logs", [])) != num_logs:
-        st.session_state.logs = [{} for _ in range(num_logs)]
+   if "current_log" not in st.session_state:
+       st.session_state.current_log = 1
+   if "logs" not in st.session_state or len(st.session_state.get("logs", [])) != num_logs:
+       st.session_state.logs = [{} for _ in range(num_logs)]
 
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
