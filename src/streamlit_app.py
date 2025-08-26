@@ -475,8 +475,8 @@ else:
 
 
                 # Manual 5-Whys & CAPA creation
-                st.markdown("---")
-                st.subheader("Manual 5-Whys & CAPA creation")
+                    st.markdown("---")
+                    st.subheader("Manual 5-Whys & CAPA creation")
                 manual_whys = []
                 for i in range(5):
                     manual_whys.append(st.text_input(f"Why {i+1}", key=f"manual_why_{i}"))
