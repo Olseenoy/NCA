@@ -288,104 +288,83 @@ def ingest_mongodb(uri: str, database: str, collection: str, query: Optional[dic
 # Manual log entry with preview/save
 # -----------------------------------------
 def manual_log_entry() -> Optional[pd.DataFrame]:
-    """
-    Manual entry UI that persists each field/value in session_state using stable keys.
-    On Save, reconstructs the full DataFrame from session_state and stores it into
-    st.session_state so the main app can progress to preview / preprocess / embed.
-    """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    # initialize current_log
+    # Initialize session state variables
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
-
-    # ensure current_log is within bounds if num_logs changed
-    if st.session_state.current_log > num_logs:
-        st.session_state.current_log = num_logs
+    if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
+        st.session_state.logs = [{} for _ in range(num_logs)]
 
     current_log = st.session_state.current_log
-    st.subheader(f"Log {current_log} of {num_logs}")
+    st.subheader(f"Log {current_log}")
 
-    # Build UI for current log: 10 field-name / content pairs using stable keys
+    # Use previous fields to guide new logs
+    field_template = list(st.session_state.logs[0].keys()) if st.session_state.logs and current_log > 1 else []
+
+    entry = {}
     for i in range(1, 11):
         col1, col2 = st.columns([1, 2])
-        field_key = f"manual_field_{current_log}_{i}"
-        value_key = f"manual_value_{current_log}_{i}"
-
-        # Use existing session_state value as the text_input initial value so it persists
         with col1:
-            st.text_input(f"Field {i} Name", value=st.session_state.get(field_key, ""), key=field_key)
+            default_field = field_template[i-1] if i-1 < len(field_template) else ""
+            field = st.text_input(f"Field {i} Name", value=default_field, key=f"field_{current_log}_{i}")
         with col2:
-            st.text_input(f"Content {i}", value=st.session_state.get(value_key, ""), key=value_key)
+            value = st.text_input(f"Content {i}", key=f"value_{current_log}_{i}")
+        if field:
+            entry[field] = value
 
-    # Navigation (no forced rerun; changing session_state will rerun automatically)
+    # Save entry into session state
+    if current_log <= len(st.session_state.logs):
+        st.session_state.logs[current_log - 1] = entry
+
+    # Navigation
     col_prev, col_next = st.columns(2)
     with col_prev:
-        if current_log > 1 and st.button("Previous", key=f"prev_btn_{current_log}"):
-            st.session_state.current_log = current_log - 1
+        if current_log > 1 and st.button("Previous Log"):
+            st.session_state.current_log -= 1
+            safe_rerun()
     with col_next:
-        if current_log < num_logs and st.button("Next", key=f"next_btn_{current_log}"):
-            st.session_state.current_log = current_log + 1
+        if current_log < num_logs and st.button("Next Log"):
+            st.session_state.current_log += 1
+            safe_rerun()
 
-    # Save: reconstruct all logs from session_state keys
-    if st.button("Save Manual Logs", key="save_manual_logs"):
-        rows = []
-        columns_order = []
-        for log_idx in range(1, num_logs + 1):
-            entry = {}
-            for i in range(1, 11):
-                fkey = f"manual_field_{log_idx}_{i}"
-                vkey = f"manual_value_{log_idx}_{i}"
-                fld = (st.session_state.get(fkey) or "").strip()
-                val = st.session_state.get(vkey) or ""
-                if fld:
-                    entry[fld] = val
-                    if fld not in columns_order:
-                        columns_order.append(fld)
-            rows.append(entry)
+    # Save & preview
+    if current_log == num_logs and st.button("Save Manual Logs"):
+        logs = st.session_state.logs
 
-        if not columns_order:
-            st.warning("No field names entered. Please provide at least one field name for the logs.")
-            return None
+        # Ensure all unique field names across logs
+        columns_order = list({k for d in logs for k in d.keys()})
 
-        # Build DataFrame preserving column order
+        # Build rows preserving column order
         data_rows = []
-        for entry in rows:
-            row = {col: entry.get(col, "") for col in columns_order}
+        for entry in logs:
+            row = [entry.get(col, "") for col in columns_order]
             data_rows.append(row)
 
+        # Final DataFrame with proper headers
         df = pd.DataFrame(data_rows, columns=columns_order)
 
-        # Store into session_state so main app can detect and continue
-        st.session_state["df"] = df
-        st.session_state["raw_df"] = df.copy()
-        st.session_state["manual_saved"] = True
-        st.session_state["current_log"] = 1
-        st.session_state["logs"] = []
+        st.write("### Preview of Entered Logs")
+        st.dataframe(df)
 
-        # Optionally keep a named copy as well
-        st.session_state["manual_entered_df"] = df
-
-        # Rerun so streamlit_app picks up st.session_state and shows preview / analyze
-        try:
-            # safe_rerun() should be defined in this module (if not, call st.rerun() with fallback)
-            safe_rerun()
-        except Exception:
-            # If safe_rerun isn't available, try direct rerun
+        # Save option
+        save_name = st.text_input("Enter filename to save preview (without extension):", value="manual_logs")
+        if st.button("Save Preview"):
             try:
-                st.rerun()
-            except Exception:
-                try:
-                    st.experimental_rerun()
-                except Exception:
-                    # last resort: inform user to manually refresh
-                    st.info("Please refresh the page to continue to Save & Analyze.")
+                save_processed(df, f"{save_name}.parquet")
+                st.success(f"Preview saved as {save_name}.parquet")
+            except Exception as e:
+                st.error(f"Failed to save preview: {e}")
 
-        # Note: execution will be interrupted by the rerun above.
-        return None
+        # Reset after saving
+        st.session_state.current_log = 1
+        st.session_state.logs = []
+
+        return df
 
     return None
+
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
