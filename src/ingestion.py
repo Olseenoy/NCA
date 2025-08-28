@@ -1,25 +1,4 @@
 # src/ingestion.py
-"""
-ingestion.py
-
-Multi-source ingestion utilities for Smart NC Analyzer.
-
-Supported sources:
-- Local CSV / Excel (explicit CSV handling)
-- Google Sheets (service-account or public CSV)
-- OneDrive / SharePoint via Microsoft Graph
-- Generic REST API (JSON array or CSV)
-- SQL Databases via SQLAlchemy
-- MongoDB via pymongo
-- Manual log entry (Streamlit UI helper)
-- Save processed DataFrame to PROCESSED_DIR (config.PROCESSED_DIR)
-
-Features:
-- Manual log entry retains old behavior (navigation, session handling)
-- Raw data preview & save in manual entry
-- Session reset when switching input types
-- Optional dependencies imported lazily with clear error messages
-"""
 
 import os
 import io
@@ -372,12 +351,22 @@ def save_processed(df: pd.DataFrame, filename: str):
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     safe_name = filename if filename.endswith(".parquet") else f"{filename}"
     file_path = os.path.join(PROCESSED_DIR, safe_name)
+
     try:
+        # Convert mixed-type/object columns to string to avoid parquet conversion errors
+        for col in df.columns:
+            if df[col].dtype == object:
+                df[col] = df[col].astype(str)
+
         df.to_parquet(file_path, index=False)
     except Exception as e:
         try:
             csv_path = file_path.rsplit(".", 1)[0] + ".csv"
             df.to_csv(csv_path, index=False)
-            raise RuntimeError(f"Parquet write failed ({e}). Saved as CSV to {csv_path}") from e
+            raise RuntimeError(
+                f"Parquet write failed ({e}). Saved as CSV to {csv_path}"
+            ) from e
         except Exception as e2:
-            raise RuntimeError(f"Failed to save DataFrame as parquet and CSV: {e2}") from e2
+            raise RuntimeError(
+                f"Failed to save DataFrame as parquet and CSV: {e2}"
+            ) from e2
