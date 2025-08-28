@@ -360,32 +360,21 @@ def main():
 
         df = st.session_state.df
 
+      
         # Header selector for uploaded/raw data
-        # Ensure default header_row
-        if st.session_state.get("header_row") is None:
-            st.session_state.header_row = 0
-        
         max_row = len(st.session_state.raw_df) - 1
-        
-        def _apply_header_from_input():
-            try:
-                new_row = int(st.session_state.header_row_input)
-            except Exception:
-                new_row = 0
-            st.session_state.header_row = new_row
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, new_row)
-        
-        # Number input with on_change callback
-        st.number_input(
+        new_header_row = st.number_input(
             "Row number to use as header (0-indexed)",
-            min_value=0,
-            max_value=max_row,
-            key="header_row_input",
-            value=int(st.session_state.header_row),
+            min_value=0, max_value=max_row,
+            value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
             step=1,
-            help="Pick a row from the file to become column headers.",
-            on_change=_apply_header_from_input
+            help="Pick a row from the file to become column headers."
         )
+        if int(new_header_row) != int(st.session_state.header_row):
+            st.session_state.header_row = int(new_header_row)
+            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
+            df = st.session_state.df
+            safe_rerun()
 
         # Tabs: Preview / Save
         tab1, tab2 = st.tabs(["Preview", "Save & Analyze"])
