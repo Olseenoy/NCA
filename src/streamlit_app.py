@@ -373,19 +373,23 @@ def main():
 
       
         # Header selector for uploaded/raw data
-        max_row = len(st.session_state.raw_df) - 1
-        new_header_row = st.number_input(
-            "Row number to use as header (0-indexed)",
-            min_value=0, max_value=max_row,
-            value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
-            step=1,
-            help="Pick a row from the file to become column headers."
-        )
-        if int(new_header_row) != int(st.session_state.header_row):
-            st.session_state.header_row = int(new_header_row)
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
-            df = st.session_state.df
-            safe_rerun()
+        if not st.session_state.get("manual_df_ready", False):
+            max_row = len(st.session_state.raw_df) - 1
+            new_header_row = st.number_input(
+                "Row number to use as header (0-indexed)",
+                min_value=0, max_value=max_row,
+                value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
+                step=1,
+                help="Pick a row from the file to become column headers."
+            )
+            if int(new_header_row) != int(st.session_state.header_row):
+                st.session_state.header_row = int(new_header_row)
+                st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
+                df = st.session_state.df
+                safe_rerun()
+        else:
+            st.info("Manual entry mode active. Header row selection is disabled.")
+
 
         # Tabs: Preview / Save
         tab1, tab2 = st.tabs(["Preview", "Save & Analyze"])
