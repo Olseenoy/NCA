@@ -14,6 +14,9 @@ try:
 except Exception:
     PROCESSED_DIR = os.path.join(os.getcwd(), "processed")
 
+# Ensure directory path is consistent
+PROCESSED_DIR = PROCESSED_DIR if PROCESSED_DIR else "data/processed"
+
 # -----------------------------------------
 # Safe rerun helper for Streamlit versions
 # -----------------------------------------
@@ -345,22 +348,46 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     return None
 
 # -----------------------------------------
+# Utility: Fix mixed types before saving
+# -----------------------------------------
+def fix_mixed_types(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Ensure all columns have consistent types before saving.
+    - Converts mixed-type columns to string
+    - Leaves clean numeric or datetime columns untouched
+    """
+    for col in df.columns:
+        # Handle object (string / mixed) columns
+        if df[col].dtype == object:
+            types_in_col = df[col].dropna().apply(type).unique()
+            if len(types_in_col) > 1:
+                # Mixed types detected, convert everything to string
+                df[col] = df[col].astype(str)
+        elif pd.api.types.is_numeric_dtype(df[col]):
+            # Attempt to coerce to numeric where possible
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+# -----------------------------------------
 # Save processed DataFrame
 # -----------------------------------------
 def save_processed(df: pd.DataFrame, filename: str):
+    """
+    Save DataFrame to Parquet. Falls back to CSV if Parquet fails.
+    Handles mixed-type columns gracefully.
+    """
     os.makedirs(PROCESSED_DIR, exist_ok=True)
+    # Ensure filename ends correctly
     safe_name = filename if filename.endswith(".parquet") else f"{filename}"
     file_path = os.path.join(PROCESSED_DIR, safe_name)
 
     try:
-        # Convert mixed-type/object columns to string to avoid parquet conversion errors
-        for col in df.columns:
-            if df[col].dtype == object:
-                df[col] = df[col].astype(str)
-
+        # Ensure column types are consistent
+        df = fix_mixed_types(df)
         df.to_parquet(file_path, index=False)
     except Exception as e:
         try:
+            # Fallback to CSV if Parquet fails
             csv_path = file_path.rsplit(".", 1)[0] + ".csv"
             df.to_csv(csv_path, index=False)
             raise RuntimeError(
