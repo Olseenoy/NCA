@@ -344,15 +344,26 @@ def main():
             df = st.session_state.df
 
     # ----------------- Data Preview and downstream workflow -----------------
-    # If ingestion produced a df, set session_state vars for preview & further steps
+ 
+    # Ensure DataFrame from manual logs is captured
+    if df is None and st.session_state.get("manual_df_ready"):
+        df = st.session_state.df
+    
     if df is not None:
         if isinstance(df, pd.DataFrame) and not df.empty:
             st.session_state.raw_df = df
             st.session_state.header_row = 0
-            st.session_state.df = apply_row_as_header(df, 0)
+    
+            # Only apply row as header if NOT from manual logs
+            if not st.session_state.get("manual_df_ready"):
+                st.session_state.df = apply_row_as_header(df, 0)
+            else:
+                st.session_state.df = df  # use as-is for manual entry
+    
             st.success(f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns.")
         else:
             st.warning("Ingested data is empty or not a DataFrame.")
+
 
     # Main area: only show preview/analysis if raw_df present
     if st.session_state.get("raw_df") is not None and not st.session_state.get("raw_df").empty:
