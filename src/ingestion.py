@@ -291,18 +291,16 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    # Initialize session state safely
+    # Initialize session state
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
-    if "logs" not in st.session_state:
+    if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
         st.session_state.logs = [{} for _ in range(num_logs)]
-    elif len(st.session_state.logs) < num_logs:
-        # Extend list instead of overwriting
-        st.session_state.logs.extend([{} for _ in range(num_logs - len(st.session_state.logs))])
 
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
+    # Use previous log's keys as template if available
     field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
 
     entry = {}
@@ -310,18 +308,24 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         col1, col2 = st.columns([1, 2])
         with col1:
             default_field = field_template[i-1] if i-1 < len(field_template) else ""
-            field = st.text_input(f"Field {i} Name", value=default_field, key=f"field_{current_log}_{i}")
+            field = st.text_input(
+                f"Field {i} Name",
+                value=default_field,
+                key=f"field_{current_log}_{i}_{num_logs}"
+            )
         with col2:
-            value = st.text_input(f"Content {i}", key=f"value_{current_log}_{i}")
+            value = st.text_input(
+                f"Content {i}",
+                key=f"value_{current_log}_{i}_{num_logs}"
+            )
         if field:
             entry[field] = value
 
-    # Prevent index error
-    if current_log - 1 < len(st.session_state.logs):
+    # Save current log entry to session
+    if 1 <= current_log <= num_logs:
         st.session_state.logs[current_log - 1] = entry
-    else:
-        st.session_state.logs.append(entry)
 
+    # Navigation buttons
     col_prev, col_next = st.columns(2)
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
@@ -332,6 +336,7 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             st.session_state.current_log += 1
             safe_rerun()
 
+    # Final save button
     if current_log == num_logs and st.button("Save Manual Logs"):
         df = pd.DataFrame(st.session_state.logs)
         for col in df.columns:
@@ -340,7 +345,10 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         st.write("### Preview of Entered Logs")
         st.dataframe(df)
 
-        save_name = st.text_input("Enter filename to save preview (without extension):", value="manual_logs")
+        save_name = st.text_input(
+            "Enter filename to save preview (without extension):",
+            value="manual_logs"
+        )
         if st.button("Save Preview"):
             try:
                 save_processed(df, f"{save_name}.parquet")
@@ -348,13 +356,13 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             except Exception as e:
                 st.error(f"Failed to save preview: {e}")
 
+        # Reset session state for next manual entry
         st.session_state.current_log = 1
         st.session_state.logs = []
 
         return df
 
     return None
-
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
