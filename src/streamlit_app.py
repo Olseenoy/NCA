@@ -448,12 +448,16 @@ def main():
         else:
             st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
 
-        # --- Pareto Analysis ---
+       # --- Pareto Analysis ---
         st.subheader("Pareto Analysis")
         p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+        
         if isinstance(p, pd.DataFrame) and not p.empty:
             try:
-                cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+                cat_col = st.selectbox(
+                    'Select column for Pareto',
+                    options=p.columns.tolist()
+                )
                 if st.button('Show Pareto'):
                     try:
                         tab = pareto_table(p, cat_col)
@@ -465,6 +469,7 @@ def main():
                 st.error(f"Pareto setup failed: {e}")
         else:
             st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
         # --- SPC Section ---
         st.subheader("Statistical Process Control (SPC)")
