@@ -605,14 +605,16 @@ def main():
                 # --- Manual 5-Whys & CAPA creation ---
                 st.markdown("---")
                 st.subheader("Manual 5-Whys & CAPA creation")
-        
+                
                 manual_whys = []
                 for i in range(5):
                     manual_whys.append(st.text_input(f"Why {i+1}", key=f"manual_why_{i}"))
-        
+                
                 with st.form("capa_form"):
                     labels = st.session_state.get('labels', [])
-                    default_issue_id = f"issue-{len(labels) or 0}-{st.session_state.get('current_log', 1)}"
+                    label_count = len(labels) if isinstance(labels, list) else 0
+                    default_issue_id = f"issue-{label_count}-{st.session_state.get('current_log', 1)}"
+                    
                     desc_default = ""
                     p = st.session_state.get('processed')
                     if isinstance(p, pd.DataFrame) and not p.empty:
@@ -620,7 +622,7 @@ def main():
                             desc_default = str(p.iloc[0].get("combined_text", p.iloc[0].get("clean_text", "")))
                         except Exception:
                             desc_default = ""
-        
+                
                     issue_id = st.text_input("Issue ID", value=default_issue_id)
                     desc = st.text_area("Description", value=desc_default)
                     corrective = st.text_area("Corrective Action")
@@ -645,6 +647,7 @@ def main():
                             st.success("CAPA created and saved to DB")
                         except Exception as e:
                             st.error(f"Failed to save CAPA: {e}")
+
 
 if __name__ == "__main__":
     main()
