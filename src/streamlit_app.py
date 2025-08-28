@@ -493,120 +493,136 @@ def main():
                     st.warning("No processed data available for SPC. Please preprocess first.")
 
 
-                # Trend Dashboard
+                # --- Trend Dashboard ---
                 st.subheader("Trend Dashboard")
-                if st.button("Show Dashboard"):
-                    try:
-                        fig_trend = plot_trend_dashboard(p)
-                        st.plotly_chart(fig_trend, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Trend dashboard failed: {e}")
-
+                p = st.session_state.get('processed')
+                if isinstance(p, pd.DataFrame) and not p.empty:
+                    if st.button("Show Dashboard"):
+                        try:
+                            fig_trend = plot_trend_dashboard(p)
+                            st.plotly_chart(fig_trend, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Trend dashboard failed: {e}")
+                else:
+                    st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
+        
                 # --- Time-Series Trend Analysis ---
                 st.subheader("Time-Series Trend Analysis")
-                p = st.session_state.get('processed')  # Ensure processed data exists
-                
+                p = st.session_state.get('processed')
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        time_cols = [
-                            c for c in p.columns
-                            if pd.api.types.is_datetime64_any_dtype(p[c])
-                        ]
-                
+                        time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
                         if time_cols:
-                            time_col = st.selectbox(
-                                "Select time column for trend analysis",
-                                options=time_cols
-                            )
-                            value_col = st.selectbox(
-                                "Select value column for trend",
-                                options=p.select_dtypes(include=['number']).columns.tolist()
-                            )
-                
-                            if st.button("Plot Time-Series Trend"):
-                                try:
-                                    fig_time = plot_time_series_trend(p, time_col, value_col)
-                                    st.plotly_chart(fig_time, use_container_width=True)
-                                except Exception as e:
-                                    st.error(f"Time-series trend failed: {e}")
+                            time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
+                            numeric_cols = p.select_dtypes(include=['number']).columns.tolist()
+                            if numeric_cols:
+                                value_col = st.selectbox("Select value column for trend", options=numeric_cols)
+                                if st.button("Plot Time-Series Trend"):
+                                    try:
+                                        fig_time = plot_time_series_trend(p, time_col, value_col)
+                                        st.plotly_chart(fig_time, use_container_width=True)
+                                    except Exception as e:
+                                        st.error(f"Time-series trend failed: {e}")
+                            else:
+                                st.info("No numeric columns available for time-series value selection.")
                         else:
                             st.info("No datetime column detected for time-series analysis.")
                     except Exception as e:
-                        st.error(f"Time-Series setup failed: {e}")
+                        st.error(f"Time-series setup failed: {e}")
                 else:
                     st.warning("No processed data available for Time-Series analysis. Please preprocess first.")
-                
-
-                # RCA
+        
+                # --- Root Cause Analysis (RCA) ---
                 st.subheader("Root Cause Analysis (RCA)")
-                if len(p) == 0:
-                    st.info("No rows to analyze.")
+                p = st.session_state.get('processed')
+                if isinstance(p, pd.DataFrame) and not p.empty:
+                    try:
+                        idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
+                        row = p.iloc[int(idx)]
+                        st.markdown("**Selected row preview:**")
+                        st.write(row.get('combined_text', row.get('clean_text', '')))
+        
+                        mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
+        
+                        result = {}
+                        if st.button("Run RCA"):
+                            with st.spinner("Running RCA..."):
+                                try:
+                                    if mode == "AI-Powered (LLM)":
+                                        result = ai_rca_with_fallback(
+                                            str(row.get('combined_text', '')),
+                                            str(row.get('clean_text', ''))
+                                        )
+                                    else:
+                                        fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
+                                        result = {"from": "rule_based", "fishbone": fb}
+                                except Exception as e:
+                                    result = {"error": f"RCA failed: {e}"}
+        
+                        if result:
+                            col1, col2 = st.columns([1, 1])
+                            with col1:
+                                st.markdown("### RCA - Details")
+                                if result.get("error"):
+                                    st.error(result.get("error"))
+                                if result.get("root_causes"):
+                                    st.markdown("**Root causes:**")
+                                    st.json(result.get("root_causes"))
+                                if result.get("five_whys"):
+                                    st.markdown("**5-Whys**")
+                                    for i, w in enumerate(result.get("five_whys"), start=1):
+                                        st.write(f"{i}. {w}")
+                                if result.get("capa"):
+                                    st.markdown("**CAPA Recommendations**")
+                                    for capa in result.get("capa"):
+                                        st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} "
+                                                 f"(Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
+                                if result.get("fishbone") and not result.get("root_causes"):
+                                    st.markdown("**Fishbone (rule-based)**")
+                                    st.json(result.get("fishbone"))
+        
+                            with col2:
+                                st.markdown("### Fishbone Diagram")
+                                fishbone_data = result.get("fishbone") or {}
+                                if not fishbone_data:
+                                    # build from root causes if provided
+                                    fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
+                                    for rc in (result.get("root_causes") or []):
+                                        if isinstance(rc, dict):
+                                            cat = rc.get("category") or "Method"
+                                            fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
+                                try:
+                                    fig = visualize_fishbone(fishbone_data)
+                                    st.plotly_chart(fig, use_container_width=True)
+                                except Exception as e:
+                                    st.error(f"Fishbone visualization failed: {e}")
+                                    st.json(fishbone_data)
+                    except Exception as e:
+                        st.error(f"RCA setup failed: {e}")
                 else:
-                    idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
-                    row = p.iloc[int(idx)]
-                    st.markdown("**Selected row preview:**")
-                    st.write(row.get('combined_text', row.get('clean_text', '')))
-
-                    mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
-
-                    if st.button("Run RCA"):
-                        with st.spinner("Running RCA..."):
-                            try:
-                                if mode == "AI-Powered (LLM)":
-                                    result = ai_rca_with_fallback(str(row.get('combined_text', '')), str(row.get('clean_text', '')))
-                                else:
-                                    fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
-                                    result = {"from": "rule_based", "fishbone": fb}
-                            except Exception as e:
-                                result = {"error": f"RCA failed: {e}"}
-
-                        col1, col2 = st.columns([1, 1])
-                        with col1:
-                            st.markdown("### RCA - Details")
-                            if result.get("error"):
-                                st.error(result.get("error"))
-                            if result.get("root_causes"):
-                                st.markdown("**Root causes:**")
-                                st.json(result.get("root_causes"))
-                            if result.get("five_whys"):
-                                st.markdown("**5-Whys")
-                                for i, w in enumerate(result.get("five_whys"), start=1):
-                                    st.write(f"{i}. {w}")
-                            if result.get("capa"):
-                                st.markdown("**CAPA Recommendations**")
-                                for capa in result.get("capa"):
-                                    st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} (Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
-                            if result.get("fishbone") and not result.get("root_causes"):
-                                st.markdown("**Fishbone (rule-based)**")
-                                st.json(result.get("fishbone"))
-
-                        with col2:
-                            st.markdown("### Fishbone Diagram")
-                            fishbone_data = result.get("fishbone") or {}
-                            if not fishbone_data:
-                                fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
-                                for rc in (result.get("root_causes") or []):
-                                    if isinstance(rc, dict):
-                                        cat = rc.get("category") or "Method"
-                                        fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
-                            try:
-                                fig = visualize_fishbone(fishbone_data)
-                                st.plotly_chart(fig, use_container_width=True)
-                            except Exception as e:
-                                st.error(f"Fishbone visualization failed: {e}")
-                                st.json(fishbone_data)
-
-                # Manual 5-Whys & CAPA creation
+                    st.warning("No processed data available for RCA. Please preprocess first.")
+        
+                # --- Manual 5-Whys & CAPA creation ---
                 st.markdown("---")
                 st.subheader("Manual 5-Whys & CAPA creation")
+        
                 manual_whys = []
                 for i in range(5):
                     manual_whys.append(st.text_input(f"Why {i+1}", key=f"manual_why_{i}"))
-
+        
                 with st.form("capa_form"):
-                    default_issue_id = f"issue-{len(st.session_state.get('labels', [])) or 0}-{st.session_state.get('current_log', 1)}"
+                    labels = st.session_state.get('labels', [])
+                    default_issue_id = f"issue-{len(labels) or 0}-{st.session_state.get('current_log', 1)}"
+                    desc_default = ""
+                    p = st.session_state.get('processed')
+                    if isinstance(p, pd.DataFrame) and not p.empty:
+                        try:
+                            desc_default = str(p.iloc[0].get("combined_text", p.iloc[0].get("clean_text", "")))
+                        except Exception:
+                            desc_default = ""
+        
                     issue_id = st.text_input("Issue ID", value=default_issue_id)
-                    desc = st.text_area("Description", value=str(p.iloc[0].get("combined_text", "")) if len(p) else "")
+                    desc = st.text_area("Description", value=desc_default)
                     corrective = st.text_area("Corrective Action")
                     preventive = st.text_area("Preventive Action")
                     owner = st.text_input("Owner")
@@ -629,9 +645,6 @@ def main():
                             st.success("CAPA created and saved to DB")
                         except Exception as e:
                             st.error(f"Failed to save CAPA: {e}")
-
-    else:
-        st.info("No data loaded. Use the sidebar to upload or connect to a data source.")
 
 if __name__ == "__main__":
     main()
