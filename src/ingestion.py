@@ -375,6 +375,10 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             except Exception as e:
                 st.error(f"Failed to save preview: {e}")
 
+ # <<<<< ADD THIS >>>>>
+        st.session_state["processed_df"] = df
+        st.session_state["data_ready"] = True
+
 # -----------------------------------------
 # Utility: Fix mixed types before saving
 # -----------------------------------------
