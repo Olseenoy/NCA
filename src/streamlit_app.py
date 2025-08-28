@@ -510,17 +510,29 @@ def main():
 
 
                 # --- Trend Dashboard ---
+                                
                 st.subheader("Trend Dashboard")
                 p = st.session_state.get('processed')
                 if isinstance(p, pd.DataFrame) and not p.empty:
-                    if st.button("Show Dashboard"):
-                        try:
-                            fig_trend = plot_trend_dashboard(p)
-                            st.plotly_chart(fig_trend, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Trend dashboard failed: {e}")
+                    # Automatically select the first two columns for plotting
+                    if len(p.columns) >= 2:
+                        date_col = p.columns[0]
+                        value_col = p.columns[1]
+                
+                        if st.button("Show Dashboard"):
+                            try:
+                                fig_trend = plot_trend_dashboard(p, date_col=date_col, value_col=value_col)
+                                if fig_trend:
+                                    st.plotly_chart(fig_trend, use_container_width=True)
+                                else:
+                                    st.warning("Selected columns are invalid for plotting.")
+                            except Exception as e:
+                                st.error(f"Trend dashboard failed: {e}")
+                    else:
+                        st.warning("Not enough columns to plot a trend dashboard. Need at least 2 columns.")
                 else:
                     st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
+
         
                 # --- Time-Series Trend Analysis ---
                 st.subheader("Time-Series Trend Analysis")
