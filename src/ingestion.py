@@ -290,8 +290,8 @@ def ingest_mongodb(uri: str, database: str, collection: str, query: Optional[dic
 def manual_log_entry() -> Optional[pd.DataFrame]:
     """
     Manual entry UI that persists each field/value in session_state using stable keys.
-    On Save, reconstructs the full DataFrame from session_state so headers and values
-    exactly match what the user entered.
+    On Save, reconstructs the full DataFrame from session_state and stores it into
+    st.session_state so the main app can progress to preview / preprocess / embed.
     """
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
@@ -307,7 +307,7 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log} of {num_logs}")
 
-    # Build UI for current log: 10 field-name / content pairs
+    # Build UI for current log: 10 field-name / content pairs using stable keys
     for i in range(1, 11):
         col1, col2 = st.columns([1, 2])
         field_key = f"manual_field_{current_log}_{i}"
@@ -331,7 +331,6 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     # Save: reconstruct all logs from session_state keys
     if st.button("Save Manual Logs", key="save_manual_logs"):
         rows = []
-        # collect rows and the order of first-seen fields (to preserve header order)
         columns_order = []
         for log_idx in range(1, num_logs + 1):
             entry = {}
@@ -341,14 +340,11 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
                 fld = (st.session_state.get(fkey) or "").strip()
                 val = st.session_state.get(vkey) or ""
                 if fld:
-                    # store field: value
                     entry[fld] = val
-                    # maintain first-seen order
                     if fld not in columns_order:
                         columns_order.append(fld)
             rows.append(entry)
 
-        # If no field names at all, inform user and abort
         if not columns_order:
             st.warning("No field names entered. Please provide at least one field name for the logs.")
             return None
@@ -361,23 +357,35 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
 
         df = pd.DataFrame(data_rows, columns=columns_order)
 
-        st.write("### Preview of Entered Logs")
-        st.dataframe(df)
+        # Store into session_state so main app can detect and continue
+        st.session_state["df"] = df
+        st.session_state["raw_df"] = df.copy()
+        st.session_state["manual_saved"] = True
+        st.session_state["current_log"] = 1
+        st.session_state["logs"] = []
 
-        # Persist to session_state and offer saving
+        # Optionally keep a named copy as well
         st.session_state["manual_entered_df"] = df
-        save_name = st.text_input("Enter filename to save preview (without extension):", value="manual_logs")
-        if st.button("Save Preview", key="save_preview_btn"):
-            try:
-                # call your save_processed function (assumed to be imported)
-                save_processed(df, f"{save_name}.parquet")
-                st.success(f"Preview saved as {save_name}.parquet")
-            except Exception as e:
-                st.error(f"Failed to save preview: {e}")
 
- # <<<<< ADD THIS >>>>>
-        st.session_state["processed_df"] = df
-        st.session_state["data_ready"] = True
+        # Rerun so streamlit_app picks up st.session_state and shows preview / analyze
+        try:
+            # safe_rerun() should be defined in this module (if not, call st.rerun() with fallback)
+            safe_rerun()
+        except Exception:
+            # If safe_rerun isn't available, try direct rerun
+            try:
+                st.rerun()
+            except Exception:
+                try:
+                    st.experimental_rerun()
+                except Exception:
+                    # last resort: inform user to manually refresh
+                    st.info("Please refresh the page to continue to Save & Analyze.")
+
+        # Note: execution will be interrupted by the rerun above.
+        return None
+
+    return None
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
