@@ -440,16 +440,24 @@ def main():
                     except Exception as e:
                         st.error(f"Clustering failed: {e}")
 
+                # Retrieve processed data
+                p = st.session_state.get('processed')
+                
                 # Pareto
                 st.subheader("Pareto Analysis")
-                cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
-                if st.button('Show Pareto'):
-                    try:
-                        tab = pareto_table(p, cat_col)
-                        fig = pareto_plot(tab)
-                        st.plotly_chart(fig, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Pareto failed: {e}")
+                
+                if isinstance(p, pd.DataFrame) and not p.empty:
+                    cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+                    if st.button('Show Pareto'):
+                        try:
+                            tab = pareto_table(p, cat_col)
+                            fig = pareto_plot(tab)
+                            st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Pareto failed: {e}")
+                else:
+                    st.warning("No processed data available for Pareto analysis. Please preprocess and embed first.")
+
 
                 # SPC
                 st.subheader("Statistical Process Control (SPC)")
