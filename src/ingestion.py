@@ -300,17 +300,13 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
-    # Field template for consistency across logs
-    field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
-
+    # Remove header-based field template logic
     entry = {}
     for i in range(1, 11):
         col1, col2 = st.columns([1, 2])
         with col1:
-            default_field = field_template[i-1] if i-1 < len(field_template) else ""
             field = st.text_input(
                 f"Field {i} Name",
-                value=default_field,
                 key=f"field_{current_log}_{i}_{num_logs}"
             )
         with col2:
@@ -318,11 +314,11 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
                 f"Content {i}",
                 key=f"value_{current_log}_{i}_{num_logs}"
             )
-        if field:
-            entry[field] = value
+        if field.strip():  # Only store non-empty field names
+            entry[field.strip()] = value
 
-    if 1 <= current_log <= num_logs:
-        st.session_state.logs[current_log - 1] = entry
+    # Save entry to logs
+    st.session_state.logs[current_log - 1] = entry
 
     # Navigation buttons
     col_prev, col_next = st.columns(2)
@@ -360,7 +356,6 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         return df
 
     return None
-
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
