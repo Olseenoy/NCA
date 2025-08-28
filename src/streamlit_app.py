@@ -502,23 +502,40 @@ def main():
                     except Exception as e:
                         st.error(f"Trend dashboard failed: {e}")
 
-                # Time-Series Trend
+                # --- Time-Series Trend Analysis ---
                 st.subheader("Time-Series Trend Analysis")
-                time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
-                if time_cols:
-                    time_col = st.selectbox("Select time column for trend analysis", options=time_cols)
-                    value_col = st.selectbox(
-                        "Select value column for trend",
-                        options=p.select_dtypes(include=['number']).columns.tolist()
-                    )
-                    if st.button("Plot Time-Series Trend"):
-                        try:
-                            fig_time = plot_time_series_trend(p, time_col, value_col)
-                            st.plotly_chart(fig_time, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Time-series trend failed: {e}")
+                p = st.session_state.get('processed')  # Ensure processed data exists
+                
+                if isinstance(p, pd.DataFrame) and not p.empty:
+                    try:
+                        time_cols = [
+                            c for c in p.columns
+                            if pd.api.types.is_datetime64_any_dtype(p[c])
+                        ]
+                
+                        if time_cols:
+                            time_col = st.selectbox(
+                                "Select time column for trend analysis",
+                                options=time_cols
+                            )
+                            value_col = st.selectbox(
+                                "Select value column for trend",
+                                options=p.select_dtypes(include=['number']).columns.tolist()
+                            )
+                
+                            if st.button("Plot Time-Series Trend"):
+                                try:
+                                    fig_time = plot_time_series_trend(p, time_col, value_col)
+                                    st.plotly_chart(fig_time, use_container_width=True)
+                                except Exception as e:
+                                    st.error(f"Time-series trend failed: {e}")
+                        else:
+                            st.info("No datetime column detected for time-series analysis.")
+                    except Exception as e:
+                        st.error(f"Time-Series setup failed: {e}")
                 else:
-                    st.info("No datetime column detected for time-series analysis.")
+                    st.warning("No processed data available for Time-Series analysis. Please preprocess first.")
+                
 
                 # RCA
                 st.subheader("Root Cause Analysis (RCA)")
