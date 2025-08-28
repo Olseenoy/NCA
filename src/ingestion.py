@@ -300,7 +300,7 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
-    # Remove header-based field template logic
+    # Build entry with clear field-value pairs
     entry = {}
     for i in range(1, 11):
         col1, col2 = st.columns([1, 2])
@@ -308,14 +308,14 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             field = st.text_input(
                 f"Field {i} Name",
                 key=f"field_{current_log}_{i}_{num_logs}"
-            )
+            ).strip()
         with col2:
             value = st.text_input(
                 f"Content {i}",
                 key=f"value_{current_log}_{i}_{num_logs}"
-            )
-        if field.strip():  # Only store non-empty field names
-            entry[field.strip()] = value
+            ).strip()
+        if field:  # Save only if field name is provided
+            entry[field] = value
 
     # Save entry to logs
     st.session_state.logs[current_log - 1] = entry
@@ -333,8 +333,20 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
 
     # Save and preview data
     if current_log == num_logs and st.button("Save Manual Logs"):
-        df = pd.DataFrame(st.session_state.logs)
-        df = df.fillna("")  # Keep empty cells blank
+        # Convert list of dicts into DataFrame properly
+        all_fields = set()
+        for log in st.session_state.logs:
+            all_fields.update(log.keys())
+        all_fields = list(all_fields)
+
+        # Create DataFrame with all possible columns
+        rows = []
+        for log in st.session_state.logs:
+            row = {field: log.get(field, "") for field in all_fields}
+            rows.append(row)
+
+        df = pd.DataFrame(rows, columns=all_fields)
+
         st.write("### Preview of Entered Logs")
         st.dataframe(df)
 
