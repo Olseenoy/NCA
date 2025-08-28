@@ -309,12 +309,12 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             field = st.text_input(
                 f"Field {i} Name",
                 value=default_field,
-                key=f"field_{num_logs}_{current_log}_{i}"  # Ensures uniqueness
+                key=f"field_manual_{current_log}_{i}"
             )
         with col2:
             value = st.text_input(
                 f"Content {i}",
-                key=f"value_{num_logs}_{current_log}_{i}"  # Ensures uniqueness
+                key=f"value_manual_{current_log}_{i}"
             )
         if field:
             entry[field] = value
@@ -338,6 +338,9 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         data_rows = [[entry.get(col, "") for col in columns_order] for entry in logs]
         df = pd.DataFrame(data_rows, columns=columns_order)
 
+        st.session_state.df = df  # STORE for streamlit_app
+        st.session_state.manual_df_ready = True
+
         st.write("### Preview of Entered Logs")
         st.dataframe(df)
 
@@ -345,19 +348,13 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         if st.button("Save Preview"):
             try:
                 save_processed(df, f"{save_name}.parquet")
-                st.session_state["manual_df_ready"] = df  # FLAG for streamlit_app
                 st.success(f"Preview saved as {save_name}.parquet")
             except Exception as e:
                 st.error(f"Failed to save preview: {e}")
 
-        st.session_state.current_log = 1
-        st.session_state.logs = []
-
         return df
 
     return None
-
-
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
