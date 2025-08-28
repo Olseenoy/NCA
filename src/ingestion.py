@@ -291,7 +291,6 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
-    # Initialize session state variables
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
     if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
@@ -300,7 +299,6 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
-    # Use previous fields to guide new logs
     field_template = list(st.session_state.logs[0].keys()) if st.session_state.logs and current_log > 1 else []
 
     entry = {}
@@ -308,17 +306,22 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         col1, col2 = st.columns([1, 2])
         with col1:
             default_field = field_template[i-1] if i-1 < len(field_template) else ""
-            field = st.text_input(f"Field {i} Name", value=default_field, key=f"field_{current_log}_{i}")
+            field = st.text_input(
+                f"Field {i} Name",
+                value=default_field,
+                key=f"field_{num_logs}_{current_log}_{i}"  # Ensures uniqueness
+            )
         with col2:
-            value = st.text_input(f"Content {i}", key=f"value_{current_log}_{i}")
+            value = st.text_input(
+                f"Content {i}",
+                key=f"value_{num_logs}_{current_log}_{i}"  # Ensures uniqueness
+            )
         if field:
             entry[field] = value
 
-    # Save entry into session state
     if current_log <= len(st.session_state.logs):
         st.session_state.logs[current_log - 1] = entry
 
-    # Navigation
     col_prev, col_next = st.columns(2)
     with col_prev:
         if current_log > 1 and st.button("Previous Log"):
@@ -329,41 +332,31 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             st.session_state.current_log += 1
             safe_rerun()
 
-    # Save & preview
     if current_log == num_logs and st.button("Save Manual Logs"):
         logs = st.session_state.logs
-
-        # Ensure all unique field names across logs
         columns_order = list({k for d in logs for k in d.keys()})
-
-        # Build rows preserving column order
-        data_rows = []
-        for entry in logs:
-            row = [entry.get(col, "") for col in columns_order]
-            data_rows.append(row)
-
-        # Final DataFrame with proper headers
+        data_rows = [[entry.get(col, "") for col in columns_order] for entry in logs]
         df = pd.DataFrame(data_rows, columns=columns_order)
 
         st.write("### Preview of Entered Logs")
         st.dataframe(df)
 
-        # Save option
         save_name = st.text_input("Enter filename to save preview (without extension):", value="manual_logs")
         if st.button("Save Preview"):
             try:
                 save_processed(df, f"{save_name}.parquet")
+                st.session_state["manual_df_ready"] = df  # FLAG for streamlit_app
                 st.success(f"Preview saved as {save_name}.parquet")
             except Exception as e:
                 st.error(f"Failed to save preview: {e}")
 
-        # Reset after saving
         st.session_state.current_log = 1
         st.session_state.logs = []
 
         return df
 
     return None
+
 
 
 # -----------------------------------------
