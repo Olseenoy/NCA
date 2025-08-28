@@ -510,14 +510,13 @@ def main():
 
 
                 # --- Trend Dashboard ---
-                                
                 st.subheader("Trend Dashboard")
                 p = st.session_state.get('processed')
                 if isinstance(p, pd.DataFrame) and not p.empty:
-                    # Automatically select the first two columns for plotting
                     if len(p.columns) >= 2:
-                        date_col = p.columns[0]
-                        value_col = p.columns[1]
+                        # Let user select which columns to use
+                        date_col = st.selectbox("Select Date Column", options=p.columns)
+                        value_col = st.selectbox("Select Value Column", options=p.columns)
                 
                         if st.button("Show Dashboard"):
                             try:
@@ -533,7 +532,6 @@ def main():
                 else:
                     st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
 
-        
                 # --- Time-Series Trend Analysis ---
                 st.subheader("Time-Series Trend Analysis")
                 p = st.session_state.get('processed')
