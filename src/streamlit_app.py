@@ -373,7 +373,8 @@ def main():
 
       
         # Header selector for uploaded/raw data
-        if not st.session_state.get("manual_df_ready", False):
+       # Header selector for uploaded/raw data (skip for manual entry)
+        if st.session_state.get("input_type") != "Manual Entry":
             max_row = len(st.session_state.raw_df) - 1
             new_header_row = st.number_input(
                 "Row number to use as header (0-indexed)",
@@ -387,8 +388,6 @@ def main():
                 st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
                 df = st.session_state.df
                 safe_rerun()
-        else:
-            st.info("Manual entry mode active. Header row selection is disabled.")
 
 
         # Tabs: Preview / Save
