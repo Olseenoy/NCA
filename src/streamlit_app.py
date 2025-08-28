@@ -191,7 +191,7 @@ def main():
         # Update current source
         st.session_state.current_source = source_choice
         # Rerun app to start clean
-        st.experimental_rerun()
+        safe_rerun()
 
     # ---------------- Sidebar: Credentials ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
