@@ -300,7 +300,7 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
 
-    # Use previous log's keys as template if available
+    # Field template for consistency across logs
     field_template = list(st.session_state.logs[0].keys()) if current_log > 1 else []
 
     entry = {}
@@ -321,7 +321,6 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         if field:
             entry[field] = value
 
-    # Save current log entry to session
     if 1 <= current_log <= num_logs:
         st.session_state.logs[current_log - 1] = entry
 
@@ -336,12 +335,10 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             st.session_state.current_log += 1
             safe_rerun()
 
-    # Final save button
+    # Save and preview data
     if current_log == num_logs and st.button("Save Manual Logs"):
         df = pd.DataFrame(st.session_state.logs)
-        for col in df.columns:
-            df[col] = df[col].astype(str)
-
+        df = df.fillna("")  # Keep empty cells blank
         st.write("### Preview of Entered Logs")
         st.dataframe(df)
 
@@ -356,13 +353,14 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
             except Exception as e:
                 st.error(f"Failed to save preview: {e}")
 
-        # Reset session state for next manual entry
+        # Reset for next session
         st.session_state.current_log = 1
         st.session_state.logs = []
 
         return df
 
     return None
+
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
