@@ -373,7 +373,7 @@ def main():
             st.session_state.header_row = int(new_header_row)
             st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
             df = st.session_state.df
-            st.experimental_rerun()
+            safe_rerun()
 
         # Tabs: Preview / Save
         tab1, tab2 = st.tabs(["Preview", "Save & Analyze"])
