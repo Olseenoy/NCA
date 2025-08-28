@@ -291,10 +291,14 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
     st.write("### Manual Log Entry")
     num_logs = st.number_input("Number of Logs", min_value=1, max_value=5, value=1)
 
+    # Initialize session state safely
     if "current_log" not in st.session_state:
         st.session_state.current_log = 1
-    if "logs" not in st.session_state or len(st.session_state.logs) != num_logs:
+    if "logs" not in st.session_state:
         st.session_state.logs = [{} for _ in range(num_logs)]
+    elif len(st.session_state.logs) < num_logs:
+        # Extend list instead of overwriting
+        st.session_state.logs.extend([{} for _ in range(num_logs - len(st.session_state.logs))])
 
     current_log = st.session_state.current_log
     st.subheader(f"Log {current_log}")
@@ -312,7 +316,11 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         if field:
             entry[field] = value
 
-    st.session_state.logs[current_log - 1] = entry
+    # Prevent index error
+    if current_log - 1 < len(st.session_state.logs):
+        st.session_state.logs[current_log - 1] = entry
+    else:
+        st.session_state.logs.append(entry)
 
     col_prev, col_next = st.columns(2)
     with col_prev:
@@ -346,6 +354,7 @@ def manual_log_entry() -> Optional[pd.DataFrame]:
         return df
 
     return None
+
 
 # -----------------------------------------
 # Utility: Fix mixed types before saving
