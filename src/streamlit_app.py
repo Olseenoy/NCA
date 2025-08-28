@@ -421,46 +421,56 @@ def main():
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
 
-            # Only show analytics if processed + embeddings present
-            if 'processed' in st.session_state and 'embeddings' in st.session_state:
-                p = st.session_state['processed']
-                embeddings = st.session_state['embeddings']
 
-                # Clustering
-                st.subheader("Clustering & Visualization")
-                if st.button('Cluster & Visualize'):
+    # --- Only show analysis after preprocessing & embeddings ---
+    if 'processed' in st.session_state and 'embeddings' in st.session_state:
+        p = st.session_state.get('processed')
+        embeddings = st.session_state.get('embeddings')
+
+        # Guard that p is a non-empty DataFrame and embeddings are available
+        valid_p = isinstance(p, pd.DataFrame) and not p.empty
+        valid_embeddings = embeddings is not None and len(embeddings) > 0
+
+        # --- Clustering ---
+        st.subheader("Clustering & Visualization")
+        if valid_p and valid_embeddings:
+            if st.button('Cluster & Visualize'):
+                try:
+                    km, labels, score, interpretation = fit_kmeans(embeddings)
+                    st.write(f"Silhouette score: {score:.3f}")
+                    if interpretation:
+                        st.info(interpretation)
+                    st.session_state['labels'] = labels
+                    fig = cluster_scatter(embeddings, labels)
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Clustering failed: {e}")
+        else:
+            st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+
+        # --- Pareto Analysis ---
+        st.subheader("Pareto Analysis")
+        p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+        if isinstance(p, pd.DataFrame) and not p.empty:
+            try:
+                cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+                if st.button('Show Pareto'):
                     try:
-                        km, labels, score, interpretation = fit_kmeans(embeddings)
-                        st.write(f"Silhouette score: {score:.3f}")
-                        if interpretation:
-                            st.info(interpretation)
-                        st.session_state['labels'] = labels
-                        fig = cluster_scatter(embeddings, labels)
+                        tab = pareto_table(p, cat_col)
+                        fig = pareto_plot(tab)
                         st.plotly_chart(fig, use_container_width=True)
                     except Exception as e:
-                        st.error(f"Clustering failed: {e}")
+                        st.error(f"Pareto failed: {e}")
+            except Exception as e:
+                st.error(f"Pareto setup failed: {e}")
+        else:
+            st.warning("No processed data available for Pareto analysis. Please preprocess first.")
 
-                # Retrieve processed data
-                p = st.session_state.get('processed')
-                
-                # Pareto
-                st.subheader("Pareto Analysis")
-                
-                if isinstance(p, pd.DataFrame) and not p.empty:
-                    cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
-                    if st.button('Show Pareto'):
-                        try:
-                            tab = pareto_table(p, cat_col)
-                            fig = pareto_plot(tab)
-                            st.plotly_chart(fig, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Pareto failed: {e}")
-                else:
-                    st.warning("No processed data available for Pareto analysis. Please preprocess and embed first.")
-
-
-                # SPC
-                st.subheader("Statistical Process Control (SPC)")
+        # --- SPC Section ---
+        st.subheader("Statistical Process Control (SPC)")
+        p = st.session_state.get('processed')
+        if isinstance(p, pd.DataFrame) and not p.empty:
+            try:
                 num_cols = p.select_dtypes(include=['number']).columns.tolist()
                 if num_cols:
                     spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
@@ -472,6 +482,11 @@ def main():
                             st.error(f"SPC chart failed: {e}")
                 else:
                     st.info("No numeric columns available for SPC analysis.")
+            except Exception as e:
+                st.error(f"SPC setup failed: {e}")
+        else:
+            st.warning("No processed data available for SPC. Please preprocess first.")
+
 
                 # Trend Dashboard
                 st.subheader("Trend Dashboard")
