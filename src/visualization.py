@@ -3,6 +3,7 @@ import plotly.express as px
 import pandas as pd
 from sklearn.decomposition import PCA
 import plotly.graph_objects as go
+import numpy as np 
 
 # --- Pareto Chart ---
 def pareto_plot(pareto_df: pd.DataFrame, show_cumulative: bool = True):
