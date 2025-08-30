@@ -476,21 +476,42 @@ def main():
                 valid_embeddings = embeddings is not None and len(embeddings) > 0
         
                 # --- Clustering ---
+                # --- Clustering ---
                 st.subheader("Clustering & Visualization")
+                
                 if valid_p and valid_embeddings:
                     if st.button('Cluster & Visualize'):
                         try:
-                            km, labels, score, interpretation = fit_kmeans(embeddings)
-                            st.write(f"Silhouette score: {score:.3f}")
-                            if interpretation:
-                                st.info(interpretation)
-                            st.session_state['labels'] = labels
-                            fig = cluster_scatter(embeddings, labels)
-                            st.plotly_chart(fig, use_container_width=True)
+                            with st.spinner("Evaluating optimal clusters..."):
+                                k_values = list(range(2, 8))  # You can make this configurable
+                                results = evaluate_kmeans(embeddings, k_values, RANDOM_STATE)
+                                best_model = select_best_model(results)
+                
+                            # Display metrics
+                            metrics_summary = {
+                                "Silhouette Score": best_model["silhouette"],
+                                "Davies-Bouldin Index": best_model["davies_bouldin"],
+                                "interpretation": (
+                                    f"Best K={best_model['k']} with Silhouette={best_model['silhouette']:.3f}, "
+                                    f"Davies-Bouldin={best_model['davies_bouldin']:.3f}"
+                                )
+                            }
+                
+                            st.success(metrics_summary["interpretation"])
+                
+                            # Visualization
+                            fig_scatter = cluster_scatter(embeddings, best_model["labels"])
+                            fig_metrics = clustering_metrics_chart(metrics_summary)
+                            st.plotly_chart(fig_metrics, use_container_width=True)
+                            st.plotly_chart(fig_scatter, use_container_width=True)
+                
+                            st.session_state['labels'] = best_model["labels"]
+                
                         except Exception as e:
                             st.error(f"Clustering failed: {e}")
                 else:
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+
                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
