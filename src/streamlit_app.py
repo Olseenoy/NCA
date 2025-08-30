@@ -515,64 +515,44 @@ def main():
 
 
                 # --- Pareto Analysis ---
-                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        # Optional: Filter by cluster if clustering exists
-                        if 'cluster_labels' in st.session_state:
-                            cluster_filter = st.selectbox(
-                                "Filter by Cluster (optional)",
-                                options=[None] + list(np.unique(st.session_state['cluster_labels'])),
-                                index=0
-                            )
-                            if cluster_filter is not None:
-                                mask = st.session_state['cluster_labels'] == cluster_filter
-                                p_filtered = p[mask]
-                            else:
-                                p_filtered = p.copy()
-                        else:
-                            p_filtered = p.copy()
-                
                         # Column selection
                         cat_col = st.selectbox(
-                            'Select categorical column for Pareto',
-                            options=p_filtered.columns.tolist()
+                            'Select column for Pareto',
+                            options=p.columns.tolist()
                         )
-                
-                        # Top-N filter
-                        top_n = st.number_input("Show Top N categories", min_value=1, max_value=len(p_filtered), value=10)
+                        weight_col = st.selectbox(
+                            'Optional: Select weight column (or leave blank)',
+                            options=[None] + p.select_dtypes(include=['number']).columns.tolist()
+                        )
                 
                         if st.button('Show Pareto'):
                             try:
-                                tab = pareto_table(p_filtered, cat_col)
-                                tab['Cumulative %'] = tab['Count'].cumsum() / tab['Count'].sum() * 100
-                
-                                # Apply top-N filter
-                                tab_top = tab.head(top_n)
-                
-                                # Show interactive table
-                                st.markdown("**Pareto Table:**")
-                                st.dataframe(tab_top)
-                
-                                # Plot Pareto chart with cumulative %
-                                fig = pareto_plot(tab_top, show_cumulative=True)
+                                # Build Pareto table
+                                tab = pareto_table(p, category_col=cat_col, weight_col=weight_col)
+                                
+                                # Plot Pareto
+                                fig = pareto_plot(tab)
+                                
+                                # Save to session for persistence
+                                st.session_state['pareto_tab'] = tab
+                                st.session_state['pareto_fig'] = fig
+                                
                                 st.plotly_chart(fig, use_container_width=True)
-                
-                                # Highlight top contributors above 80% if desired
-                                threshold_80 = tab['Cumulative %'] <= 80
-                                st.markdown(f"**Categories contributing to 80% of issues:**")
-                                st.write(tab[threshold_80])
-                
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
                 
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
-                else:
-                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+                
+                # Show persistent chart if exists
+                if 'pareto_fig' in st.session_state:
+                    st.success("Pareto Chart (persistent)")
+                    st.plotly_chart(st.session_state['pareto_fig'], use_container_width=True)
 
         
                 # --- SPC Section ---
