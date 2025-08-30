@@ -366,6 +366,7 @@ def main():
 
 
     # Main area: only show preview/analysis if raw_df present
+       # Main area: only show preview/analysis if raw_df present
     if st.session_state.get("raw_df") is not None and not st.session_state.get("raw_df").empty:
         st.subheader("Data Preview & Actions")
     
@@ -385,16 +386,14 @@ def main():
     
             if int(new_header_row) != int(st.session_state.header_row):
                 st.session_state.header_row = int(new_header_row)
-                # FIX: use a fresh copy to allow switching back and forth
+                # Use a fresh copy of raw_df each time
                 st.session_state.df = apply_row_as_header(
                     st.session_state.raw_df.copy(),
                     st.session_state.header_row
                 )
                 df = st.session_state.df
                 safe_rerun()
-    
-                    
-        
+
         
 
         # Tabs: Preview / Save
