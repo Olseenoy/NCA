@@ -346,23 +346,34 @@ def main():
  
     # Ensure DataFrame from manual logs is captured
     
-    if df is None and st.session_state.get("manual_df_ready"):
-        df = st.session_state.df
-    
     if df is not None:
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            st.session_state.raw_df = df
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        # Keep original uploaded dataframe intact
+        if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
+            st.session_state.raw_df_original = df.copy()
+
+        # Store raw_df for reference
+        st.session_state.raw_df = df
+
+        # Initialize header_row once
+        if "header_row" not in st.session_state or st.session_state.header_row is None:
             st.session_state.header_row = 0
-    
-            # Only apply row as header if NOT from manual logs
-            if not st.session_state.get("manual_df_ready"):
-                st.session_state.df = apply_row_as_header(df, 0)
-            else:
-                st.session_state.df = df  # use as-is for manual entry
-    
-            st.success(f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns.")
+
+        # Apply header using current selection (from pristine original)
+        if not st.session_state.get("manual_df_ready"):
+            st.session_state.df = apply_row_as_header(
+                st.session_state.raw_df_original.copy(),
+                st.session_state.header_row
+            )
         else:
-            st.warning("Ingested data is empty or not a DataFrame.")
+            st.session_state.df = df  # Manual logs use as-is
+
+        st.success(
+            f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns."
+        )
+    else:
+        st.warning("Ingested data is empty or not a DataFrame.")
+
 
 
     # Main area: only show preview/analysis if raw_df present
