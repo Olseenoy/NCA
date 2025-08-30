@@ -572,34 +572,41 @@ def main():
                         num_cols = p.select_dtypes(include=['number']).columns.tolist()
                 
                         if num_cols:
-                            spc_col = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col')
+                            # Use separate keys for widgets vs session_state persistence
+                            spc_col_selected = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col_select')
                             subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
                             time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
-                            time_col = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col')
+                            time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
                 
                             if st.button('Show SPC Chart', key='spc_btn'):
                                 try:
                                     from visualization import plot_spc_chart
-                                    fig_spc = plot_spc_chart(p, spc_col, subgroup_size=subgroup_size, time_col=time_col)
+                                    fig_spc = plot_spc_chart(p, spc_col_selected, subgroup_size=subgroup_size, time_col=time_col_selected)
                 
-                                    # Save figure to session_state for persistence
+                                    # Save figure and selected column to session_state for persistence
                                     st.session_state['spc_fig'] = fig_spc
-                                    st.session_state['spc_col'] = spc_col
-                                except Exception as e:
-                                    st.error(f"SPC chart failed: {e}")
+                                    st.session_state['spc_col_saved'] = spc_col_selected
+                                except Exception:
+                                    pass  # Hide plotting errors
                 
-                            # Display persistent SPC if available
+                            # Display persistent SPC chart if available
                             if 'spc_fig' in st.session_state:
-                                st.success(f"SPC Chart for: {st.session_state.get('spc_col', '')}")
-                                st.plotly_chart(st.session_state['spc_fig'], use_container_width=True,
-                                                key=f"spc_chart_{st.session_state.get('spc_col', '')}")
+                                st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
+                                st.plotly_chart(
+                                    st.session_state['spc_fig'], 
+                                    use_container_width=True,
+                                    key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
+                                )
                 
                         else:
                             st.info("No numeric columns available for SPC analysis after conversion.")
-                    except Exception as e:
-                        st.error(f"SPC setup failed: {e}")
+                
+                    except Exception:
+                        pass  # Hide setup errors
+                
                 else:
                     st.warning("No processed data available for SPC. Please preprocess first.")
+
 
 
 
