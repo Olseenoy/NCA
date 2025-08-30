@@ -37,14 +37,15 @@ def fit_kmeans(embeddings: np.ndarray, k: int = CLUSTERING_K):
     km = KMeans(n_clusters=k, random_state=RANDOM_STATE)
     labels = km.fit_predict(embeddings)
 
-    # Calculate multiple metrics
+    # Calculate metrics
     silhouette = silhouette_score(embeddings, labels)
     davies_bouldin = davies_bouldin_score(embeddings, labels)
 
-    # Human-readable interpretation (mainly Silhouette-based)
+    # Human-readable interpretation
     interpretation = interpret_clustering_results(silhouette)
 
     metrics_summary = {
+        "k": k,
         "Silhouette Score": silhouette,
         "Davies-Bouldin Score": davies_bouldin,
         "interpretation": interpretation
@@ -52,5 +53,22 @@ def fit_kmeans(embeddings: np.ndarray, k: int = CLUSTERING_K):
 
     return km, labels, metrics_summary
 
+def evaluate_kmeans(embeddings: np.ndarray, k_values=None):
+    """
+    Test multiple K values and select best one based on silhouette & Davies-Bouldin.
+    """
+    if k_values is None:
+        k_values = range(2, 8)  # default: test K=2 to K=7
+
+    results = []
+    for k in k_values:
+        km, labels, metrics = fit_kmeans(embeddings, k)
+        results.append({**metrics, "labels": labels, "km": km})
+
+    # Select best result: highest silhouette and lowest Davies-Bouldin
+    best = max(results, key=lambda x: x["Silhouette Score"] - 0.1 * x["Davies-Bouldin Score"])
+    return best, results
+
 def predict_cluster(km, emb: np.ndarray):
     return km.predict(emb)
+
