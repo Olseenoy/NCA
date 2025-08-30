@@ -31,7 +31,7 @@ from ingestion import (
 
 from preprocessing import preprocess_df
 from embeddings import embed_texts
-from clustering import fit_kmeans, evaluate_kmeans
+from clustering import evaluate_clustering
 from visualization import (
     pareto_plot,
     cluster_scatter,
@@ -477,41 +477,53 @@ def main():
         
                 # --- Clustering ---
     
+                                # --- Clustering & Visualization ---
                 st.subheader("Clustering & Visualization")
                 
                 if 'processed' in st.session_state and 'embeddings' in st.session_state:
-                    p = st.session_state['processed']
-                    embeddings = st.session_state['embeddings']
+                    p = st.session_state.get('processed')
+                    embeddings = st.session_state.get('embeddings')
                 
                     valid_p = isinstance(p, pd.DataFrame) and not p.empty
                     valid_embeddings = embeddings is not None and len(embeddings) > 0
                 
                     if valid_p and valid_embeddings:
-                        if st.button("Cluster & Visualize"):
+                        if st.button('Cluster & Visualize'):
                             try:
-                                with st.spinner("Evaluating multiple clustering methods..."):
-                                    best, results = evaluate_clustering(embeddings, k_values=list(range(2, 8)))
+                                from clustering import evaluate_clustering
+                                from visualization import cluster_scatter
                 
-                                # Save best clustering results to session_state
-                                st.session_state['cluster_best'] = best
-                                st.session_state['cluster_all'] = results
+                                with st.spinner("Evaluating multiple clustering algorithms..."):
+                                    best, results = evaluate_clustering(
+                                        embeddings, 
+                                        k_values=list(range(2, 8)),  # KMeans K values
+                                        dbscan_params=[{'eps': 0.5, 'min_samples': 5}, {'eps': 1.0, 'min_samples': 5}],
+                                        hdbscan_params=[{'min_cluster_size': 5}, {'min_cluster_size': 10}]
+                                    )
+                
+                                # Save results to session state for persistence
+                                st.session_state['cluster_labels'] = best["labels"]
                                 st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
+                                st.session_state['cluster_metrics'] = best["metrics"]
+                                st.session_state['cluster_algorithm'] = best["algorithm"]
                                 st.session_state['cluster_text'] = (
-                                    f"{best['method']} | K={best.get('k', '-') } | "
-                                    f"Silhouette={best['Silhouette Score']:.3f} | "
-                                    f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
+                                    f"Best Algorithm: {best['algorithm']} | "
+                                    f"Silhouette={best['metrics']['Silhouette']:.3f} | "
+                                    f"Davies-Bouldin={best['metrics']['Davies-Bouldin']:.3f}"
                                 )
                 
                             except Exception as e:
                                 st.error(f"Clustering failed: {e}")
                 
-                    # Display persistent results
+                    # Display persistent clustering results if available
                     if 'cluster_fig' in st.session_state:
                         st.success(st.session_state['cluster_text'])
-                        st.info(st.session_state['cluster_best']['interpretation'])
+                        st.info(st.session_state['cluster_metrics'].get("interpretation", ""))
                         st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
+                
                     else:
                         st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+
 
               
                
