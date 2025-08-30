@@ -553,15 +553,27 @@ def main():
                 # --- SPC Section ---
                 st.subheader("Statistical Process Control (SPC)")
                 p = st.session_state.get('processed')
+                
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
+                        # Detect numeric columns, convert objects if they look like numbers
                         num_cols = p.select_dtypes(include=['number']).columns.tolist()
-                        if num_cols:
-                            spc_col = st.selectbox('Select numeric column for SPC', options=num_cols, key="spc_col")
-                            spc_type = st.selectbox("Select SPC type", ["I-MR", "X̄-R", "C"], key="spc_type")
-                            if st.button('Show SPC Chart', key='spc_btn'):
+                
+                        if not num_cols:
+                            for c in p.columns:
                                 try:
-                                    fig_spc = plot_spc_chart(p, spc_col, chart_type=spc_type)  # you can extend plot_spc_chart
+                                    p[c] = pd.to_numeric(p[c])
+                                except Exception:
+                                    continue
+                            num_cols = p.select_dtypes(include=['number']).columns.tolist()
+                
+                        if num_cols:
+                            spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
+                
+                            if st.button('Show SPC Chart'):
+                                try:
+                                    from visualization import plot_spc_chart  # Ensure the function is imported
+                                    fig_spc = plot_spc_chart(p, spc_col)
                                     st.plotly_chart(fig_spc, use_container_width=True)
                                 except Exception as e:
                                     st.error(f"SPC chart failed: {e}")
@@ -571,6 +583,7 @@ def main():
                         st.error(f"SPC setup failed: {e}")
                 else:
                     st.warning("No processed data available for SPC. Please preprocess first.")
+
 
 
 
