@@ -513,28 +513,66 @@ def main():
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")     
 
 
-               # --- Pareto Analysis ---
+                # --- Pareto Analysis ---
+                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
+                        # Optional: Filter by cluster if clustering exists
+                        if 'cluster_labels' in st.session_state:
+                            cluster_filter = st.selectbox(
+                                "Filter by Cluster (optional)",
+                                options=[None] + list(np.unique(st.session_state['cluster_labels'])),
+                                index=0
+                            )
+                            if cluster_filter is not None:
+                                mask = st.session_state['cluster_labels'] == cluster_filter
+                                p_filtered = p[mask]
+                            else:
+                                p_filtered = p.copy()
+                        else:
+                            p_filtered = p.copy()
+                
+                        # Column selection
                         cat_col = st.selectbox(
-                            'Select column for Pareto',
-                            options=p.columns.tolist()
+                            'Select categorical column for Pareto',
+                            options=p_filtered.columns.tolist()
                         )
+                
+                        # Top-N filter
+                        top_n = st.number_input("Show Top N categories", min_value=1, max_value=len(p_filtered), value=10)
+                
                         if st.button('Show Pareto'):
                             try:
-                                tab = pareto_table(p, cat_col)
-                                fig = pareto_plot(tab)
+                                tab = pareto_table(p_filtered, cat_col)
+                                tab['Cumulative %'] = tab['Count'].cumsum() / tab['Count'].sum() * 100
+                
+                                # Apply top-N filter
+                                tab_top = tab.head(top_n)
+                
+                                # Show interactive table
+                                st.markdown("**Pareto Table:**")
+                                st.dataframe(tab_top)
+                
+                                # Plot Pareto chart with cumulative %
+                                fig = pareto_plot(tab_top, show_cumulative=True)
                                 st.plotly_chart(fig, use_container_width=True)
+                
+                                # Highlight top contributors above 80% if desired
+                                threshold_80 = tab['Cumulative %'] <= 80
+                                st.markdown(f"**Categories contributing to 80% of issues:**")
+                                st.write(tab[threshold_80])
+                
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
+                
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
-        
+
         
                 # --- SPC Section ---
                 st.subheader("Statistical Process Control (SPC)")
