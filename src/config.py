@@ -30,6 +30,16 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM
 CLUSTERING_K = int(os.getenv("CLUSTERING_K", 12))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", 42))
 
+# Optional: DBSCAN & HDBSCAN defaults
+DBSCAN_PARAMS = [
+    {"eps": 0.5, "min_samples": 5},
+    {"eps": 1.0, "min_samples": 5},
+]
+HDBSCAN_PARAMS = [
+    {"min_cluster_size": 5},
+    {"min_cluster_size": 10},
+]
+
 # -----------------------------
 # Database
 # -----------------------------
@@ -44,3 +54,4 @@ ONEDRIVE_CLIENT_SECRET = os.getenv("ONEDRIVE_CLIENT_SECRET", "")
 ONEDRIVE_TENANT_ID = os.getenv("ONEDRIVE_TENANT_ID", "")
 ERP_API_URL = os.getenv("ERP_API_URL", "")
 ERP_API_TOKEN = os.getenv("ERP_API_TOKEN", "")
+
