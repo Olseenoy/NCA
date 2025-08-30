@@ -81,7 +81,8 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     new_header = raw_df.iloc[row_idx].astype(str).tolist()
     new_header = _make_unique(new_header)
 
-    df = raw_df.drop(index=row_idx).copy()
+    # Drop all rows up to and including the header row
+    df = raw_df.drop(index=range(0, row_idx + 1)).copy()
     df.columns = new_header
     df.reset_index(drop=True, inplace=True)
 
@@ -93,6 +94,7 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
                 pass
 
     return df
+
 
 
 # ----------------- Credentials helpers -----------------
