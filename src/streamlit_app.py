@@ -352,18 +352,18 @@ def main():
             if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
                 st.session_state.raw_df_original = df.copy()
 
-        # Store raw_df for reference
-        st.session_state.raw_df = df
+            # Store raw_df for reference
+            st.session_state.raw_df = df
 
-        # Initialize header_row once
-            if "header_row" not in st.session_state or st.session_state.header_row is None:
-                st.session_state.header_row = 0
+            # Initialize header_row once
+                if "header_row" not in st.session_state or st.session_state.header_row is None:
+                    st.session_state.header_row = 0
 
-        # Apply header using current selection (from pristine original)
-        if not st.session_state.get("manual_df_ready"):
-            st.session_state.df = apply_row_as_header(
-                st.session_state.raw_df_original.copy(),
-                st.session_state.header_row
+            # Apply header using current selection (from pristine original)
+            if not st.session_state.get("manual_df_ready"):
+                st.session_state.df = apply_row_as_header(
+                    st.session_state.raw_df_original.copy(),
+                    st.session_state.header_row
             )
         else:
             st.session_state.df = df  # Manual logs use as-is
