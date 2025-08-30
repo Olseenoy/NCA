@@ -345,20 +345,7 @@ def main():
 # ----------------- Data Preview and downstream workflow -----------------
  
     # Ensure DataFrame from manual logs is captured
-   # ----------------- Data Preview and downstream workflow -----------------
-
-# Detect input type changes to refresh correctly
-    if "last_input_type" not in st.session_state:
-        st.session_state.last_input_type = st.session_state.get("input_type")
     
-    input_changed = st.session_state.input_type != st.session_state.last_input_type
-    if input_changed:
-        st.session_state.last_input_type = st.session_state.input_type
-        # Force preview refresh on input method switch
-        st.session_state.raw_df_original = None
-        st.session_state.df = None
-    
-    # Ensure DataFrame from manual logs is captured
     if df is None and st.session_state.get("manual_df_ready"):
         df = st.session_state.df
     
@@ -376,18 +363,24 @@ def main():
             st.success(f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns.")
         else:
             st.warning("Ingested data is empty or not a DataFrame.")
-    
+
+
     # Main area: only show preview/analysis if raw_df present
+       # Main area: only show preview/analysis if raw_df present
     if st.session_state.get("raw_df") is not None and not st.session_state.get("raw_df").empty:
         st.subheader("Data Preview & Actions")
     
         df = st.session_state.df
     
         # Header selector for uploaded/raw data (skip for manual entry)
+     
         if st.session_state.get("input_type") != "Manual Entry":
+            # Ensure we have a pristine copy of the originally uploaded data.
+            # This will only be created once (the first time this block runs after upload).
             if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
+                # store the original upload as the canonical source for header changes
                 st.session_state.raw_df_original = st.session_state.raw_df.copy()
-    
+        
             max_row = len(st.session_state.raw_df_original) - 1
             new_header_row = st.number_input(
                 "Row number to use as header (0-indexed)",
@@ -397,23 +390,30 @@ def main():
                 step=1,
                 help="Pick a row from the file to become column headers."
             )
-    
+        
             if int(new_header_row) != int(st.session_state.header_row):
                 st.session_state.header_row = int(new_header_row)
+                # Always apply header on the pristine original uploaded dataframe
                 st.session_state.df = apply_row_as_header(
                     st.session_state.raw_df_original.copy(),
                     st.session_state.header_row
                 )
                 df = st.session_state.df
                 safe_rerun()
-    
+
+
+
+
+        
+
         # Tabs: Preview / Save
         tab1, tab2 = st.tabs(["Preview", "Save & Analyze"])
-    
+
         with tab1:
             df_display = df.reset_index(drop=True).rename_axis("No").rename(lambda x: x + 1, axis=0)
             st.dataframe(df_display.head(100))
-    
+
+            # Quick save
             file_name = st.text_input("Save preview as filename", value="uploaded_data.parquet")
             if st.button("Save Preview"):
                 try:
@@ -421,8 +421,9 @@ def main():
                     st.success(f"Preview saved to {file_name}")
                 except Exception as e:
                     st.error(f"Failed to save preview: {e}")
-    
+
         with tab2:
+            # Preprocess & embed
             st.markdown("### Text Selection")
             object_cols = [c for c in df.columns if df[c].dtype == 'object']
             default_text_cols = object_cols[:2]
@@ -431,7 +432,7 @@ def main():
                 options=df.columns.tolist(),
                 default=default_text_cols
             )
-    
+
             if st.button('Preprocess & Embed'):
                 if not text_cols:
                     st.error("Please select at least one text column.")
@@ -443,22 +444,25 @@ def main():
                     except Exception as e:
                         st.error(f"Preprocessing failed: {e}")
                         return
-    
+
                     try:
                         embeddings = embed_texts(p['clean_text'].tolist())
                         st.session_state['embeddings'] = embeddings
                         st.success('Embeddings computed')
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
-    
+
+
             # --- Only show analysis after preprocessing & embeddings ---
             if 'processed' in st.session_state and 'embeddings' in st.session_state:
                 p = st.session_state.get('processed')
                 embeddings = st.session_state.get('embeddings')
-    
+        
+                # Guard that p is a non-empty DataFrame and embeddings are available
                 valid_p = isinstance(p, pd.DataFrame) and not p.empty
                 valid_embeddings = embeddings is not None and len(embeddings) > 0
-    
+        
+                # --- Clustering ---
                 st.subheader("Clustering & Visualization")
                 if valid_p and valid_embeddings:
                     if st.button('Cluster & Visualize'):
@@ -474,8 +478,6 @@ def main():
                             st.error(f"Clustering failed: {e}")
                 else:
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
-
-
                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
