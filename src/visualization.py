@@ -99,7 +99,8 @@ def clustering_metrics_chart(metrics_summary):
 # --- SPC Chart ---
 def plot_spc_chart(df, column):
     """
-    Simple SPC (Statistical Process Control) chart with mean and ±3σ limits.
+    Enhanced SPC (Statistical Process Control) chart with mean, ±3σ limits,
+    and highlighting of out-of-control points.
     """
     data = df[column].dropna().reset_index(drop=True)
     mean_val = data.mean()
@@ -108,12 +109,28 @@ def plot_spc_chart(df, column):
     ucl = mean_val + 3 * std_val
     lcl = mean_val - 3 * std_val
 
+    # Highlight points outside control limits
+    colors = ['red' if v > ucl or v < lcl else 'blue' for v in data]
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(y=data, mode='lines+markers', name=column))
+    fig.add_trace(go.Scatter(
+        y=data, mode='lines+markers',
+        name=column,
+        marker=dict(color=colors, size=10)
+    ))
+
+    # Control lines
     fig.add_hline(y=mean_val, line_dash="dash", line_color="green", annotation_text="Mean")
     fig.add_hline(y=ucl, line_dash="dot", line_color="red", annotation_text="UCL (+3σ)")
     fig.add_hline(y=lcl, line_dash="dot", line_color="red", annotation_text="LCL (-3σ)")
-    fig.update_layout(title=f"SPC Chart for {column}", xaxis_title="Sample", yaxis_title=column)
+
+    fig.update_layout(
+        title=f"SPC Chart for {column}",
+        xaxis_title="Sample",
+        yaxis_title=column,
+        template="plotly_white",
+        showlegend=True
+    )
     return fig
 
 def plot_trend_dashboard(df, date_col, value_col):
