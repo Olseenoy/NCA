@@ -28,7 +28,29 @@ def cluster_scatter(embeddings, labels):
     pca = PCA(n_components=2)
     pts = pca.fit_transform(embeddings)
     df = pd.DataFrame({'x': pts[:, 0], 'y': pts[:, 1], 'cluster': labels})
-    fig = px.scatter(df, x='x', y='y', color='cluster', hover_data=['cluster'])
+    fig = px.scatter(
+        df, x='x', y='y', color='cluster',
+        hover_data=['cluster'],
+        title="Cluster Visualization (PCA Projection)"
+    )
+    fig.update_layout(height=600)  # Keep chart large and visible
+    return fig
+
+# --- Clustering Metrics Visualization ---
+def clustering_metrics_chart(metrics_summary):
+    """
+    Visualizes clustering quality metrics in a bar chart.
+    """
+    metrics = {k: v for k, v in metrics_summary.items() if k != "interpretation"}
+    df = pd.DataFrame(list(metrics.items()), columns=['Metric', 'Score'])
+
+    fig = px.bar(
+        df, x='Metric', y='Score', text='Score',
+        title="Clustering Quality Metrics",
+        color='Metric'
+    )
+    fig.update_traces(texttemplate='%{text:.3f}', textposition='outside')
+    fig.update_layout(yaxis_range=[0, 1], height=400)
     return fig
 
 # --- SPC Chart ---
