@@ -345,41 +345,48 @@ def main():
 # ----------------- Data Preview and downstream workflow -----------------
  
     # Ensure DataFrame from manual logs is captured
+    # ----------------- Data Preview and downstream workflow -----------------
+
+# Ensure DataFrame from manual logs is captured
     if df is None and st.session_state.get("manual_df_ready"):
         df = st.session_state.df
     
     if df is not None:
         if isinstance(df, pd.DataFrame) and not df.empty:
-            st.session_state.raw_df = df
-            st.session_state.header_row = 0
+            # Preserve original upload only once
+            if "raw_df" not in st.session_state or st.session_state.raw_df is None:
+                st.session_state.raw_df = df.copy()
     
-            # Only apply row as header if NOT from manual logs
+            # Initialize header_row only once
+            if "header_row" not in st.session_state or st.session_state.header_row is None:
+                st.session_state.header_row = 0
+    
+            # Apply current header selection (not forced to 0 each run)
             if not st.session_state.get("manual_df_ready"):
-                st.session_state.df = apply_row_as_header(df, 0)
+                st.session_state.df = apply_row_as_header(
+                    st.session_state.raw_df.copy(),
+                    st.session_state.header_row
+                )
             else:
-                st.session_state.df = df  # use as-is for manual entry
+                st.session_state.df = df  # manual logs bypass header logic
     
-            st.success(f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns.")
+            st.success(
+                f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns."
+            )
         else:
             st.warning("Ingested data is empty or not a DataFrame.")
-
-
+    
     # Main area: only show preview/analysis if raw_df present
-       # Main area: only show preview/analysis if raw_df present
     if st.session_state.get("raw_df") is not None and not st.session_state.get("raw_df").empty:
         st.subheader("Data Preview & Actions")
     
         df = st.session_state.df
     
         # Header selector for uploaded/raw data (skip for manual entry)
-     
         if st.session_state.get("input_type") != "Manual Entry":
-            # Ensure we have a pristine copy of the originally uploaded data.
-            # This will only be created once (the first time this block runs after upload).
             if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
-                # store the original upload as the canonical source for header changes
                 st.session_state.raw_df_original = st.session_state.raw_df.copy()
-        
+    
             max_row = len(st.session_state.raw_df_original) - 1
             new_header_row = st.number_input(
                 "Row number to use as header (0-indexed)",
@@ -389,17 +396,15 @@ def main():
                 step=1,
                 help="Pick a row from the file to become column headers."
             )
-        
+    
             if int(new_header_row) != int(st.session_state.header_row):
                 st.session_state.header_row = int(new_header_row)
-                # Always apply header on the pristine original uploaded dataframe
                 st.session_state.df = apply_row_as_header(
                     st.session_state.raw_df_original.copy(),
                     st.session_state.header_row
                 )
                 df = st.session_state.df
                 safe_rerun()
-
 
 
 
