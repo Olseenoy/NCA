@@ -375,7 +375,7 @@ def main():
         # Header selector for uploaded/raw data
         # Header selector for uploaded/raw data (skip for manual entry)
       
-    if st.session_state.get("input_type") != "Manual Entry":
+        if st.session_state.get("input_type") != "Manual Entry":
         max_row = len(st.session_state.raw_df) - 1
         new_header_row = st.number_input(
             "Row number to use as header (0-indexed)",
@@ -386,9 +386,14 @@ def main():
         )
         if int(new_header_row) != int(st.session_state.header_row):
             st.session_state.header_row = int(new_header_row)
-            st.session_state.df = apply_row_as_header(st.session_state.raw_df, st.session_state.header_row)
+            # FIX: use a fresh copy to allow switching back and forth
+            st.session_state.df = apply_row_as_header(
+                st.session_state.raw_df.copy(), 
+                st.session_state.header_row
+            )
             df = st.session_state.df
             safe_rerun()
+
         
                 
                 
