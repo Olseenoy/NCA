@@ -368,35 +368,32 @@ def main():
     # Main area: only show preview/analysis if raw_df present
     if st.session_state.get("raw_df") is not None and not st.session_state.get("raw_df").empty:
         st.subheader("Data Preview & Actions")
-
+    
         df = st.session_state.df
-
-      
-        # Header selector for uploaded/raw data
+    
         # Header selector for uploaded/raw data (skip for manual entry)
-      
         if st.session_state.get("input_type") != "Manual Entry":
-        max_row = len(st.session_state.raw_df) - 1
-        new_header_row = st.number_input(
-            "Row number to use as header (0-indexed)",
-            min_value=0, max_value=max_row,
-            value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
-            step=1,
-            help="Pick a row from the file to become column headers."
-        )
-        if int(new_header_row) != int(st.session_state.header_row):
-            st.session_state.header_row = int(new_header_row)
-            # FIX: use a fresh copy to allow switching back and forth
-            st.session_state.df = apply_row_as_header(
-                st.session_state.raw_df.copy(), 
-                st.session_state.header_row
+            max_row = len(st.session_state.raw_df) - 1
+            new_header_row = st.number_input(
+                "Row number to use as header (0-indexed)",
+                min_value=0,
+                max_value=max_row,
+                value=int(st.session_state.header_row) if st.session_state.header_row is not None else 0,
+                step=1,
+                help="Pick a row from the file to become column headers."
             )
-            df = st.session_state.df
-            safe_rerun()
-
-        
-                
-                
+    
+            if int(new_header_row) != int(st.session_state.header_row):
+                st.session_state.header_row = int(new_header_row)
+                # FIX: use a fresh copy to allow switching back and forth
+                st.session_state.df = apply_row_as_header(
+                    st.session_state.raw_df.copy(),
+                    st.session_state.header_row
+                )
+                df = st.session_state.df
+                safe_rerun()
+    
+                    
         
         
 
