@@ -550,16 +550,18 @@ def main():
 
         
                 # --- SPC Section ---
+                # --- SPC Section ---
                 st.subheader("Statistical Process Control (SPC)")
                 p = st.session_state.get('processed')
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
                         num_cols = p.select_dtypes(include=['number']).columns.tolist()
                         if num_cols:
-                            spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
-                            if st.button('Show SPC Chart'):
+                            spc_col = st.selectbox('Select numeric column for SPC', options=num_cols, key="spc_col")
+                            spc_type = st.selectbox("Select SPC type", ["I-MR", "X̄-R", "C"], key="spc_type")
+                            if st.button('Show SPC Chart', key='spc_btn'):
                                 try:
-                                    fig_spc = plot_spc_chart(p, spc_col)
+                                    fig_spc = plot_spc_chart(p, spc_col, chart_type=spc_type)  # you can extend plot_spc_chart
                                     st.plotly_chart(fig_spc, use_container_width=True)
                                 except Exception as e:
                                     st.error(f"SPC chart failed: {e}")
@@ -569,6 +571,7 @@ def main():
                         st.error(f"SPC setup failed: {e}")
                 else:
                     st.warning("No processed data available for SPC. Please preprocess first.")
+
 
 
                 # --- Trend Dashboard ---
