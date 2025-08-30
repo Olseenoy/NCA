@@ -6,50 +6,39 @@ import plotly.graph_objects as go
 import numpy as np 
 
 # --- Pareto Chart ---
-def pareto_plot(pareto_df: pd.DataFrame, show_cumulative: bool = True):
+# --- Pareto Chart ---
+def pareto_plot(pareto_df: pd.DataFrame):
     """
-    Creates a Pareto chart with bars and optional cumulative line.
-    Expects pareto_df to have columns: 'Count' and 'Cumulative %' (if show_cumulative).
+    Generates a Pareto chart with bars and cumulative line.
     """
-    df = pareto_df.reset_index().rename(columns={pareto_df.index.name or 'index': 'Category'})
-
-    fig = go.Figure()
-
-    # Bar for counts
-    fig.add_trace(go.Bar(
-        x=df['Category'],
-        y=df['Count'],
-        name='Count',
-        marker_color='steelblue'
-    ))
-
-    if show_cumulative and 'Cumulative %' in df.columns:
-        # Line for cumulative %
-        fig.add_trace(go.Scatter(
-            x=df['Category'],
-            y=df['Cumulative %'],
-            name='Cumulative %',
-            yaxis='y2',
-            mode='lines+markers',
-            line=dict(color='red', width=2)
-        ))
-
-    # Layout for dual y-axis
+    fig = px.bar(
+        pareto_df.reset_index(),
+        x=pareto_df.index,
+        y='count',
+        labels={'x': 'category', 'count': 'count'},
+        title="Pareto Analysis"
+    )
+    
+    # Use np.array to ensure compatibility
+    cumulative_y = np.array(pareto_df['cum_pct'] * pareto_df['count'].sum())
+    
+    fig.add_scatter(
+        x=pareto_df.index,
+        y=cumulative_y,
+        yaxis='y2',
+        name='Cumulative',
+        mode='lines+markers'
+    )
+    
     fig.update_layout(
-        title='Pareto Chart',
-        yaxis=dict(title='Count'),
         yaxis2=dict(
-            title='Cumulative %',
             overlaying='y',
             side='right',
-            range=[0, 110]
+            title='Cumulative'
         ),
-        xaxis=dict(title='Category'),
-        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
-        template='plotly_white'
+        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
     )
     return fig
-
 # --- Clustering Scatter Plot ---
 def cluster_scatter(embeddings, labels):
     pca = PCA(n_components=2)
