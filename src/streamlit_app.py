@@ -349,15 +349,15 @@ def main():
     if df is not None:
         if isinstance(df, pd.DataFrame) and not df.empty:
         # Keep original uploaded dataframe intact
-        if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
-            st.session_state.raw_df_original = df.copy()
+            if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
+                st.session_state.raw_df_original = df.copy()
 
         # Store raw_df for reference
         st.session_state.raw_df = df
 
         # Initialize header_row once
-        if "header_row" not in st.session_state or st.session_state.header_row is None:
-            st.session_state.header_row = 0
+            if "header_row" not in st.session_state or st.session_state.header_row is None:
+                st.session_state.header_row = 0
 
         # Apply header using current selection (from pristine original)
         if not st.session_state.get("manual_df_ready"):
