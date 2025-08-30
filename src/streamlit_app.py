@@ -374,7 +374,7 @@ def main():
             f"Data loaded: {len(st.session_state.df)} rows, {len(st.session_state.df.columns)} columns."
         )
     else:
-        st.warning("Ingested data is empty or not a DataFrame.")
+        pass  # Removed warning
 
 
 
