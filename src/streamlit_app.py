@@ -556,47 +556,62 @@ def main():
 
         
                 # --- SPC Section ---
-               
+    
                 st.subheader("Statistical Process Control (SPC)")
+                
                 p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        # Convert any numeric-looking object columns to actual numbers
+                        # Convert object columns that look numeric
                         for c in p.columns:
                             if not pd.api.types.is_numeric_dtype(p[c]):
-                                p[c] = pd.to_numeric(p[c], errors='coerce')
+                                try:
+                                    p[c] = pd.to_numeric(p[c])
+                                except Exception:
+                                    continue
                 
                         # Detect numeric columns
                         num_cols = p.select_dtypes(include=['number']).columns.tolist()
                 
                         if num_cols:
+                            # Initialize session_state for persistence
+                            if 'spc_fig' not in st.session_state:
+                                st.session_state['spc_fig'] = None
+                            if 'spc_col_selected' not in st.session_state:
+                                st.session_state['spc_col_selected'] = None
+                            if 'spc_subgroup_size' not in st.session_state:
+                                st.session_state['spc_subgroup_size'] = 1
+                            if 'spc_time_col' not in st.session_state:
+                                st.session_state['spc_time_col'] = None
+                
                             spc_col = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col')
-                            subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
+                            subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=st.session_state['spc_subgroup_size'], key='spc_subgroup_size')
+                            
                             time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
                             time_col = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col')
                 
-                            if st.button('Show SPC Chart', key='spc_btn'):
+                            if st.button('Show SPC Chart', key='show_spc_btn'):
                                 try:
                                     from visualization import plot_spc_chart
                                     fig_spc = plot_spc_chart(p, spc_col, subgroup_size=subgroup_size, time_col=time_col)
-                
-                                    # Save figure to session_state for persistence
                                     st.session_state['spc_fig'] = fig_spc
-                                    st.session_state['spc_col'] = spc_col
+                                    st.session_state['spc_col_selected'] = spc_col
+                                    st.session_state['spc_subgroup_size'] = subgroup_size
+                                    st.session_state['spc_time_col'] = time_col
                                 except Exception as e:
                                     st.error(f"SPC chart failed: {e}")
                 
-                            # Display persistent SPC if available
-                            if 'spc_fig' in st.session_state:
-                                st.success(f"SPC Chart for: {st.session_state.get('spc_col', '')}")
-                                st.plotly_chart(st.session_state['spc_fig'], use_container_width=True,
-                                                key=f"spc_chart_{st.session_state.get('spc_col', '')}")
+                            # Display persistent SPC chart
+                            if st.session_state['spc_fig'] is not None:
+                                st.plotly_chart(st.session_state['spc_fig'], use_container_width=True)
                 
                         else:
-                            st.info("No numeric columns available for SPC analysis after conversion.")
+                            st.info("No numeric columns available for SPC analysis.")
+                
                     except Exception as e:
                         st.error(f"SPC setup failed: {e}")
+                
                 else:
                     st.warning("No processed data available for SPC. Please preprocess first.")
 
