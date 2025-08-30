@@ -97,39 +97,72 @@ def clustering_metrics_chart(metrics_summary):
     return fig
 
 # --- SPC Chart ---
-def plot_spc_chart(df, column):
+def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_col: str | None = None):
     """
-    Enhanced SPC (Statistical Process Control) chart with mean, ±3σ limits,
-    and highlighting of out-of-control points.
+    Enhanced SPC chart with options for I-MR or X-bar/R charts.
+    If subgroup_size=1 -> I-MR chart.
+    If subgroup_size>1 -> X-bar & R chart.
     """
     data = df[column].dropna().reset_index(drop=True)
-    mean_val = data.mean()
-    std_val = data.std()
-
-    ucl = mean_val + 3 * std_val
-    lcl = mean_val - 3 * std_val
-
-    # Highlight points outside control limits
-    colors = ['red' if v > ucl or v < lcl else 'blue' for v in data]
+    n = len(data)
+    x_axis = df[time_col] if time_col and time_col in df.columns else np.arange(n)
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        y=data, mode='lines+markers',
-        name=column,
-        marker=dict(color=colors, size=10)
-    ))
 
-    # Control lines
-    fig.add_hline(y=mean_val, line_dash="dash", line_color="green", annotation_text="Mean")
-    fig.add_hline(y=ucl, line_dash="dot", line_color="red", annotation_text="UCL (+3σ)")
-    fig.add_hline(y=lcl, line_dash="dot", line_color="red", annotation_text="LCL (-3σ)")
+    if subgroup_size <= 1:
+        # Individual / Moving Range chart
+        mean_val = data.mean()
+        sigma_val = data.std()
+        ucl = mean_val + 3*sigma_val
+        lcl = mean_val - 3*sigma_val
+
+        fig.add_trace(go.Scatter(x=x_axis, y=data, mode='lines+markers', name='Values'))
+        fig.add_hline(y=mean_val, line_dash="dash", line_color="green", annotation_text="Mean")
+        fig.add_hline(y=ucl, line_dash="dot", line_color="red", annotation_text="UCL (+3σ)")
+        fig.add_hline(y=lcl, line_dash="dot", line_color="red", annotation_text="LCL (-3σ)")
+
+        # Highlight points outside control limits
+        out_of_control = (data > ucl) | (data < lcl)
+        if out_of_control.any():
+            fig.add_trace(go.Scatter(
+                x=x_axis[out_of_control],
+                y=data[out_of_control],
+                mode='markers',
+                name='Out of Control',
+                marker=dict(color='red', size=10, symbol='x')
+            ))
+
+    else:
+        # X-bar & R chart
+        groups = [data[i:i+subgroup_size] for i in range(0, n, subgroup_size)]
+        x_bar = [g.mean() for g in groups if len(g)==subgroup_size]
+        r_bar = [g.max()-g.min() for g in groups if len(g)==subgroup_size]
+
+        mean_x = np.mean(x_bar)
+        sigma_x = np.std(x_bar)
+        ucl_x = mean_x + 3*sigma_x
+        lcl_x = mean_x - 3*sigma_x
+
+        fig.add_trace(go.Scatter(y=x_bar, mode='lines+markers', name='X-bar'))
+        fig.add_hline(y=mean_x, line_dash="dash", line_color="green", annotation_text="X-bar Mean")
+        fig.add_hline(y=ucl_x, line_dash="dot", line_color="red", annotation_text="UCL (+3σ)")
+        fig.add_hline(y=lcl_x, line_dash="dot", line_color="red", annotation_text="LCL (-3σ)")
+
+        # R chart
+        mean_r = np.mean(r_bar)
+        sigma_r = np.std(r_bar)
+        ucl_r = mean_r + 3*sigma_r
+        lcl_r = max(mean_r - 3*sigma_r, 0)
+
+        fig.add_trace(go.Scatter(y=r_bar, mode='lines+markers', name='R (Range)'))
+        fig.add_hline(y=mean_r, line_dash="dash", line_color="blue", annotation_text="R Mean")
+        fig.add_hline(y=ucl_r, line_dash="dot", line_color="purple", annotation_text="R UCL")
+        fig.add_hline(y=lcl_r, line_dash="dot", line_color="purple", annotation_text="R LCL")
 
     fig.update_layout(
         title=f"SPC Chart for {column}",
-        xaxis_title="Sample",
-        yaxis_title=column,
-        template="plotly_white",
-        showlegend=True
+        xaxis_title="Sample" if time_col is None else time_col,
+        yaxis_title=column
     )
     return fig
 
