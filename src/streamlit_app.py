@@ -476,41 +476,43 @@ def main():
                 valid_embeddings = embeddings is not None and len(embeddings) > 0
         
                 # --- Clustering ---
+    
                 st.subheader("Clustering & Visualization")
+                
+                if 'processed' in st.session_state and 'embeddings' in st.session_state:
+                    p = st.session_state['processed']
+                    embeddings = st.session_state['embeddings']
+                
+                    valid_p = isinstance(p, pd.DataFrame) and not p.empty
+                    valid_embeddings = embeddings is not None and len(embeddings) > 0
+                
+                    if valid_p and valid_embeddings:
+                        if st.button("Cluster & Visualize"):
+                            try:
+                                with st.spinner("Evaluating multiple clustering methods..."):
+                                    best, results = evaluate_clustering(embeddings, k_values=list(range(2, 8)))
+                
+                                # Save best clustering results to session_state
+                                st.session_state['cluster_best'] = best
+                                st.session_state['cluster_all'] = results
+                                st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
+                                st.session_state['cluster_text'] = (
+                                    f"{best['method']} | K={best.get('k', '-') } | "
+                                    f"Silhouette={best['Silhouette Score']:.3f} | "
+                                    f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
+                                )
+                
+                            except Exception as e:
+                                st.error(f"Clustering failed: {e}")
+                
+                    # Display persistent results
+                    if 'cluster_fig' in st.session_state:
+                        st.success(st.session_state['cluster_text'])
+                        st.info(st.session_state['cluster_best']['interpretation'])
+                        st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
+                    else:
+                        st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
 
-                if valid_p and valid_embeddings:
-                    if st.button('Cluster & Visualize'):
-                        try:
-                            from config import RANDOM_STATE  # Ensure RANDOM_STATE is available
-                            with st.spinner("Evaluating optimal clusters..."):
-                                best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
-                
-                            # Prepare metrics summary
-                            metrics_summary = {
-                                "Silhouette Score": best["Silhouette Score"],
-                                "Davies-Bouldin Score": best["Davies-Bouldin Score"],
-                                "interpretation": best["interpretation"],
-                            }
-                
-                            # Save results to session state for persistence
-                            st.session_state['cluster_metrics'] = metrics_summary
-                            st.session_state['cluster_labels'] = best["labels"]
-                            st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
-                            st.session_state['cluster_text'] = (
-                                f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
-                                f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
-                            )
-                
-                        except Exception as e:
-                            st.error(f"Clustering failed: {e}")
-                
-                # Display results if already available
-                if 'cluster_fig' in st.session_state:
-                    st.success(st.session_state['cluster_text'])
-                    st.info(st.session_state['cluster_metrics']["interpretation"])
-                    st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
-                else:
-                    st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
               
                
 
