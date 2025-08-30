@@ -31,7 +31,7 @@ from ingestion import (
 
 from preprocessing import preprocess_df
 from embeddings import embed_texts
-from clustering import fit_kmeans
+from clustering import fit_kmeans, evaluate_kmeans
 from visualization import (
     pareto_plot,
     cluster_scatter,
