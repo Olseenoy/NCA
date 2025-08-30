@@ -513,8 +513,7 @@ def main():
                 else:
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")     
 
-
-                # --- Pareto Analysis ---
+                
                 # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
@@ -557,28 +556,36 @@ def main():
 
         
                 # --- SPC Section ---
-                # --- SPC Section ---
                 st.subheader("Statistical Process Control (SPC)")
                 p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     num_cols = p.select_dtypes(include=['number']).columns.tolist()
                     if num_cols:
-                        spc_col = st.selectbox('Select numeric column for SPC', options=num_cols)
-                        subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1)
+                        spc_col = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col')
+                        subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
                         time_cols = [c for c in p.columns if pd.api.types.is_datetime64_any_dtype(p[c])]
-                        time_col = st.selectbox('Optional time column', options=[None]+time_cols)
-                        if st.button('Show SPC Chart'):
+                        time_col = st.selectbox('Optional time column', options=[None]+time_cols, key='spc_time_col')
+                
+                        if st.button('Show SPC Chart', key='spc_btn'):
                             try:
                                 fig_spc = plot_spc_chart(p, spc_col, subgroup_size=subgroup_size, time_col=time_col)
-                                st.plotly_chart(fig_spc, use_container_width=True)
+                                # Save figure to session state for persistence
+                                st.session_state['spc_fig'] = fig_spc
+                                st.session_state['spc_col'] = spc_col
                             except Exception as e:
                                 st.error(f"SPC chart failed: {e}")
+                
+                        # Display persistent SPC if available
+                        if 'spc_fig' in st.session_state:
+                            st.success(f"SPC Chart for: {st.session_state.get('spc_col', '')}")
+                            st.plotly_chart(st.session_state['spc_fig'], use_container_width=True, 
+                                            key=f"spc_chart_{st.session_state.get('spc_col', '')}")
+                
                     else:
                         st.info("No numeric columns available for SPC analysis.")
                 else:
                     st.warning("No processed data available for SPC. Please preprocess first.")
-
 
 
 
