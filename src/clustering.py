@@ -1,5 +1,5 @@
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score
 import numpy as np
 from config import CLUSTERING_K, RANDOM_STATE
 
@@ -31,11 +31,26 @@ def interpret_clustering_results(score: float) -> str:
         )
 
 def fit_kmeans(embeddings: np.ndarray, k: int = CLUSTERING_K):
+    """
+    Fit KMeans and return clustering results along with multiple metrics.
+    """
     km = KMeans(n_clusters=k, random_state=RANDOM_STATE)
     labels = km.fit_predict(embeddings)
-    score = silhouette_score(embeddings, labels)
-    interpretation = interpret_clustering_results(score)
-    return km, labels, score, interpretation
+
+    # Calculate multiple metrics
+    silhouette = silhouette_score(embeddings, labels)
+    davies_bouldin = davies_bouldin_score(embeddings, labels)
+
+    # Human-readable interpretation (mainly Silhouette-based)
+    interpretation = interpret_clustering_results(silhouette)
+
+    metrics_summary = {
+        "Silhouette Score": silhouette,
+        "Davies-Bouldin Score": davies_bouldin,
+        "interpretation": interpretation
+    }
+
+    return km, labels, metrics_summary
 
 def predict_cluster(km, emb: np.ndarray):
     return km.predict(emb)
