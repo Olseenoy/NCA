@@ -1,36 +1,24 @@
 # src/pareto.py
 import pandas as pd
+from typing import Optional
 
-def pareto_table(
-    df: pd.DataFrame,
-    category_col: str,
-    weight_col: str | None = None,
-    top_n: int | None = None
-) -> pd.DataFrame:
+def pareto_table(df: pd.DataFrame, category_col: str, weight_col: Optional[str] = None) -> pd.DataFrame:
     """
-    Generate Pareto table with counts and cumulative percentage.
-
-    Parameters:
-    - df: input DataFrame
-    - category_col: column for categories
-    - weight_col: optional column to sum instead of counting
-    - top_n: optional number of top categories to include
-
+    Generates a Pareto table with counts and cumulative percentage.
+    
+    Args:
+        df: Input DataFrame
+        category_col: Column to group by (categorical)
+        weight_col: Optional numeric column to sum instead of counting rows
+    
     Returns:
-    - DataFrame with columns ['Count', 'Cumulative %']
+        DataFrame with 'count' and 'cum_pct'
     """
     if weight_col:
         s = df.groupby(category_col)[weight_col].sum().sort_values(ascending=False)
     else:
         s = df[category_col].value_counts()
-
-    if top_n:
-        s = s.head(top_n)
-
-    cum_pct = s.cumsum() / s.sum() * 100  # percentage 0-100
-    tab = pd.DataFrame({
-        'Count': s,
-        'Cumulative %': cum_pct
-    })
+    
+    cum = s.cumsum() / s.sum()
+    tab = pd.DataFrame({'count': s, 'cum_pct': cum})
     return tab
-
