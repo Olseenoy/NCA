@@ -493,21 +493,22 @@ def main():
                                 from clustering import evaluate_clustering
                                 from visualization import cluster_scatter
                 
-                                with st.spinner("Evaluating multiple clustering algorithms..."):
+                                with st.spinner("Evaluating clustering..."):
+                                    # If your clustering.py supports KMeans only:
                                     best, results = evaluate_clustering(
-                                        embeddings, 
-                                        k_values=list(range(2, 8)),  # KMeans K values
-                                        dbscan_params=[{'eps': 0.5, 'min_samples': 5}, {'eps': 1.0, 'min_samples': 5}],
-                                        hdbscan_params=[{'min_cluster_size': 5}, {'min_cluster_size': 10}]
+                                        embeddings,
+                                        k_values=list(range(2, 8))  # KMeans K values
                                     )
                 
-                                # Save results to session state for persistence
+                                    # If clustering.py supports DBSCAN/HDBSCAN, you can add params as kwargs
+                
+                                # Save results to session state
                                 st.session_state['cluster_labels'] = best["labels"]
                                 st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
                                 st.session_state['cluster_metrics'] = best["metrics"]
-                                st.session_state['cluster_algorithm'] = best["algorithm"]
+                                st.session_state['cluster_algorithm'] = best.get("algorithm", "KMeans")
                                 st.session_state['cluster_text'] = (
-                                    f"Best Algorithm: {best['algorithm']} | "
+                                    f"Best Algorithm: {st.session_state['cluster_algorithm']} | "
                                     f"Silhouette={best['metrics']['Silhouette']:.3f} | "
                                     f"Davies-Bouldin={best['metrics']['Davies-Bouldin']:.3f}"
                                 )
@@ -520,9 +521,9 @@ def main():
                         st.success(st.session_state['cluster_text'])
                         st.info(st.session_state['cluster_metrics'].get("interpretation", ""))
                         st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
-                
                     else:
                         st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+
 
 
               
