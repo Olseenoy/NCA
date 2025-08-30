@@ -347,7 +347,7 @@ def main():
     # Ensure DataFrame from manual logs is captured
     
     if df is not None:
-    if isinstance(df, pd.DataFrame) and not df.empty:
+        if isinstance(df, pd.DataFrame) and not df.empty:
         # Keep original uploaded dataframe intact
         if "raw_df_original" not in st.session_state or st.session_state.raw_df_original is None:
             st.session_state.raw_df_original = df.copy()
