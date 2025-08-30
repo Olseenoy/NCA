@@ -6,21 +6,29 @@ from dotenv import load_dotenv
 # -----------------------------
 # Load environment variables
 # -----------------------------
-load_dotenv()
+try:
+    load_dotenv()
+except Exception:
+    pass  # Prevent crash if dotenv is not available
 
 # -----------------------------
 # Directories
 # -----------------------------
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-RAW_DIR = DATA_DIR / "raw"
-PROCESSED_DIR = DATA_DIR / "processed"
+try:
+    DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+    RAW_DIR = DATA_DIR / "raw"
+    PROCESSED_DIR = DATA_DIR / "processed"
+except Exception:
+    DATA_DIR = Path("./data")
+    RAW_DIR = DATA_DIR / "raw"
+    PROCESSED_DIR = DATA_DIR / "processed"
 
 # -----------------------------
-# Model & clustering
+# Model & clustering (Safe Defaults)
 # -----------------------------
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-CLUSTERING_K = 12
-RANDOM_STATE = 42
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+CLUSTERING_K = int(os.getenv("CLUSTERING_K", 12))
+RANDOM_STATE = int(os.getenv("RANDOM_STATE", 42))
 
 # -----------------------------
 # Database
