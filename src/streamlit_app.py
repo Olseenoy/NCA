@@ -516,43 +516,34 @@ def main():
                 
                 # --- Pareto Analysis ---
          
+               # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        cat_col_selected = st.selectbox(
+                        cat_col = st.selectbox(
                             'Select column for Pareto',
                             options=p.columns.tolist(),
-                            key='pareto_cat_col_select'
+                            key='pareto_cat_col'  # unique key
                         )
-                
                         if st.button('Show Pareto', key='pareto_btn'):
                             try:
                                 from pareto import pareto_table
                                 from visualization import pareto_plot
-                                import numpy as np
+                                import numpy as np  # ensure np is imported
                 
-                                tab = pareto_table(p, cat_col_selected)
+                                tab = pareto_table(p, cat_col)
                                 fig = pareto_plot(tab)
                 
+                                # Use a unique key per chart to avoid StreamlitDuplicateElementId
                                 st.session_state['pareto_fig'] = fig
-                                st.session_state['pareto_col_saved'] = cat_col_selected
+                                st.plotly_chart(fig, use_container_width=True, key=f"pareto_chart_{cat_col}")
                 
                             except Exception as e:
-                                st.error(f"Error generating Pareto chart: {e}")
-                
-                        if 'pareto_fig' in st.session_state:
-                            st.success(f"Pareto Chart for: {st.session_state.get('pareto_col_saved', '')}")
-                            st.plotly_chart(
-                                st.session_state['pareto_fig'],
-                                use_container_width=True,
-                                key=f"pareto_chart_{st.session_state.get('pareto_col_saved', '')}"
-                            )
-                
+                                st.error(f"Pareto failed: {e}")
                     except Exception as e:
-                        st.error(f"Error setting up Pareto Analysis: {e}")
-                
+                        st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
 
