@@ -515,58 +515,28 @@ def main():
 
                 
                 # --- Pareto Analysis ---
+                  # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')
+                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        value_col = st.selectbox(
-                            'Select numeric column for Pareto',
-                            options=p.select_dtypes(include=['number']).columns.tolist(),
-                            key='pareto_value_col'
+                        cat_col = st.selectbox(
+                            'Select column for Pareto',
+                            options=p.columns.tolist()
                         )
-                
-                        if st.button('Show Pareto', key='pareto_btn'):
+                        if st.button('Show Pareto'):
                             try:
-                                df_sorted = p[[value_col]].sort_values(by=value_col, ascending=False).reset_index(drop=True)
-                                df_sorted['Cumulative %'] = df_sorted[value_col].cumsum() / df_sorted[value_col].sum() * 100
-                
-                                import plotly.graph_objects as go
-                                fig = go.Figure()
-                
-                                # Bars for values
-                                fig.add_bar(x=df_sorted.index, y=df_sorted[value_col], name='Value')
-                
-                                # Cumulative % Line
-                                fig.add_trace(go.Scatter(
-                                    x=df_sorted.index,
-                                    y=df_sorted['Cumulative %'],
-                                    mode='lines+markers',
-                                    name='Cumulative %',
-                                    yaxis='y2'
-                                ))
-                
-                                fig.update_layout(
-                                    title=f"Pareto Chart for {value_col}",
-                                    yaxis=dict(title='Value'),
-                                    yaxis2=dict(
-                                        title='Cumulative %',
-                                        overlaying='y',
-                                        side='right',
-                                        range=[0, 100]
-                                    )
-                                )
-                
+                                tab = pareto_table(p, cat_col)
+                                fig = pareto_plot(tab)
                                 st.plotly_chart(fig, use_container_width=True)
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
-                
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
-
-
+        
         
                 # --- SPC Section ---
     
