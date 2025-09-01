@@ -515,6 +515,7 @@ def main():
 
                 
                 # --- Pareto Analysis ---
+                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
@@ -534,19 +535,12 @@ def main():
                                 tab = pareto_table(p, cat_col)
                                 fig = pareto_plot(tab)
                 
-                                # Save figure to session state for persistence
+                                # Use a unique key per chart to avoid StreamlitDuplicateElementId
                                 st.session_state['pareto_fig'] = fig
-                                st.session_state['pareto_col'] = cat_col
+                                st.plotly_chart(fig, use_container_width=True, key=f"pareto_chart_{cat_col}")
                 
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
-                
-                        # Display persistent Pareto if available
-                        if 'pareto_fig' in st.session_state:
-                            st.success(f"Pareto Chart for: {st.session_state.get('pareto_col', '')}")
-                            st.plotly_chart(st.session_state['pareto_fig'], use_container_width=True, 
-                                            key=f"pareto_chart_{st.session_state.get('pareto_col', '')}")
-                
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
