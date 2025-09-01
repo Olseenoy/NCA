@@ -515,53 +515,39 @@ def main():
 
                 
                 # --- Pareto Analysis ---
-         
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        # Dropdown for category column
-                        cat_col = st.selectbox(
-                            'Select Category Column',
-                            options=p.columns.tolist(),
-                            key='pareto_cat_col'
-                        )
-                
-                        # Dropdown for numeric value column
-                        num_cols = p.select_dtypes(include=['number']).columns.tolist()
-                        val_col = st.selectbox(
-                            'Select Value Column',
-                            options=num_cols,
-                            key='pareto_val_col'
+                        value_col = st.selectbox(
+                            'Select numeric column for Pareto',
+                            options=p.select_dtypes(include=['number']).columns.tolist(),
+                            key='pareto_value_col'
                         )
                 
                         if st.button('Show Pareto', key='pareto_btn'):
                             try:
-                                df_grouped = p.groupby(cat_col)[val_col].sum().reset_index()
-                                df_grouped.columns = ['Category', 'Value']
-                                df_grouped = df_grouped.sort_values(by='Value', ascending=False)
-                                df_grouped['Cumulative %'] = df_grouped['Value'].cumsum() / df_grouped['Value'].sum() * 100
+                                df_sorted = p[[value_col]].sort_values(by=value_col, ascending=False).reset_index(drop=True)
+                                df_sorted['Cumulative %'] = df_sorted[value_col].cumsum() / df_sorted[value_col].sum() * 100
                 
                                 import plotly.graph_objects as go
                                 fig = go.Figure()
                 
-                                # Bar chart
-                                fig.add_bar(x=df_grouped['Category'], y=df_grouped['Value'], name='Value')
+                                # Bars for values
+                                fig.add_bar(x=df_sorted.index, y=df_sorted[value_col], name='Value')
                 
-                                # Cumulative line
-                                fig.add_trace(
-                                    go.Scatter(
-                                        x=df_grouped['Category'],
-                                        y=df_grouped['Cumulative %'],
-                                        mode='lines+markers',
-                                        name='Cumulative %',
-                                        yaxis='y2'
-                                    )
-                                )
+                                # Cumulative % Line
+                                fig.add_trace(go.Scatter(
+                                    x=df_sorted.index,
+                                    y=df_sorted['Cumulative %'],
+                                    mode='lines+markers',
+                                    name='Cumulative %',
+                                    yaxis='y2'
+                                ))
                 
                                 fig.update_layout(
-                                    title=f"Pareto Chart for {cat_col} by {val_col}",
+                                    title=f"Pareto Chart for {value_col}",
                                     yaxis=dict(title='Value'),
                                     yaxis2=dict(
                                         title='Cumulative %',
@@ -572,7 +558,6 @@ def main():
                                 )
                 
                                 st.plotly_chart(fig, use_container_width=True)
-                
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
                 
@@ -581,9 +566,6 @@ def main():
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
 
-
-
-             
 
         
                 # --- SPC Section ---
