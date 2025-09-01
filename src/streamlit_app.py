@@ -515,7 +515,7 @@ def main():
 
                 
                 # --- Pareto Analysis ---
-            
+         
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
@@ -524,26 +524,24 @@ def main():
                         cat_col_selected = st.selectbox(
                             'Select column for Pareto',
                             options=p.columns.tolist(),
-                            key='pareto_cat_col_select'  # different from saved state key
+                            key='pareto_cat_col_select'
                         )
                 
                         if st.button('Show Pareto', key='pareto_btn'):
                             try:
                                 from pareto import pareto_table
                                 from visualization import pareto_plot
-                                import numpy as np  # ensure np is imported
+                                import numpy as np
                 
                                 tab = pareto_table(p, cat_col_selected)
                                 fig = pareto_plot(tab)
                 
-                                # Save figure and selected column to session_state
                                 st.session_state['pareto_fig'] = fig
                                 st.session_state['pareto_col_saved'] = cat_col_selected
                 
-                            except Exception:
-                                pass  # hide runtime errors
+                            except Exception as e:
+                                st.error(f"Error generating Pareto chart: {e}")
                 
-                        # Display persistent Pareto chart if already available
                         if 'pareto_fig' in st.session_state:
                             st.success(f"Pareto Chart for: {st.session_state.get('pareto_col_saved', '')}")
                             st.plotly_chart(
@@ -552,8 +550,8 @@ def main():
                                 key=f"pareto_chart_{st.session_state.get('pareto_col_saved', '')}"
                             )
                 
-                    except Exception:
-                        pass  # hide setup errors
+                    except Exception as e:
+                        st.error(f"Error setting up Pareto Analysis: {e}")
                 
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
