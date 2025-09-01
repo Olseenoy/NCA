@@ -516,36 +516,71 @@ def main():
                 
                 # --- Pareto Analysis ---
          
-               # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
+                        # Dropdown for category column
                         cat_col = st.selectbox(
-                            'Select column for Pareto',
+                            'Select Category Column',
                             options=p.columns.tolist(),
-                            key='pareto_cat_col'  # unique key
+                            key='pareto_cat_col'
                         )
+                
+                        # Dropdown for numeric value column
+                        num_cols = p.select_dtypes(include=['number']).columns.tolist()
+                        val_col = st.selectbox(
+                            'Select Value Column',
+                            options=num_cols,
+                            key='pareto_val_col'
+                        )
+                
                         if st.button('Show Pareto', key='pareto_btn'):
                             try:
-                                from pareto import pareto_table
-                                from visualization import pareto_plot
-                                import numpy as np  # ensure np is imported
+                                df_grouped = p.groupby(cat_col)[val_col].sum().reset_index()
+                                df_grouped.columns = ['Category', 'Value']
+                                df_grouped = df_grouped.sort_values(by='Value', ascending=False)
+                                df_grouped['Cumulative %'] = df_grouped['Value'].cumsum() / df_grouped['Value'].sum() * 100
                 
-                                tab = pareto_table(p, cat_col)
-                                fig = pareto_plot(tab)
+                                import plotly.graph_objects as go
+                                fig = go.Figure()
                 
-                                # Use a unique key per chart to avoid StreamlitDuplicateElementId
-                                st.session_state['pareto_fig'] = fig
-                                st.plotly_chart(fig, use_container_width=True, key=f"pareto_chart_{cat_col}")
+                                # Bar chart
+                                fig.add_bar(x=df_grouped['Category'], y=df_grouped['Value'], name='Value')
+                
+                                # Cumulative line
+                                fig.add_trace(
+                                    go.Scatter(
+                                        x=df_grouped['Category'],
+                                        y=df_grouped['Cumulative %'],
+                                        mode='lines+markers',
+                                        name='Cumulative %',
+                                        yaxis='y2'
+                                    )
+                                )
+                
+                                fig.update_layout(
+                                    title=f"Pareto Chart for {cat_col} by {val_col}",
+                                    yaxis=dict(title='Value'),
+                                    yaxis2=dict(
+                                        title='Cumulative %',
+                                        overlaying='y',
+                                        side='right',
+                                        range=[0, 100]
+                                    )
+                                )
+                
+                                st.plotly_chart(fig, use_container_width=True)
                 
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
+                
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
 
              
