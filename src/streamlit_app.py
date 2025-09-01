@@ -517,46 +517,43 @@ def main():
                 # --- Pareto Analysis ---
                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        cat_col_selected = st.selectbox(
+                        # Column selection
+                        cat_col = st.selectbox(
                             'Select column for Pareto',
-                            options=p.columns.tolist(),
-                            key='pareto_cat_col_select'  # different from saved state key
+                            options=p.columns.tolist()
+                        )
+                        weight_col = st.selectbox(
+                            'Optional: Select weight column (or leave blank)',
+                            options=[None] + p.select_dtypes(include=['number']).columns.tolist()
                         )
                 
-                        if st.button('Show Pareto', key='pareto_btn'):
+                        if st.button('Show Pareto'):
                             try:
-                                from pareto import pareto_table
-                                from visualization import pareto_plot
-                                import numpy as np  # ensure np is imported
-                
-                                tab = pareto_table(p, cat_col_selected)
+                                # Build Pareto table
+                                tab = pareto_table(p, category_col=cat_col, weight_col=weight_col)
+                                
+                                # Plot Pareto
                                 fig = pareto_plot(tab)
-                
-                                # Save figure and selected column to session_state
+                                
+                                # Save to session for persistence
+                                st.session_state['pareto_tab'] = tab
                                 st.session_state['pareto_fig'] = fig
-                                st.session_state['pareto_col_saved'] = cat_col_selected
+                                
+                                st.plotly_chart(fig, use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Pareto failed: {e}")
                 
-                            except Exception:
-                                pass  # hide runtime errors
+                    except Exception as e:
+                        st.error(f"Pareto setup failed: {e}")
                 
-                        # Display persistent Pareto chart if already available
-                        if 'pareto_fig' in st.session_state:
-                            st.success(f"Pareto Chart for: {st.session_state.get('pareto_col_saved', '')}")
-                            st.plotly_chart(
-                                st.session_state['pareto_fig'],
-                                use_container_width=True,
-                                key=f"pareto_chart_{st.session_state.get('pareto_col_saved', '')}"
-                            )
-                
-                    except Exception:
-                        pass  # hide setup errors
-                
-                else:
-                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+                # Show persistent chart if exists
+                if 'pareto_fig' in st.session_state:
+                    st.success("Pareto Chart (persistent)")
+                    st.plotly_chart(st.session_state['pareto_fig'], use_container_width=True)
 
 
              
