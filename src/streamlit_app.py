@@ -517,7 +517,7 @@ def main():
 
                 # --- Pareto Analysis ---
               
-                          # --- Pareto Analysis ---
+             # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
@@ -526,11 +526,11 @@ def main():
                     if column not in df.columns:
                         return pd.DataFrame()
                 
-                    # Convert everything to string, strip whitespace
-                    series = df[column].astype(str).str.strip()
+                    # Convert safely to string, but keep only non-null
+                    series = df[column].dropna().astype(str).str.strip()
                 
-                    # Remove fake NaNs and blanks
-                    series = series[~series.str.lower().isin(["nan", "none", "null", ""])]
+                    # Drop only true empty strings
+                    series = series[series != ""]
                 
                     if series.empty:
                         return pd.DataFrame()
@@ -556,12 +556,10 @@ def main():
                             help="Choose any column to analyze its categories in Pareto chart"
                         )
                 
-                        # Button click persistence
                         if st.button('Show Pareto'):
                             st.session_state['show_pareto'] = True
                             st.session_state['pareto_col'] = cat_col
                 
-                        # Render Pareto if triggered
                         if st.session_state.get('show_pareto', False):
                             try:
                                 selected_col = st.session_state.get('pareto_col', cat_col)
@@ -571,7 +569,7 @@ def main():
                                     st.warning(f"No valid data found in column '{selected_col}'.")
                                 else:
                                     st.write("Pareto Table", tab)
-                                    fig = pareto_plot(tab)  # assumes you already have a pareto_plot() function
+                                    fig = pareto_plot(tab)  # your plot function
                                     st.plotly_chart(fig, use_container_width=True)
                 
                             except Exception as e:
@@ -581,6 +579,7 @@ def main():
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
 
 
