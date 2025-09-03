@@ -437,7 +437,7 @@ def main():
                     st.error(f"Failed to save preview: {e}")
 
         with tab2:
-            # Preprocess & embed
+            # --- Preprocess & embed ---
             st.markdown("### Text Selection")
             object_cols = [c for c in df.columns if df[c].dtype == 'object']
             default_text_cols = object_cols[:2]
@@ -446,54 +446,52 @@ def main():
                 options=df.columns.tolist(),
                 default=default_text_cols
             )
-
+            
             if st.button('Preprocess & Embed'):
                 if not text_cols:
                     st.error("Please select at least one text column.")
                 else:
                     try:
-                        p = preprocess_df(df, text_cols)
+                        p = preprocess_df(df, text_cols)  # keep all columns + clean_text
                         st.session_state['processed'] = p
                         st.success('Preprocessing complete')
                     except Exception as e:
                         st.error(f"Preprocessing failed: {e}")
-                        return
-
+                        st.stop()
+            
                     try:
                         embeddings = embed_texts(p['clean_text'].tolist())
                         st.session_state['embeddings'] = embeddings
                         st.success('Embeddings computed')
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
-
-
+            
+            
             # --- Only show analysis after preprocessing & embeddings ---
             if 'processed' in st.session_state and 'embeddings' in st.session_state:
                 p = st.session_state.get('processed')
                 embeddings = st.session_state.get('embeddings')
-        
-                # Guard that p is a non-empty DataFrame and embeddings are available
+            
+                # Guard checks
                 valid_p = isinstance(p, pd.DataFrame) and not p.empty
                 valid_embeddings = embeddings is not None and len(embeddings) > 0
-        
+            
                 # --- Clustering ---
                 st.subheader("Clustering & Visualization")
-
+            
                 if valid_p and valid_embeddings:
                     if st.button('Cluster & Visualize'):
                         try:
-                            from config import RANDOM_STATE  # Ensure RANDOM_STATE is available
+                            from config import RANDOM_STATE
                             with st.spinner("Evaluating optimal clusters..."):
                                 best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
-                
-                            # Prepare metrics summary
+            
                             metrics_summary = {
                                 "Silhouette Score": best["Silhouette Score"],
                                 "Davies-Bouldin Score": best["Davies-Bouldin Score"],
                                 "interpretation": best["interpretation"],
                             }
-                
-                            # Save results to session state for persistence
+            
                             st.session_state['cluster_metrics'] = metrics_summary
                             st.session_state['cluster_labels'] = best["labels"]
                             st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
@@ -501,80 +499,76 @@ def main():
                                 f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
                                 f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
                             )
-                
+            
                         except Exception as e:
                             st.error(f"Clustering failed: {e}")
-                
-                # Display results if already available
+            
                 if 'cluster_fig' in st.session_state:
                     st.success(st.session_state['cluster_text'])
                     st.info(st.session_state['cluster_metrics']["interpretation"])
                     st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
                 else:
-                    st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")     
-
-
-
+                    st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+            
+            
                 # --- Pareto Analysis ---
-                 # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                
-                raw_df = st.session_state.get("raw_df")
-                
+            
                 def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
                     if column not in df.columns:
                         return pd.DataFrame()
-                
+            
                     series = df[column].dropna().astype(str).str.strip()
                     series = series[series != ""]
-                
+            
                     if series.empty:
                         return pd.DataFrame()
-                
+            
                     counts = series.value_counts()
                     total = counts.sum()
-                
+            
                     tab = pd.DataFrame({
                         "Category": counts.index,
                         "Count": counts.values,
                     })
                     tab["Percent"] = (tab["Count"] / total * 100).round(2)
                     tab["Cumulative %"] = tab["Percent"].cumsum().round(2)
-                
+            
                     return tab
-                
-                
-                if isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
+            
+            
+                if valid_p:
                     try:
                         cat_col = st.selectbox(
                             'Select column for Pareto',
-                            options=raw_df.columns.tolist(),
-                            help="Choose any column to analyze its categories in Pareto chart"
+                            options=p.columns.tolist(),
+                            help="Choose any column from processed data"
                         )
-                
+            
                         if st.button('Show Pareto'):
                             st.session_state['show_pareto'] = True
                             st.session_state['pareto_col'] = cat_col
-                
+            
                         if st.session_state.get('show_pareto', False):
                             try:
                                 selected_col = st.session_state.get('pareto_col', cat_col)
-                                tab = pareto_table(raw_df, selected_col)
-                
+                                tab = pareto_table(p, selected_col)
+            
                                 if tab.empty:
                                     st.warning(f"No valid data found in column '{selected_col}'.")
                                 else:
                                     st.write("Pareto Table", tab)
-                                    fig = pareto_plot(tab)  # your plotting function
+                                    fig = pareto_plot(tab)
                                     st.plotly_chart(fig, use_container_width=True)
-                
+            
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
-                
+            
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
-                    st.warning("No raw data available for Pareto analysis. Please upload first.")
+                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
 
 
