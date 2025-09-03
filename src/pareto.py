@@ -1,3 +1,10 @@
+# src/pareto.py 
+import pandas as pd 
+from typing import Optional
+
+
+
+
 def pareto_table(df: pd.DataFrame, category_col: str, weight_col: str | None = None):
     if weight_col:
         s = df.groupby(category_col)[weight_col].sum().sort_values(ascending=False)
