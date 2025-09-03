@@ -487,7 +487,50 @@ def main():
                         st.success('Embeddings computed')
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
+            # --- Only show analysis after preprocessing & embeddings ---
+            if 'processed' in st.session_state and 'embeddings' in st.session_state:
+                p = st.session_state.get('processed')
+                embeddings = st.session_state.get('embeddings')
             
+                # Guard checks
+                valid_p = isinstance(p, pd.DataFrame) and not p.empty
+                valid_embeddings = embeddings is not None and len(embeddings) > 0
+        
+            # --- Clustering ---
+            st.subheader("Clustering & Visualization")
+        
+            if valid_p and valid_embeddings:
+                if st.button('Cluster & Visualize'):
+                    try:
+                        from config import RANDOM_STATE
+                        with st.spinner("Evaluating optimal clusters..."):
+                            best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
+        
+                        metrics_summary = {
+                            "Silhouette Score": best["Silhouette Score"],
+                            "Davies-Bouldin Score": best["Davies-Bouldin Score"],
+                            "interpretation": best["interpretation"],
+                        }
+        
+                        st.session_state['cluster_metrics'] = metrics_summary
+                        st.session_state['cluster_labels'] = best["labels"]
+                        st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
+                        st.session_state['cluster_text'] = (
+                            f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
+                            f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
+                        )
+        
+                    except Exception as e:
+                        st.error(f"Clustering failed: {e}")
+        
+            if 'cluster_fig' in st.session_state:
+                st.success(st.session_state['cluster_text'])
+                st.info(st.session_state['cluster_metrics']["interpretation"])
+                st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
+            else:
+                st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+
+ 
             
             # --- Pareto Analysis ---
             st.subheader("Pareto Analysis")
