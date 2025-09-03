@@ -662,45 +662,63 @@ def main():
                 st.warning("No processed data available for SPC. Please preprocess first.")
 
 
-
-
-        
-        
+               
+            # --- Trend Dashboard ---
+            st.subheader("Trend Dashboard")
+            p = st.session_state.get('processed')
             
-
-
-
-
-
-
-                # --- Trend Dashboard ---
-               # --- Trend Dashboard ---
-                st.subheader("Trend Dashboard")
-                p = st.session_state.get('processed')
-                
-                if isinstance(p, pd.DataFrame) and not p.empty:
-                    if len(p.columns) >= 2:
-                        # Let user select which columns to use
-                        date_col = st.selectbox("Select Date Column", options=p.columns, key="trend_date_col")
-                        value_col = st.selectbox("Select Value Column", options=p.columns, key="trend_value_col")
-                
-                        # Persist button click
-                        if st.button("Show Dashboard"):
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                if len(p.columns) >= 2:
+                    # Work on a copy so we don't alter the processed data
+                    trend_df = p.copy()
+            
+                    # --- Detect datetime-like columns ---
+                    date_cols = [c for c in trend_df.columns if pd.api.types.is_datetime64_any_dtype(trend_df[c])]
+            
+                    # Try to convert object columns to datetime
+                    for c in trend_df.select_dtypes(include=['object']).columns:
+                        try:
+                            converted = pd.to_datetime(trend_df[c], errors='coerce')
+                            if converted.notna().any():  # keep only if conversion worked
+                                trend_df[c] = converted
+                                if c not in date_cols:
+                                    date_cols.append(c)
+                        except Exception:
+                            continue
+            
+                    # --- Detect numeric columns ---
+                    num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
+            
+                    if date_cols and num_cols:
+                        date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
+                        value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
+            
+                        if st.button("Show Dashboard", key="trend_btn"):
                             st.session_state['show_trend'] = True
-                
+                            st.session_state['trend_date'] = date_col
+                            st.session_state['trend_value'] = value_col
+            
                         if st.session_state.get('show_trend', False):
                             try:
-                                fig_trend = plot_trend_dashboard(p, date_col=date_col, value_col=value_col)
+                                fig_trend = plot_trend_dashboard(
+                                    trend_df,
+                                    date_col=st.session_state.get('trend_date', date_col),
+                                    value_col=st.session_state.get('trend_value', value_col),
+                                )
                                 if fig_trend:
                                     st.plotly_chart(fig_trend, use_container_width=True)
                                 else:
                                     st.warning("Selected columns are invalid for plotting.")
                             except Exception as e:
                                 st.error(f"Trend dashboard failed: {e}")
+            
                     else:
-                        st.warning("Not enough columns to plot a trend dashboard. Need at least 2 columns.")
+                        st.warning("No valid date and numeric column pair available for trend plotting.")
                 else:
-                    st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
+                    st.warning("Not enough columns to plot a trend dashboard. Need at least 2 columns.")
+            else:
+                st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
+            
 
 
                 # --- Time-Series Trend Analysis ---
