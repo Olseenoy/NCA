@@ -516,49 +516,26 @@ def main():
                 
                 # --- Pareto Analysis ---
               
-                # --- Pareto Analysis ---
+                                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                p = st.session_state.get('processed')
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
-                    try:
-                        # Column selection with a unique key
-                        cat_col = st.selectbox(
-                            'Select column for Pareto',
-                            options=p.columns.tolist(),
-                            key="pareto_col"
-                        )
+                    cat_col = st.selectbox("Select column for Pareto", options=p.columns.tolist(), key="pareto_col")
                 
-                        # Button to activate Pareto plotting
-                        if st.button('Show Pareto', key="pareto_btn"):
-                            st.session_state['show_pareto'] = True
-                            st.session_state['pareto_selected_col'] = cat_col
+                    if st.button("Show Pareto", key="pareto_btn"):
+                        tab = pareto_table(p, cat_col)
                 
-                        # Only show chart if user has clicked button before
-                        if st.session_state.get('show_pareto', False):
-                            try:
-                                # Recompute table for selected column
-                                tab = pareto_table(p, st.session_state.get('pareto_selected_col', cat_col))
-                                st.write("🔍 Pareto Table Preview:", tab.head())  # Debugging, remove if not needed
-                
-                                # Generate figure
-                                fig = pareto_plot(tab)
-                
-                                # Detect figure type and render correctly
-                                if fig is None:
-                                    st.warning("Pareto plot returned None.")
-                                elif "plotly" in str(type(fig)).lower():
-                                    st.plotly_chart(fig, use_container_width=True)
-                                else:
-                                    st.pyplot(fig)
-                
-                            except Exception as e:
-                                st.error(f"Pareto failed: {e}")
-                
-                    except Exception as e:
-                        st.error(f"Pareto setup failed: {e}")
+                        if tab.empty:
+                            st.warning(f"No valid data found in column '{cat_col}'.")
+                            st.dataframe(p[[cat_col]].head())  # show preview for debugging
+                        else:
+                            st.dataframe(tab.head(20))  # show Pareto table preview
+                            fig = pareto_plot(tab)
+                            if fig:
+                                st.plotly_chart(fig, use_container_width=True)
                 else:
-                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+                    st.warning("No processed data available for Pareto analysis.")
 
 
 
