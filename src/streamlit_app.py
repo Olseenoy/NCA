@@ -664,61 +664,60 @@ def main():
 
                
             # --- Trend Dashboard ---
+            # --- Trend Dashboard ---
             st.subheader("Trend Dashboard")
             p = st.session_state.get('processed')
             
             if isinstance(p, pd.DataFrame) and not p.empty:
-                if len(p.columns) >= 2:
-                    # Work on a copy so we don't alter the processed data
-                    trend_df = p.copy()
+                trend_df = p.copy()  # work on a copy
             
-                    # --- Detect datetime-like columns ---
-                    date_cols = [c for c in trend_df.columns if pd.api.types.is_datetime64_any_dtype(trend_df[c])]
+                # --- Convert numeric-looking object columns to numeric ---
+                for c in trend_df.columns:
+                    if not pd.api.types.is_numeric_dtype(trend_df[c]):
+                        trend_df[c] = pd.to_numeric(trend_df[c], errors='coerce')
             
-                    # Try to convert object columns to datetime
-                    for c in trend_df.select_dtypes(include=['object']).columns:
+                # --- Detect numeric columns with actual values ---
+                num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
+            
+                # --- Convert object columns to datetime if possible ---
+                date_cols = [c for c in trend_df.columns if pd.api.types.is_datetime64_any_dtype(trend_df[c])]
+                for c in trend_df.select_dtypes(include=['object']).columns:
+                    try:
+                        converted = pd.to_datetime(trend_df[c], errors='coerce')
+                        if converted.notna().any():
+                            trend_df[c] = converted
+                            date_cols.append(c)
+                    except Exception:
+                        continue
+            
+                # --- Only proceed if we have valid columns ---
+                if date_cols and num_cols:
+                    date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
+                    value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
+            
+                    if st.button("Show Dashboard", key="trend_btn"):
+                        st.session_state['show_trend'] = True
+                        st.session_state['trend_date'] = date_col
+                        st.session_state['trend_value'] = value_col
+            
+                    if st.session_state.get('show_trend', False):
                         try:
-                            converted = pd.to_datetime(trend_df[c], errors='coerce')
-                            if converted.notna().any():  # keep only if conversion worked
-                                trend_df[c] = converted
-                                if c not in date_cols:
-                                    date_cols.append(c)
-                        except Exception:
-                            continue
+                            fig_trend = plot_trend_dashboard(
+                                trend_df,
+                                date_col=st.session_state.get('trend_date', date_col),
+                                value_col=st.session_state.get('trend_value', value_col),
+                            )
+                            if fig_trend:
+                                st.plotly_chart(fig_trend, use_container_width=True)
+                            else:
+                                st.warning("Selected columns are invalid for plotting.")
+                        except Exception as e:
+                            st.error(f"Trend dashboard failed: {e}")
             
-                    # --- Detect numeric columns ---
-                    num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
-            
-                    if date_cols and num_cols:
-                        date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
-                        value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
-            
-                        if st.button("Show Dashboard", key="trend_btn"):
-                            st.session_state['show_trend'] = True
-                            st.session_state['trend_date'] = date_col
-                            st.session_state['trend_value'] = value_col
-            
-                        if st.session_state.get('show_trend', False):
-                            try:
-                                fig_trend = plot_trend_dashboard(
-                                    trend_df,
-                                    date_col=st.session_state.get('trend_date', date_col),
-                                    value_col=st.session_state.get('trend_value', value_col),
-                                )
-                                if fig_trend:
-                                    st.plotly_chart(fig_trend, use_container_width=True)
-                                else:
-                                    st.warning("Selected columns are invalid for plotting.")
-                            except Exception as e:
-                                st.error(f"Trend dashboard failed: {e}")
-            
-                    else:
-                        st.warning("No valid date and numeric column pair available for trend plotting.")
                 else:
-                    st.warning("Not enough columns to plot a trend dashboard. Need at least 2 columns.")
+                    st.warning("No valid date and numeric column pair available for trend plotting.")
             else:
                 st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
-            
 
 
                 # --- Time-Series Trend Analysis ---
