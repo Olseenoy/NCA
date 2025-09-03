@@ -528,7 +528,8 @@ def main():
                         if st.button('Show Pareto'):
                             try:
                                 tab = pareto_table(p, cat_col)
-                                fig = pareto_plot(tab)
+                                # FIXED: now passing cat_col explicitly
+                                fig = pareto_plot(tab, category_col=cat_col)
                                 st.plotly_chart(fig, use_container_width=True)
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
@@ -536,6 +537,7 @@ def main():
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
         
         
                 # --- SPC Section ---
