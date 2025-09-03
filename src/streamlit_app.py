@@ -515,17 +515,20 @@ def main():
 
                 
                 # --- Pareto Analysis ---
-            # --- Pareto Analysis ---
+             # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')
+                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     try:
-                        cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+                        cat_col = st.selectbox(
+                            'Select column for Pareto',
+                            options=p.columns.tolist()
+                        )
                         if st.button('Show Pareto'):
                             try:
-                                tab = pareto_table(p, cat_col)           # build summary
-                                fig = pareto_plot(tab, category_col=cat_col)  # <-- pass cat_col explicitly
+                                tab = pareto_table(p, cat_col)
+                                fig = pareto_plot(tab)
                                 st.plotly_chart(fig, use_container_width=True)
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
@@ -533,6 +536,7 @@ def main():
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+        
 
 
 
