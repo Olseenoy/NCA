@@ -531,6 +531,12 @@ def main():
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
 
  
+            p = st.session_state.get('processed')
+            
+            if not isinstance(p, pd.DataFrame) or p.empty:
+                st.warning("No processed data available. Please preprocess first.")
+            else:
+
             
             # --- Pareto Analysis ---
             
@@ -673,9 +679,10 @@ def main():
                     if not pd.api.types.is_numeric_dtype(trend_df[c]):
                         trend_df[c] = pd.to_numeric(trend_df[c].astype(str).str.replace(",", "").str.strip(), errors='coerce')
         
+                # Detect numeric columns
                 num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
         
-                # Convert object columns to datetime
+                # Convert object columns to datetime if possible
                 date_cols = [c for c in trend_df.columns if pd.api.types.is_datetime64_any_dtype(trend_df[c])]
                 for c in trend_df.select_dtypes(include=['object']).columns:
                     try:
