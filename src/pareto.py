@@ -1,59 +1,70 @@
 # src/pareto.py 
-import pandas as pd 
+import pandas as pd
+import plotly.graph_objects as go
 from typing import Optional
 
-
-
-
-def pareto_table(df: pd.DataFrame, category_col: str, weight_col: str | None = None):
-    if weight_col:
-        s = df.groupby(category_col)[weight_col].sum().sort_values(ascending=False)
+def pareto_table(df: pd.DataFrame, category_col: str, weight_col: Optional[str] = None):
+    """
+    Build Pareto summary table.
+    - df: input DataFrame
+    - category_col: categorical column to group by
+    - weight_col: numerical column to aggregate (defaults to count if None)
+    """
+    if weight_col is None:
+        # just count occurrences
+        tab = df[category_col].value_counts().reset_index()
+        tab.columns = [category_col, "Count"]
     else:
-        s = df[category_col].value_counts()
+        tab = df.groupby(category_col)[weight_col].sum().reset_index()
+        tab = tab.sort_values(weight_col, ascending=False).reset_index(drop=True)
+        tab.rename(columns={weight_col: "Count"}, inplace=True)
 
-    cum = s.cumsum() / s.sum() * 100  # convert to percentage
-    tab = pd.DataFrame({
-        category_col: s.index,
-        "count": s.values,
-        "cum_pct": cum.values
-    })
+    # Sort descending
+    tab = tab.sort_values("Count", ascending=False).reset_index(drop=True)
 
-    return tab.reset_index(drop=True)
+    # Calculate cumulative %
+    tab["CumPct"] = tab["Count"].cumsum() / tab["Count"].sum() * 100
+
+    return tab
 
 
-def pareto_plot(pareto_df: pd.DataFrame):
-    # detect category column (first column of df)
-    category_col = pareto_df.columns[0]
+def pareto_plot(tab: pd.DataFrame, category_col: str):
+    """
+    Create Pareto chart with bars and cumulative % line.
+    """
+    fig = go.Figure()
 
-    # bar chart (counts)
-    fig = px.bar(
-        pareto_df,
-        x=category_col,
-        y="count",
-        labels={category_col: "Category", "count": "Count"},
-    )
+    # Add bar chart
+    fig.add_trace(go.Bar(
+        x=tab[category_col],
+        y=tab["Count"],
+        name="Frequency",
+        marker_color="steelblue"
+    ))
 
-    # cumulative percentage line
-    fig.add_trace(
-        go.Scatter(
-            x=pareto_df[category_col],
-            y=pareto_df["cum_pct"],
-            mode="lines+markers",
-            name="Cumulative %",
-            yaxis="y2"
-        )
-    )
+    # Add cumulative % line
+    fig.add_trace(go.Scatter(
+        x=tab[category_col],
+        y=tab["CumPct"],
+        name="Cumulative %",
+        yaxis="y2",
+        mode="lines+markers",
+        line=dict(color="red")
+    ))
 
-    # two y-axes: left = counts, right = %
+    # Layout with 2nd y-axis
     fig.update_layout(
+        title="Pareto Chart",
+        xaxis=dict(title=category_col),
         yaxis=dict(title="Count"),
         yaxis2=dict(
             title="Cumulative %",
             overlaying="y",
             side="right",
-            range=[0, 100]  # keep percentage scale
+            range=[0, 110]
         ),
-        title="Pareto Chart"
+        bargap=0.2,
+        template="plotly_white"
     )
 
     return fig
