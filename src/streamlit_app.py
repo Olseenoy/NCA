@@ -515,7 +515,7 @@ def main():
 
                 
                 # --- Pareto Analysis ---
-                 # --- Pareto Analysis ---
+                # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
@@ -523,14 +523,20 @@ def main():
                     try:
                         cat_col = st.selectbox(
                             'Select column for Pareto',
-                            options=p.columns.tolist()
+                            options=p.columns.tolist(),
+                            key="pareto_col"
                         )
                 
-                        # Use session state to persist button click
+                        # Button persists state
                         if st.button('Show Pareto'):
-                            st.session_state['show_pareto'] = True
+                            st.session_state['pareto_active'] = True
                 
-                        if st.session_state.get('show_pareto', False):
+                        # Reset when user changes column
+                        if st.session_state.get('pareto_col') != cat_col:
+                            st.session_state['pareto_active'] = False
+                
+                        # Only plot if active
+                        if st.session_state.get('pareto_active', False):
                             try:
                                 tab = pareto_table(p, cat_col)
                                 fig = pareto_plot(tab)
@@ -542,6 +548,7 @@ def main():
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
         
 
