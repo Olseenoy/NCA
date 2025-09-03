@@ -513,10 +513,6 @@ def main():
                 else:
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")     
 
-                st.write("ISSUE dtype:", p["ISSUE"].dtype)
-                st.write("ISSUE unique values (raw):", p["ISSUE"].unique()[:20])
-                st.write("ISSUE sample (with repr):", [repr(v) for v in p["ISSUE"].head(20)])
-
 
 
                 # --- Pareto Analysis ---
