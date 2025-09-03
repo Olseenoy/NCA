@@ -516,24 +516,16 @@ def main():
 
 
                 # --- Pareto Analysis ---
-                  # --- Pareto Analysis ---
+                 # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 
-                # Prefer raw data if available, else fallback to processed
                 raw_df = st.session_state.get("raw_df")
-                proc_df = st.session_state.get("processed")
-                
-                df_for_pareto = raw_df if isinstance(raw_df, pd.DataFrame) and not raw_df.empty else proc_df
-                
                 
                 def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
                     if column not in df.columns:
                         return pd.DataFrame()
                 
-                    # Convert safely to string and keep non-null
                     series = df[column].dropna().astype(str).str.strip()
-                
-                    # Drop only true empty strings
                     series = series[series != ""]
                 
                     if series.empty:
@@ -552,11 +544,11 @@ def main():
                     return tab
                 
                 
-                if isinstance(df_for_pareto, pd.DataFrame) and not df_for_pareto.empty:
+                if isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
                     try:
                         cat_col = st.selectbox(
                             'Select column for Pareto',
-                            options=df_for_pareto.columns.tolist(),
+                            options=raw_df.columns.tolist(),
                             help="Choose any column to analyze its categories in Pareto chart"
                         )
                 
@@ -567,13 +559,13 @@ def main():
                         if st.session_state.get('show_pareto', False):
                             try:
                                 selected_col = st.session_state.get('pareto_col', cat_col)
-                                tab = pareto_table(df_for_pareto, selected_col)
+                                tab = pareto_table(raw_df, selected_col)
                 
                                 if tab.empty:
                                     st.warning(f"No valid data found in column '{selected_col}'.")
                                 else:
                                     st.write("Pareto Table", tab)
-                                    fig = pareto_plot(tab)  # your plot function
+                                    fig = pareto_plot(tab)  # your plotting function
                                     st.plotly_chart(fig, use_container_width=True)
                 
                             except Exception as e:
@@ -582,7 +574,8 @@ def main():
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
-                    st.warning("No data available for Pareto analysis. Please upload or preprocess first.")
+                    st.warning("No raw data available for Pareto analysis. Please upload first.")
+
 
 
 
