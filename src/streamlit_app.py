@@ -521,26 +521,64 @@ def main():
 
                 # --- Pareto Analysis ---
               
-                                # --- Pareto Analysis ---
+            # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')
+                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                
+                def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
+                    if column not in df.columns:
+                        return pd.DataFrame()
+                
+                    # Convert everything to string safely
+                    series = df[column].astype(str).str.strip()
+                
+                    # Remove fake NaNs
+                    series = series[~series.str.lower().isin(["nan", "none", "null", ""])]
+                
+                    if series.empty:
+                        return pd.DataFrame()
+                
+                    counts = series.value_counts()
+                    total = counts.sum()
+                
+                    tab = pd.DataFrame({
+                        "Category": counts.index,
+                        "Count": counts.values,
+                    })
+                    tab["Percent"] = (tab["Count"] / total * 100).round(2)
+                    tab["Cumulative %"] = tab["Percent"].cumsum().round(2)
+                
+                    return tab
+                
                 
                 if isinstance(p, pd.DataFrame) and not p.empty:
-                    cat_col = st.selectbox("Select column for Pareto", options=p.columns.tolist(), key="pareto_col")
+                    try:
+                        cat_col = st.selectbox(
+                            'Select column for Pareto',
+                            options=p.columns.tolist()
+                        )
                 
-                    if st.button("Show Pareto", key="pareto_btn"):
-                        tab = pareto_table(p, cat_col)
+                        # Use session state to persist button click
+                        if st.button('Show Pareto'):
+                            st.session_state['show_pareto'] = True
                 
-                        if tab.empty:
-                            st.warning(f"No valid data found in column '{cat_col}'.")
-                            st.dataframe(p[[cat_col]].head())  # show preview for debugging
-                        else:
-                            st.dataframe(tab.head(20))  # show Pareto table preview
-                            fig = pareto_plot(tab)
-                            if fig:
-                                st.plotly_chart(fig, use_container_width=True)
+                        if st.session_state.get('show_pareto', False):
+                            try:
+                                tab = pareto_table(p, cat_col)
+                                if tab.empty:
+                                    st.warning(f"No valid data found in column '{cat_col}'.")
+                                else:
+                                    st.write("Pareto Table", tab)
+                                    fig = pareto_plot(tab)
+                                    st.plotly_chart(fig, use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Pareto failed: {e}")
+                
+                    except Exception as e:
+                        st.error(f"Pareto setup failed: {e}")
                 else:
-                    st.warning("No processed data available for Pareto analysis.")
+                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
 
 
