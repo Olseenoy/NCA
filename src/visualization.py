@@ -6,23 +6,63 @@ import plotly.graph_objects as go
 import numpy as np 
 
 # --- Pareto Chart ---
-def pareto_plot(pareto_df: pd.DataFrame):
-    fig = px.bar(
-        pareto_df.reset_index(),
-        x=pareto_df.index,
-        y='count',
-        labels={'x': 'category', 'count': 'count'}
-    )
-    fig.add_scatter(
-        x=pareto_df.index,
-        y=pareto_df['cum_pct'] * pareto_df['count'].sum(),
-        yaxis='y2',
-        name='cumulative'
-    )
+import pandas as pd
+import plotly.graph_objects as go
+
+def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """
+    Create a Pareto table: categories, counts, %, cumulative %.
+    Works with text or numeric columns.
+    """
+    if column not in df.columns:
+        return pd.DataFrame()
+
+    # Drop NaN and convert everything to string (so categories are uniform)
+    series = df[column].dropna().astype(str)
+
+    if series.empty:
+        return pd.DataFrame()
+
+    counts = series.value_counts()
+    total = counts.sum()
+
+    tab = pd.DataFrame({
+        "Category": counts.index,
+        "Count": counts.values,
+    })
+    tab["Percent"] = (tab["Count"] / total * 100).round(2)
+    tab["Cumulative %"] = tab["Percent"].cumsum().round(2)
+
+    return tab
+
+
+def pareto_plot(tab: pd.DataFrame) -> go.Figure | None:
+    """Plot Pareto chart with bar (counts) + line (cumulative %)."""
+    if tab is None or tab.empty:
+        return None
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=tab["Category"], y=tab["Count"], name="Count", yaxis="y"))
+    fig.add_trace(go.Scatter(
+        x=tab["Category"], y=tab["Cumulative %"],
+        name="Cumulative %", yaxis="y2", mode="lines+markers"
+    ))
+
     fig.update_layout(
-        yaxis2=dict(overlaying='y', side='right', title='Cumulative')
+        title="Pareto Chart",
+        xaxis=dict(title="Category", tickangle=-45),
+        yaxis=dict(title="Count"),
+        yaxis2=dict(
+            title="Cumulative %",
+            overlaying="y",
+            side="right",
+            range=[0, 100]
+        ),
+        bargap=0.2,
+        margin=dict(t=50, b=150)
     )
     return fig
+
     
 # --- Clustering Scatter Plot ---
 def cluster_scatter(embeddings, labels):
