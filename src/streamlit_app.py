@@ -513,7 +513,12 @@ def main():
                 else:
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")     
 
-                
+                st.write("Processed DataFrame columns:", list(p.columns))
+                if "ISSUE" in p.columns:
+                    st.write("ISSUE sample values:", p["ISSUE"].head(10))
+                else:
+                    st.write("❌ ISSUE column not found in processed data")
+
                 # --- Pareto Analysis ---
               
                                 # --- Pareto Analysis ---
