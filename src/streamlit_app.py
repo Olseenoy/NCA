@@ -515,7 +515,7 @@ def main():
 
                 
                 # --- Pareto Analysis ---
-                  # --- Pareto Analysis ---
+                             # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
@@ -528,7 +528,6 @@ def main():
                         if st.button('Show Pareto'):
                             try:
                                 tab = pareto_table(p, cat_col)
-                                # FIXED: now passing cat_col explicitly
                                 fig = pareto_plot(tab, category_col=cat_col)
                                 st.plotly_chart(fig, use_container_width=True)
                             except Exception as e:
@@ -537,6 +536,7 @@ def main():
                         st.error(f"Pareto setup failed: {e}")
                 else:
                     st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
         
         
