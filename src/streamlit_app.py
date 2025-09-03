@@ -513,10 +513,10 @@ def main():
                 else:
                     st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")     
 
-                st.write("ISSUE column raw values:", p["ISSUE"].head(20).tolist())
-                st.write("Unique values count:", p["ISSUE"].nunique(dropna=False))
-                st.write("Value counts preview:")
-                st.write(p["ISSUE"].value_counts(dropna=False).head(20))
+                st.write("ISSUE dtype:", p["ISSUE"].dtype)
+                st.write("ISSUE unique values (raw):", p["ISSUE"].unique()[:20])
+                st.write("ISSUE sample (with repr):", [repr(v) for v in p["ISSUE"].head(20)])
+
 
 
                 # --- Pareto Analysis ---
