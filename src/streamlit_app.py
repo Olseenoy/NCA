@@ -521,7 +521,7 @@ def main():
 
                 # --- Pareto Analysis ---
               
-            # --- Pareto Analysis ---
+           # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
                 p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
                 
@@ -529,10 +529,10 @@ def main():
                     if column not in df.columns:
                         return pd.DataFrame()
                 
-                    # Convert everything to string safely
+                    # Convert to string safely
                     series = df[column].astype(str).str.strip()
                 
-                    # Remove fake NaNs
+                    # Remove fake NaNs and blanks
                     series = series[~series.str.lower().isin(["nan", "none", "null", ""])]
                 
                     if series.empty:
@@ -555,22 +555,27 @@ def main():
                     try:
                         cat_col = st.selectbox(
                             'Select column for Pareto',
-                            options=p.columns.tolist()
+                            options=p.columns.tolist(),
+                            help="Choose any column to analyze its categories in Pareto chart"
                         )
                 
                         # Use session state to persist button click
                         if st.button('Show Pareto'):
                             st.session_state['show_pareto'] = True
+                            st.session_state['pareto_col'] = cat_col  # keep track of column
                 
                         if st.session_state.get('show_pareto', False):
                             try:
-                                tab = pareto_table(p, cat_col)
+                                selected_col = st.session_state.get('pareto_col', cat_col)
+                                tab = pareto_table(p, selected_col)
+                
                                 if tab.empty:
-                                    st.warning(f"No valid data found in column '{cat_col}'.")
+                                    st.warning(f"No valid data found in column '{selected_col}'.")
                                 else:
                                     st.write("Pareto Table", tab)
                                     fig = pareto_plot(tab)
                                     st.plotly_chart(fig, use_container_width=True)
+                
                             except Exception as e:
                                 st.error(f"Pareto failed: {e}")
                 
