@@ -608,15 +608,21 @@ def main():
 
 
                 # --- Trend Dashboard ---
+               # --- Trend Dashboard ---
                 st.subheader("Trend Dashboard")
                 p = st.session_state.get('processed')
+                
                 if isinstance(p, pd.DataFrame) and not p.empty:
                     if len(p.columns) >= 2:
                         # Let user select which columns to use
-                        date_col = st.selectbox("Select Date Column", options=p.columns)
-                        value_col = st.selectbox("Select Value Column", options=p.columns)
+                        date_col = st.selectbox("Select Date Column", options=p.columns, key="trend_date_col")
+                        value_col = st.selectbox("Select Value Column", options=p.columns, key="trend_value_col")
                 
+                        # Persist button click
                         if st.button("Show Dashboard"):
+                            st.session_state['show_trend'] = True
+                
+                        if st.session_state.get('show_trend', False):
                             try:
                                 fig_trend = plot_trend_dashboard(p, date_col=date_col, value_col=value_col)
                                 if fig_trend:
@@ -629,6 +635,7 @@ def main():
                         st.warning("Not enough columns to plot a trend dashboard. Need at least 2 columns.")
                 else:
                     st.warning("No processed data available for Trend Dashboard. Please preprocess first.")
+
 
                 # --- Time-Series Trend Analysis ---
                 st.subheader("Time-Series Trend Analysis")
