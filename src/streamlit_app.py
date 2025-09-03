@@ -516,17 +516,21 @@ def main():
 
 
                 # --- Pareto Analysis ---
-              
-             # --- Pareto Analysis ---
+                  # --- Pareto Analysis ---
                 st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                
+                # Prefer raw data if available, else fallback to processed
+                raw_df = st.session_state.get("raw_df")
+                proc_df = st.session_state.get("processed")
+                
+                df_for_pareto = raw_df if isinstance(raw_df, pd.DataFrame) and not raw_df.empty else proc_df
                 
                 
                 def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
                     if column not in df.columns:
                         return pd.DataFrame()
                 
-                    # Convert safely to string, but keep only non-null
+                    # Convert safely to string and keep non-null
                     series = df[column].dropna().astype(str).str.strip()
                 
                     # Drop only true empty strings
@@ -548,11 +552,11 @@ def main():
                     return tab
                 
                 
-                if isinstance(p, pd.DataFrame) and not p.empty:
+                if isinstance(df_for_pareto, pd.DataFrame) and not df_for_pareto.empty:
                     try:
                         cat_col = st.selectbox(
                             'Select column for Pareto',
-                            options=p.columns.tolist(),
+                            options=df_for_pareto.columns.tolist(),
                             help="Choose any column to analyze its categories in Pareto chart"
                         )
                 
@@ -563,7 +567,7 @@ def main():
                         if st.session_state.get('show_pareto', False):
                             try:
                                 selected_col = st.session_state.get('pareto_col', cat_col)
-                                tab = pareto_table(p, selected_col)
+                                tab = pareto_table(df_for_pareto, selected_col)
                 
                                 if tab.empty:
                                     st.warning(f"No valid data found in column '{selected_col}'.")
@@ -578,7 +582,8 @@ def main():
                     except Exception as e:
                         st.error(f"Pareto setup failed: {e}")
                 else:
-                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+                    st.warning("No data available for Pareto analysis. Please upload or preprocess first.")
+
 
 
 
