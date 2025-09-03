@@ -531,11 +531,7 @@ def main():
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
 
  
-            p = st.session_state.get('processed')
-            
-            if not isinstance(p, pd.DataFrame) or p.empty:
-                st.warning("No processed data available. Please preprocess first.")
-            else:
+        
 
             
             # --- Pareto Analysis ---
