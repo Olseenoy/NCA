@@ -533,6 +533,7 @@ def main():
  
             
             # --- Pareto Analysis ---
+            
             st.subheader("Pareto Analysis")
             p = st.session_state.get('processed')
             
@@ -584,7 +585,6 @@ def main():
                             if tab.empty:
                                 st.warning(f"No valid data found in column '{selected_col}'.")
                             else:
-                                st.write("Pareto Table", tab)
                                 fig = pareto_plot(tab)
                                 st.plotly_chart(fig, use_container_width=True)
             
@@ -595,6 +595,7 @@ def main():
                     st.error(f"Pareto setup failed: {e}")
             else:
                 st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
 
 
 
