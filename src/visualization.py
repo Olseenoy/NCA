@@ -5,22 +5,38 @@ from sklearn.decomposition import PCA
 import plotly.graph_objects as go
 import numpy as np 
 
-def pareto_plot(pareto_df: pd.DataFrame):
+def pareto_plot(pareto_df: pd.DataFrame, category_col: str):
+    # bar chart (counts)
     fig = px.bar(
-        pareto_df.reset_index(),
-        x=pareto_df.index,
-        y='count',
-        labels={'x': 'category', 'count': 'count'}
+        pareto_df,
+        x=category_col,
+        y="count",
+        labels={category_col: "Category", "count": "Count"},
     )
-    fig.add_scatter(
-        x=pareto_df.index,
-        y=pareto_df['cum_pct'] * pareto_df['count'].sum(),
-        yaxis='y2',
-        name='cumulative'
+
+    # cumulative percentage line
+    fig.add_trace(
+        go.Scatter(
+            x=pareto_df[category_col],
+            y=pareto_df["cum_pct"],
+            mode="lines+markers",
+            name="Cumulative %",
+            yaxis="y2"
+        )
     )
+
+    # two y-axes: left = counts, right = %
     fig.update_layout(
-        yaxis2=dict(overlaying='y', side='right', title='Cumulative')
+        yaxis=dict(title="Count"),
+        yaxis2=dict(
+            title="Cumulative %",
+            overlaying="y",
+            side="right",
+            range=[0, 100]  # keep percentage scale
+        ),
+        title="Pareto Chart"
     )
+
     return fig
     
 # --- Clustering Scatter Plot ---
