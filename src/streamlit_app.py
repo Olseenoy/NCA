@@ -515,33 +515,33 @@ def main():
 
                 
                 # --- Pareto Analysis ---
-             # --- Pareto Analysis ---
-            st.subheader("Pareto Analysis")
-            p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
-            
-            if isinstance(p, pd.DataFrame) and not p.empty:
-                try:
-                    cat_col = st.selectbox(
-                        'Select column for Pareto',
-                        options=p.columns.tolist()
-                    )
-            
-                    # Use session state to persist button click
-                    if st.button('Show Pareto'):
-                        st.session_state['show_pareto'] = True
-            
-                    if st.session_state.get('show_pareto', False):
-                        try:
-                            tab = pareto_table(p, cat_col)
-                            fig = pareto_plot(tab)
-                            st.plotly_chart(fig, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Pareto failed: {e}")
-            
-                except Exception as e:
-                    st.error(f"Pareto setup failed: {e}")
-            else:
-                st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+                 # --- Pareto Analysis ---
+                st.subheader("Pareto Analysis")
+                p = st.session_state.get('processed')  # re-fetch to be safe after any rerun
+                
+                if isinstance(p, pd.DataFrame) and not p.empty:
+                    try:
+                        cat_col = st.selectbox(
+                            'Select column for Pareto',
+                            options=p.columns.tolist()
+                        )
+                
+                        # Use session state to persist button click
+                        if st.button('Show Pareto'):
+                            st.session_state['show_pareto'] = True
+                
+                        if st.session_state.get('show_pareto', False):
+                            try:
+                                tab = pareto_table(p, cat_col)
+                                fig = pareto_plot(tab)
+                                st.plotly_chart(fig, use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Pareto failed: {e}")
+                
+                    except Exception as e:
+                        st.error(f"Pareto setup failed: {e}")
+                else:
+                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
 
         
 
