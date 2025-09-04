@@ -88,13 +88,18 @@ def apply_row_as_header(raw_df: pd.DataFrame, row_idx: int) -> pd.DataFrame:
     df.reset_index(drop=True, inplace=True)
 
     for col in df.columns:
-        if "date" in col.lower():
-            try:
-                df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
-            except Exception:
-                pass
+    if "date" in col.lower():
+        try:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+        except Exception:
+            pass
 
+# ✅ Ensure MACHINE NO is always treated as string
+    if "MACHINE NO" in df.columns:
+        df["MACHINE NO"] = df["MACHINE NO"].astype(str)
+    
     return df
+
 
     # ✅ Ensure MACHINE NO is always treated as string
     if "MACHINE NO" in df.columns:
