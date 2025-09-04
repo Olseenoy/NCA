@@ -702,32 +702,57 @@ def main():
             
             
             # --- Time-Series Trend Analysis ---
+            # --- Time-Series Trend Analysis ---
             st.subheader("⏳ Time-Series Trend Analysis")
+            
             if isinstance(p, pd.DataFrame) and not p.empty:
+                # --- Build list of date/time columns ---
+                date_cols = []
+                for c in p.columns:
+                    if pd.api.types.is_datetime64_any_dtype(p[c]):
+                        date_cols.append(c)
+                    else:
+                        # Always include a column explicitly named "Time" or "time"
+                        if c.lower() == "time":
+                            try:
+                                p[c] = pd.to_datetime(p[c].astype(str).str.strip(), errors="coerce")
+                            except Exception:
+                                pass
+                            date_cols.append(c)
+                        else:
+                            # Try normal conversion
+                            converted = pd.to_datetime(p[c].astype(str).str.strip(), errors="coerce")
+                            if converted.notna().any():
+                                p[c] = converted
+                                date_cols.append(c)
+            
+                # --- Numeric columns ---
+                num_cols = [c for c in p.select_dtypes(include=['number']).columns if p[c].notna().any()]
+            
                 if date_cols and num_cols:
-                    time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
+                    time_col = st.selectbox("Select time/date column", options=date_cols, key="time_col")
                     value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
-                    freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
+            
+                    freq_options = {"Raw (no aggregation)": None, "Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
                     freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
+            
                     agg_options = ["mean", "sum", "max", "min"]
                     agg_choice = st.selectbox("Select aggregation function", options=agg_options)
+            
                     if st.button("Plot Time-Series Trend", key="time_btn"):
-                        # Apply global format to selected column
-                        if st.session_state["date_format"]:
-                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), format=st.session_state["date_format"], errors="coerce")
-                        else:
-                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), errors="coerce")
+                        freq_value = freq_options[freq_choice]
                         fig_time = plot_time_series_trend(
                             p, time_col, value_col,
-                            freq=freq_options[freq_choice],
-                            agg_func=agg_choice
+                            freq=freq_value,
+                            agg_func=agg_choice if freq_value else None
                         )
                         if fig_time:
                             st.plotly_chart(fig_time, use_container_width=True)
                 else:
-                    st.warning("No valid datetime and numeric column pair for time-series analysis.")
+                    st.warning("No valid datetime/time and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
+
 
                 # --- Root Cause Analysis (RCA) ---
                 st.subheader("Root Cause Analysis (RCA)")
