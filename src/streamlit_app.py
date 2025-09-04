@@ -351,6 +351,7 @@ def main():
                 safe_rerun()
         else:
             df = st.session_state.df
+        print(df.dtypes)
 # ----------------- Data Preview and downstream workflow -----------------
  
     # Ensure DataFrame from manual logs is captured
