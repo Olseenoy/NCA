@@ -676,35 +676,41 @@ def main():
             st.subheader("Trend Dashboard")
             try:
                 trend_df = p.copy()
-                # Convert numeric-looking object columns to numeric
+            
+                # --- Detect numeric columns ---
+                # Try to coerce object-like numeric strings into real numbers
                 for c in trend_df.columns:
-                    if not pd.api.types.is_numeric_dtype(trend_df[c]):
-                        trend_df[c] = pd.to_numeric(trend_df[c].astype(str).str.replace(",", "").str.strip(), errors='coerce')
-        
-                # Detect numeric columns
+                    if trend_df[c].dtype == "object":
+                        trend_df[c] = pd.to_numeric(
+                            trend_df[c].astype(str).str.replace(",", "").str.strip(),
+                            errors="ignore"  # leave non-numeric text as-is
+                        )
+            
                 num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
-        
-                # Convert object columns to datetime if possible
-                date_cols = [c for c in trend_df.columns if pd.api.types.is_datetime64_any_dtype(trend_df[c])]
-                for c in trend_df.select_dtypes(include=['object']).columns:
-                    try:
-                        converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors='coerce')
+            
+                # --- Detect date columns ---
+                date_cols = []
+                for c in trend_df.columns:
+                    if pd.api.types.is_datetime64_any_dtype(trend_df[c]):
+                        date_cols.append(c)
+                    else:
+                        # Try converting objects/strings to datetime
+                        converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors="coerce")
                         if converted.notna().any():
                             trend_df[c] = converted
                             if c not in date_cols:
                                 date_cols.append(c)
-                    except Exception:
-                        continue
-        
+            
+                # --- Build dashboard ---
                 if date_cols and num_cols:
                     date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
                     value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
-        
+            
                     if st.button("Show Dashboard", key="trend_btn"):
                         st.session_state['show_trend'] = True
                         st.session_state['trend_date'] = date_col
                         st.session_state['trend_value'] = value_col
-        
+            
                     if st.session_state.get('show_trend', False):
                         try:
                             fig_trend = plot_trend_dashboard(
@@ -720,7 +726,7 @@ def main():
                             st.error(f"Trend dashboard failed: {e}")
                 else:
                     st.warning("No valid date and numeric column pair available for trend plotting.")
-        
+            
             except Exception as e:
                 st.error(f"Trend setup failed: {e}")
 
