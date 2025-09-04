@@ -702,35 +702,41 @@ def main():
             
             
             # --- Time-Series Trend Analysis ---
-            # --- Time-Series Trend Analysis ---
             st.subheader("⏳ Time-Series Trend Analysis")
             
             if isinstance(p, pd.DataFrame) and not p.empty:
-                # --- Build list of date/time columns ---
-                date_cols = []
-                for c in p.columns:
-                    if pd.api.types.is_datetime64_any_dtype(p[c]):
-                        date_cols.append(c)
-                    else:
-                        # Always include a column explicitly named "Time" or "time"
-                        if c.lower() == "time":
-                            try:
-                                p[c] = pd.to_datetime(p[c].astype(str).str.strip(), errors="coerce")
-                            except Exception:
-                                pass
-                            date_cols.append(c)
-                        else:
-                            # Try normal conversion
-                            converted = pd.to_datetime(p[c].astype(str).str.strip(), errors="coerce")
-                            if converted.notna().any():
-                                p[c] = converted
-                                date_cols.append(c)
+                ts_df = p.copy()
+            
+                # --- Detect date & time columns ---
+                date_cols = [c for c in ts_df.columns if "date" in c.lower()]
+                time_cols = [c for c in ts_df.columns if "time" in c.lower()]
+            
+                # Try parsing date/time columns
+                for c in date_cols + time_cols:
+                    try:
+                        ts_df[c] = pd.to_datetime(ts_df[c].astype(str).str.strip(), errors="coerce")
+                    except Exception:
+                        pass
+            
+                # --- If both Date + Time exist, create combined datetime ---
+                if date_cols and time_cols:
+                    try:
+                        ts_df["DateTime"] = pd.to_datetime(
+                            ts_df[date_cols[0]].astype(str).str.strip() + " " +
+                            ts_df[time_cols[0]].astype(str).str.strip(),
+                            errors="coerce"
+                        )
+                    except Exception:
+                        ts_df["DateTime"] = pd.NaT
+            
+                # Collect usable datetime-like columns
+                datetime_cols = [c for c in ts_df.columns if pd.api.types.is_datetime64_any_dtype(ts_df[c])]
             
                 # --- Numeric columns ---
-                num_cols = [c for c in p.select_dtypes(include=['number']).columns if p[c].notna().any()]
+                num_cols = [c for c in ts_df.select_dtypes(include=['number']).columns if ts_df[c].notna().any()]
             
-                if date_cols and num_cols:
-                    time_col = st.selectbox("Select time/date column", options=date_cols, key="time_col")
+                if datetime_cols and num_cols:
+                    time_col = st.selectbox("Select time/date column", options=datetime_cols, key="time_col")
                     value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
             
                     freq_options = {"Raw (no aggregation)": None, "Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
@@ -742,7 +748,7 @@ def main():
                     if st.button("Plot Time-Series Trend", key="time_btn"):
                         freq_value = freq_options[freq_choice]
                         fig_time = plot_time_series_trend(
-                            p, time_col, value_col,
+                            ts_df, time_col, value_col,
                             freq=freq_value,
                             agg_func=agg_choice if freq_value else None
                         )
@@ -752,6 +758,7 @@ def main():
                     st.warning("No valid datetime/time and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
+
 
 
                 # --- Root Cause Analysis (RCA) ---
