@@ -536,42 +536,47 @@ def main():
             else:
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
 
- 
-        
-
+            
+            # --- Global Date Format Selector ---
+            st.subheader("🗓️ Date Format Settings")
+            
+            format_options = {
+                "Auto-detect": None,
+                "YYYY-MM-DD (2025-09-04)": "%Y-%m-%d",
+                "YYYY-DD-MM (2025-04-09)": "%Y-%d-%m",
+                "DD-MM-YYYY (04-09-2025)": "%d-%m-%Y",
+                "MM-DD-YYYY (09-04-2025)": "%m-%d-%Y",
+                "DD/MM/YYYY (04/09/2025)": "%d/%m/%Y",
+                "MM/DD/YYYY (09/04/2025)": "%m/%d/%Y",
+                "YYYY/MM/DD (2025/09/04)": "%Y/%m/%d",
+            }
+            fmt_choice = st.selectbox("Select date format for all dashboards", options=list(format_options.keys()))
+            st.session_state["date_format"] = format_options[fmt_choice]
+            
             
             # --- Pareto Analysis ---
-            
             st.subheader("Pareto Analysis")
             p = st.session_state.get('processed')
             
             def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
                 if column not in df.columns:
                     return pd.DataFrame()
-            
-                # handle both numeric and categorical
                 if pd.api.types.is_numeric_dtype(df[column]):
-                    series = df[column].dropna().astype(str)  # convert numbers to str categories
+                    series = df[column].dropna().astype(str)
                 else:
                     series = df[column].dropna().astype(str).str.strip()
-            
                 series = series[series != ""]
-            
                 if series.empty:
                     return pd.DataFrame()
-            
                 counts = series.value_counts()
                 total = counts.sum()
-            
                 tab = pd.DataFrame({
                     "Category": counts.index,
                     "Count": counts.values,
                 })
                 tab["Percent"] = (tab["Count"] / total * 100).round(2)
                 tab["Cumulative %"] = tab["Percent"].cumsum().round(2)
-            
                 return tab
-            
             
             if isinstance(p, pd.DataFrame) and not p.empty:
                 try:
@@ -580,56 +585,40 @@ def main():
                         options=p.columns.tolist(),
                         help="Choose any column from processed data"
                     )
-            
                     if st.button('Show Pareto'):
                         st.session_state['show_pareto'] = True
                         st.session_state['pareto_col'] = cat_col
-            
                     if st.session_state.get('show_pareto', False):
                         try:
                             selected_col = st.session_state.get('pareto_col', cat_col)
                             tab = pareto_table(p, selected_col)
-            
                             if tab.empty:
                                 st.warning(f"No valid data found in column '{selected_col}'.")
                             else:
                                 fig = pareto_plot(tab)
                                 st.plotly_chart(fig, use_container_width=True)
-            
                         except Exception as e:
                             st.error(f"Pareto failed: {e}")
-            
                 except Exception as e:
                     st.error(f"Pareto setup failed: {e}")
             else:
                 st.warning("No processed data available for Pareto analysis. Please preprocess first.")
-
-
-
+            
+            
             # --- SPC Section ---
             st.subheader("Statistical Process Control (SPC)")
             p = st.session_state.get('processed')
-            
             if isinstance(p, pd.DataFrame) and not p.empty:
                 try:
-                    # Work on a copy so we don't modify the original processed DF
                     spc_df = p.copy()
-            
-                    # Convert numeric-looking object columns to actual numbers
                     for c in spc_df.columns:
                         if not pd.api.types.is_numeric_dtype(spc_df[c]):
                             spc_df[c] = pd.to_numeric(spc_df[c], errors='coerce')
-            
-                    # Detect numeric columns with at least one non-NaN value
                     num_cols = [c for c in spc_df.select_dtypes(include=['number']).columns if spc_df[c].notna().any()]
-            
                     if num_cols:
                         spc_col_selected = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col_select')
                         subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
-            
-                        # Detect datetime-like columns including object columns that can be converted
                         time_cols = [c for c in spc_df.columns if pd.api.types.is_datetime64_any_dtype(spc_df[c])]
-                        # Include object columns that can be converted to datetime
                         for c in spc_df.select_dtypes(include=['object']).columns:
                             try:
                                 spc_df[c] = pd.to_datetime(spc_df[c], errors='coerce')
@@ -637,21 +626,15 @@ def main():
                                     time_cols.append(c)
                             except Exception:
                                 continue
-            
                         time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
-            
                         if st.button('Show SPC Chart', key='spc_btn'):
                             try:
                                 from visualization import plot_spc_chart
                                 fig_spc = plot_spc_chart(spc_df, spc_col_selected, subgroup_size=subgroup_size, time_col=time_col_selected)
-            
-                                # Save figure and selected column to session_state for persistence
                                 st.session_state['spc_fig'] = fig_spc
                                 st.session_state['spc_col_saved'] = spc_col_selected
                             except Exception as e:
                                 st.error(f"SPC plotting failed: {e}")
-            
-                        # Display persistent SPC chart if available
                         if 'spc_fig' in st.session_state:
                             st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
                             st.plotly_chart(
@@ -659,58 +642,46 @@ def main():
                                 use_container_width=True,
                                 key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
                             )
-            
                     else:
                         st.info("No numeric columns available for SPC analysis after conversion.")
-            
                 except Exception as e:
                     st.error(f"SPC setup failed: {e}")
-            
             else:
                 st.warning("No processed data available for SPC. Please preprocess first.")
-
-
-               
+            
+            
             # --- Trend Dashboard ---
-             # --- Trend Dashboard ---
             st.subheader("Trend Dashboard")
             try:
                 trend_df = p.copy()
-            
-                # --- Detect numeric columns ---
-                # Try to coerce object-like numeric strings into real numbers
                 for c in trend_df.columns:
                     if trend_df[c].dtype == "object":
                         trend_df[c] = pd.to_numeric(
                             trend_df[c].astype(str).str.replace(",", "").str.strip(),
-                            errors="ignore"  # leave non-numeric text as-is
+                            errors="ignore"
                         )
-            
                 num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
-            
-                # --- Detect date columns ---
                 date_cols = []
                 for c in trend_df.columns:
                     if pd.api.types.is_datetime64_any_dtype(trend_df[c]):
                         date_cols.append(c)
                     else:
-                        # Try converting objects/strings to datetime
-                        converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors="coerce")
+                        # Use global format
+                        if st.session_state["date_format"]:
+                            converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), format=st.session_state["date_format"], errors="coerce")
+                        else:
+                            converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors="coerce")
                         if converted.notna().any():
                             trend_df[c] = converted
                             if c not in date_cols:
                                 date_cols.append(c)
-            
-                # --- Build dashboard ---
                 if date_cols and num_cols:
                     date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
                     value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
-            
                     if st.button("Show Dashboard", key="trend_btn"):
                         st.session_state['show_trend'] = True
                         st.session_state['trend_date'] = date_col
                         st.session_state['trend_value'] = value_col
-            
                     if st.session_state.get('show_trend', False):
                         try:
                             fig_trend = plot_trend_dashboard(
@@ -726,27 +697,26 @@ def main():
                             st.error(f"Trend dashboard failed: {e}")
                 else:
                     st.warning("No valid date and numeric column pair available for trend plotting.")
-            
             except Exception as e:
                 st.error(f"Trend setup failed: {e}")
-
-
-                
+            
+            
             # --- Time-Series Trend Analysis ---
             st.subheader("⏳ Time-Series Trend Analysis")
-            
             if isinstance(p, pd.DataFrame) and not p.empty:
                 if date_cols and num_cols:
                     time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
                     value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
-            
                     freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
                     freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
-            
                     agg_options = ["mean", "sum", "max", "min"]
                     agg_choice = st.selectbox("Select aggregation function", options=agg_options)
-            
                     if st.button("Plot Time-Series Trend", key="time_btn"):
+                        # Apply global format to selected column
+                        if st.session_state["date_format"]:
+                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), format=st.session_state["date_format"], errors="coerce")
+                        else:
+                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), errors="coerce")
                         fig_time = plot_time_series_trend(
                             p, time_col, value_col,
                             freq=freq_options[freq_choice],
@@ -759,9 +729,6 @@ def main():
             else:
                 st.warning("No processed data available. Please preprocess first.")
 
-
-
-    
                 # --- Root Cause Analysis (RCA) ---
                 st.subheader("Root Cause Analysis (RCA)")
                 p = st.session_state.get('processed')
