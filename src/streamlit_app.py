@@ -732,30 +732,30 @@ def main():
 
 
                 # --- Time-Series Trend Analysis ---
-            st.subheader("⏳ Time-Series Trend Analysis")
+                st.subheader("⏳ Time-Series Trend Analysis")
 
-            if date_cols and num_cols:
-                time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
-                value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
-        
-                freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
-                freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
-        
-                agg_options = ["mean", "sum", "max", "min"]
-                agg_choice = st.selectbox("Select aggregation function", options=agg_options)
-        
-                if st.button("Plot Time-Series Trend", key="time_btn"):
-                    fig_time = plot_time_series_trend(
-                        p, time_col, value_col,
-                        freq=freq_options[freq_choice],
-                        agg_func=agg_choice
-                    )
-                    if fig_time:
-                        st.plotly_chart(fig_time, use_container_width=True)
+                if date_cols and num_cols:
+                    time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
+                    value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
+            
+                    freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
+                    freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
+            
+                    agg_options = ["mean", "sum", "max", "min"]
+                    agg_choice = st.selectbox("Select aggregation function", options=agg_options)
+            
+                    if st.button("Plot Time-Series Trend", key="time_btn"):
+                        fig_time = plot_time_series_trend(
+                            p, time_col, value_col,
+                            freq=freq_options[freq_choice],
+                            agg_func=agg_choice
+                        )
+                        if fig_time:
+                            st.plotly_chart(fig_time, use_container_width=True)
+                else:
+                    st.warning("No valid datetime and numeric column pair for time-series analysis.")
             else:
-                st.warning("No valid datetime and numeric column pair for time-series analysis.")
-        else:
-            st.warning("No processed data available. Please preprocess first.")
+                st.warning("No processed data available. Please preprocess first.")
 
     
                 # --- Root Cause Analysis (RCA) ---
