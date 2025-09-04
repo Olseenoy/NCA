@@ -2,6 +2,7 @@
 # File: src/rca_engine.py
 # ================================
 import json
+import pandas as pd
 from src.llm_rca import generate_rca_with_llm, LLMRCAException
 
 FISHBONE_CATEGORIES = ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
@@ -30,7 +31,6 @@ def rule_based_rca_suggestions(clean_text: str) -> dict:
     return fishbone
 
 def huggingface_rca(issue_text: str) -> dict:
-    # Fallback placeholder
     return {
         "root_causes": [{"cause": "HF RCA cause", "category": "Method"}],
         "five_whys": ["HF Why1", "HF Why2", "HF Why3", "HF Why4", "HF Why5"],
@@ -41,9 +41,48 @@ def huggingface_rca(issue_text: str) -> dict:
         "fishbone": generate_fishbone_skeleton()
     }
 
-def ai_rca_with_fallback(original_text: str, clean_text: str) -> dict:
+# -------------------------------
+# Context Builder
+# -------------------------------
+def build_rca_context(issue_text: str,
+                      processed_df: pd.DataFrame | None = None,
+                      sop_data: list[str] | None = None,
+                      qc_logs: pd.DataFrame | None = None) -> str:
+    context_parts = []
+
+    if isinstance(processed_df, pd.DataFrame) and "clean_text" in processed_df.columns:
+        matches = processed_df[processed_df["clean_text"].str.contains(issue_text.split()[0], case=False, na=False)]
+        if not matches.empty:
+            context_parts.append("Past RCA Findings:")
+            for _, row in matches.head(3).iterrows():
+                context_parts.append(f"- {row.get('clean_text', '')[:120]}...")
+
+    if sop_data:
+        context_parts.append("Relevant SOP Snippets:")
+        for snippet in sop_data[:3]:
+            context_parts.append(f"- {snippet}")
+
+    if isinstance(qc_logs, pd.DataFrame):
+        numeric_cols = qc_logs.select_dtypes(include=["number"]).columns
+        if len(numeric_cols) > 0:
+            context_parts.append("Recent QC Metrics:")
+            for col in numeric_cols[:3]:
+                vals = qc_logs[col].tail(5).tolist()
+                context_parts.append(f"- {col}: {vals}")
+
+    return "\n".join(context_parts) if context_parts else "No extra context available."
+
+# -------------------------------
+# RCA Orchestration
+# -------------------------------
+def ai_rca_with_fallback(original_text: str,
+                         clean_text: str,
+                         processed_df: pd.DataFrame | None = None,
+                         sop_data: list[str] | None = None,
+                         qc_logs: pd.DataFrame | None = None) -> dict:
     try:
-        raw_result = generate_rca_with_llm(issue_text=original_text)
+        context = build_rca_context(original_text, processed_df, sop_data, qc_logs)
+        raw_result = generate_rca_with_llm(issue_text=original_text, context=context)
 
         if isinstance(raw_result, str):
             try:
@@ -66,7 +105,8 @@ def ai_rca_with_fallback(original_text: str, clean_text: str) -> dict:
             "fishbone": convert_to_fishbone(root_causes)
         }
 
-    except LLMRCAException as e:
+    except LLMRCAException:
         return huggingface_rca(original_text)
     except Exception as e:
         return {"error": f"RCA Engine Failure: {e}", "fishbone": rule_based_rca_suggestions(original_text)}
+
