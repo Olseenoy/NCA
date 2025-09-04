@@ -20,23 +20,23 @@ def _get_api_key(provider="openai") -> str | None:
     if provider == "openai":
         if st:
             try:
-                key = st.secrets.get("OPENAI_API_KEY")
-                if key:
-                    return key
+                return st.secrets.get("OPENAI_API_KEY")
             except Exception:
                 pass
         return os.getenv("OPENAI_API_KEY")
     elif provider == "huggingface":
         if st:
             try:
-                key = st.secrets.get("HUGGINGFACE_API_KEY")
-                if key:
-                    return key
+                return st.secrets.get("HUGGINGFACE_API_KEY")
             except Exception:
                 pass
         return os.getenv("HUGGINGFACE_API_KEY")
 
 PROMPT_TEMPLATE = '''You are an expert Quality Assurance engineer specializing in manufacturing Root Cause Analysis (RCA).
+
+Contextual knowledge to use:
+{context}
+
 Given the non-conformance report below, produce a JSON-only response (no extra text) with this exact schema:
 
 {
@@ -50,23 +50,18 @@ Given the non-conformance report below, produce a JSON-only response (no extra t
   "confidence": "<low|medium|high>"
 }
 
-Be concise. Give 3-5 root_causes, exactly 5 five_whys entries, 2 CAPA entries (one corrective, one preventive) with realistic due_in_days.
+Be concise. Give 3-5 root_causes, exactly 5 five_whys entries, and 2 CAPA entries (1 corrective, 1 preventive).
 Issue:
 \"\"\"{issue_text}\"\"\"
-Respond only with valid JSON that matches the schema above.
+Respond only with valid JSON.
 '''
 
 def _parse_json_from_text(text: str) -> dict:
-    """
-    Robustly parse JSON from LLM response.
-    """
     text = text.strip()
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
-
-    # Extract JSON between first { and last }
     m = re.search(r'\{.*\}', text, re.S)
     if m:
         candidate = m.group(0)
@@ -76,17 +71,19 @@ def _parse_json_from_text(text: str) -> dict:
             return json.loads(candidate)
         except json.JSONDecodeError:
             pass
-
     raise LLMRCAException(f"Could not parse JSON from LLM response:\n{text[:300]}...")
 
-def generate_rca_with_llm(issue_text: str, model: str = "gpt-4o-mini",
-                          max_retries: int = 2, temperature: float = 0.0) -> Dict[str, Any]:
+def generate_rca_with_llm(issue_text: str,
+                          context: str = "",
+                          model: str = "gpt-4o-mini",
+                          max_retries: int = 2,
+                          temperature: float = 0.0) -> Dict[str, Any]:
     try:
-        return _openai_rca(issue_text, model, max_retries, temperature)
+        return _openai_rca(issue_text, context, model, max_retries, temperature)
     except LLMRCAException:
         return _huggingface_rca(issue_text)
 
-def _openai_rca(issue_text: str, model: str, max_retries: int, temperature: float) -> Dict[str, Any]:
+def _openai_rca(issue_text: str, context: str, model: str, max_retries: int, temperature: float) -> Dict[str, Any]:
     api_key = _get_api_key("openai")
     if not api_key:
         raise LLMRCAException("OPENAI_API_KEY not found.")
@@ -97,10 +94,9 @@ def _openai_rca(issue_text: str, model: str, max_retries: int, temperature: floa
         raise LLMRCAException("openai package not installed.") from e
 
     openai.api_key = api_key
-    prompt = PROMPT_TEMPLATE.format(issue_text=issue_text)
+    prompt = PROMPT_TEMPLATE.format(issue_text=issue_text, context=context)
 
-    attempt = 0
-    last_err = None
+    attempt, last_err = 0, None
     while attempt <= max_retries:
         try:
             resp = openai.ChatCompletion.create(
@@ -114,18 +110,14 @@ def _openai_rca(issue_text: str, model: str, max_retries: int, temperature: floa
             )
             content = resp["choices"][0]["message"]["content"]
             parsed = _parse_json_from_text(content)
-
-            # Validate keys
             if not all(k in parsed for k in ["root_causes", "five_whys", "capa"]):
                 raise LLMRCAException("Incomplete JSON from OpenAI RCA.")
             return parsed
-
         except Exception as e:
             last_err = e
             attempt += 1
             time.sleep(1.0 * attempt)
             continue
-
     raise LLMRCAException(f"OpenAI RCA failed after retries. Last error: {last_err}")
 
 def _huggingface_rca(issue_text: str) -> Dict[str, Any]:
@@ -142,7 +134,6 @@ def _huggingface_rca(issue_text: str) -> Dict[str, Any]:
         data = response.json()
         if isinstance(data, dict) and "error" in data:
             raise LLMRCAException(f"Hugging Face RCA error: {data['error']}")
-
         return {
             "root_causes": [{"cause": "HF RCA cause", "category": "Method"}],
             "five_whys": ["HF Why1", "HF Why2", "HF Why3", "HF Why4", "HF Why5"],
