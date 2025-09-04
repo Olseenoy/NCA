@@ -757,7 +757,7 @@ def main():
             
 
             # --- Root Cause Analysis (RCA) ---
-    # --- Root Cause Analysis (RCA) ---
+    
             st.subheader("Root Cause Analysis (RCA)")
             
             p = st.session_state.get("processed")
@@ -775,11 +775,7 @@ def main():
             
                     # Preview text
                     st.markdown("**Selected row preview:**")
-                    text_preview = (
-                        row["combined_text"]
-                        if "combined_text" in row
-                        else row.get("clean_text", "")
-                    )
+                    text_preview = row.get("combined_text") or row.get("clean_text") or ""
                     st.write(text_preview)
             
                     # RCA mode selector
@@ -869,8 +865,6 @@ def main():
             else:
                 st.warning("No processed data available for RCA. Please preprocess first.")
 
-
-        
                 # --- Manual 5-Whys & CAPA creation ---
                 st.markdown("---")
                 st.subheader("Manual 5-Whys & CAPA creation")
