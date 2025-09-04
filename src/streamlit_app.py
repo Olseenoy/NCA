@@ -756,75 +756,120 @@ def main():
             
             
 
-                # --- Root Cause Analysis (RCA) ---
-                st.subheader("Root Cause Analysis (RCA)")
-                p = st.session_state.get('processed')
-                if isinstance(p, pd.DataFrame) and not p.empty:
-                    try:
-                        idx = st.number_input('Pick row index to analyze', min_value=0, max_value=len(p)-1, value=0)
-                        row = p.iloc[int(idx)]
-                        st.markdown("**Selected row preview:**")
-                        st.write(row.get('combined_text', row.get('clean_text', '')))
-        
-                        mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
-        
-                        result = {}
-                        if st.button("Run RCA"):
-                            with st.spinner("Running RCA..."):
-                                try:
-                                    if mode == "AI-Powered (LLM)":
-                                        result = ai_rca_with_fallback(
-                                            str(row.get('combined_text', '')),
-                                            str(row.get('clean_text', ''))
-                                        )
-                                    else:
-                                        fb = rule_based_rca_suggestions(str(row.get('clean_text', '')))
-                                        result = {"from": "rule_based", "fishbone": fb}
-                                except Exception as e:
-                                    result = {"error": f"RCA failed: {e}"}
-        
-                        if result:
-                            col1, col2 = st.columns([1, 1])
-                            with col1:
-                                st.markdown("### RCA - Details")
-                                if result.get("error"):
-                                    st.error(result.get("error"))
-                                if result.get("root_causes"):
-                                    st.markdown("**Root causes:**")
-                                    st.json(result.get("root_causes"))
-                                if result.get("five_whys"):
-                                    st.markdown("**5-Whys**")
-                                    for i, w in enumerate(result.get("five_whys"), start=1):
-                                        st.write(f"{i}. {w}")
-                                if result.get("capa"):
-                                    st.markdown("**CAPA Recommendations**")
-                                    for capa in result.get("capa"):
-                                        st.write(f"- **{capa.get('type', '')}**: {capa.get('action', '')} "
-                                                 f"(Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)")
-                                if result.get("fishbone") and not result.get("root_causes"):
-                                    st.markdown("**Fishbone (rule-based)**")
-                                    st.json(result.get("fishbone"))
-        
-                            with col2:
-                                st.markdown("### Fishbone Diagram")
-                                fishbone_data = result.get("fishbone") or {}
-                                if not fishbone_data:
-                                    # build from root causes if provided
-                                    fishbone_data = {k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]}
-                                    for rc in (result.get("root_causes") or []):
-                                        if isinstance(rc, dict):
-                                            cat = rc.get("category") or "Method"
-                                            fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
+            # --- Root Cause Analysis (RCA) ---
+    # --- Root Cause Analysis (RCA) ---
+            st.subheader("Root Cause Analysis (RCA)")
+            
+            p = st.session_state.get("processed")
+            
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                try:
+                    # Row selector
+                    idx = st.number_input(
+                        "Pick row index to analyze",
+                        min_value=0,
+                        max_value=len(p) - 1,
+                        value=0,
+                    )
+                    row = p.iloc[int(idx)]
+            
+                    # Preview text
+                    st.markdown("**Selected row preview:**")
+                    text_preview = (
+                        row["combined_text"]
+                        if "combined_text" in row
+                        else row.get("clean_text", "")
+                    )
+                    st.write(text_preview)
+            
+                    # RCA mode selector
+                    mode = st.radio("RCA Mode", options=["AI-Powered (LLM)", "Rule-Based (fallback)"])
+            
+                    # RCA execution
+                    if st.button("Run RCA"):
+                        with st.spinner("Running RCA..."):
+                            try:
+                                if mode == "AI-Powered (LLM)":
+                                    st.session_state["rca_result"] = ai_rca_with_fallback(
+                                        str(row.get("combined_text", "")),
+                                        str(row.get("clean_text", "")),
+                                    )
+                                else:
+                                    fb = rule_based_rca_suggestions(str(row.get("clean_text", "")))
+                                    st.session_state["rca_result"] = {
+                                        "from": "rule_based",
+                                        "fishbone": fb,
+                                    }
+                            except Exception as e:
+                                st.session_state["rca_result"] = {"error": f"RCA failed: {e}"}
+            
+                    # Display results
+                    result = st.session_state.get("rca_result", {})
+            
+                    if result:
+                        col1, col2 = st.columns([1, 1])
+            
+                        # --- Left column: RCA details ---
+                        with col1:
+                            st.markdown("### RCA - Details")
+            
+                            if result.get("error"):
+                                st.error(result.get("error"))
+            
+                            if result.get("root_causes"):
+                                st.markdown("**Root causes:**")
+                                st.json(result.get("root_causes"))
+            
+                            if result.get("five_whys"):
+                                st.markdown("**5-Whys**")
+                                for i, w in enumerate(result.get("five_whys"), start=1):
+                                    st.write(f"{i}. {w}")
+            
+                            if result.get("capa"):
+                                st.markdown("**CAPA Recommendations**")
+                                for capa in result.get("capa"):
+                                    st.write(
+                                        f"- **{capa.get('type', '')}**: {capa.get('action', '')} "
+                                        f"(Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)"
+                                    )
+            
+                            if result.get("fishbone") and not result.get("root_causes"):
+                                st.markdown("**Fishbone (rule-based)**")
+                                st.json(result.get("fishbone"))
+            
+                        # --- Right column: Fishbone diagram ---
+                        with col2:
+                            st.markdown("### Fishbone Diagram")
+                            fishbone_data = result.get("fishbone") or {}
+            
+                            # If fishbone is empty, try to build from root causes
+                            if not fishbone_data:
+                                fishbone_data = {
+                                    k: [] for k in ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
+                                }
+                                for rc in (result.get("root_causes") or []):
+                                    if isinstance(rc, dict):
+                                        cat = rc.get("category") or "Method"
+                                        fishbone_data.setdefault(cat, []).append(rc.get("cause") or "")
+            
+                            # Render fishbone if any data exists
+                            if not any(fishbone_data.values()):
+                                st.info("No fishbone data available to plot.")
+                            else:
                                 try:
                                     fig = visualize_fishbone(fishbone_data)
                                     st.plotly_chart(fig, use_container_width=True)
                                 except Exception as e:
                                     st.error(f"Fishbone visualization failed: {e}")
                                     st.json(fishbone_data)
-                    except Exception as e:
-                        st.error(f"RCA setup failed: {e}")
-                else:
-                    st.warning("No processed data available for RCA. Please preprocess first.")
+            
+                except Exception as e:
+                    st.error(f"RCA setup failed: {e}")
+            
+            else:
+                st.warning("No processed data available for RCA. Please preprocess first.")
+
+
         
                 # --- Manual 5-Whys & CAPA creation ---
                 st.markdown("---")
