@@ -173,13 +173,46 @@ def plot_trend_dashboard(df, date_col, value_col):
     fig = px.line(df, x=date_col, y=value_col, title="Trend Dashboard")
     return fig
 
-def plot_time_series_trend(df, date_col, value_col):
-    if date_col not in df.columns or value_col not in df.columns:
+# ------------------------------
+# Time-Series Plot Function
+# ------------------------------
+def plot_time_series_trend(df, time_col, value_col, freq="D", agg_func="mean"):
+    """
+    Plot time-series trends with aggregation.
+
+    freq: "D" (daily), "W" (weekly), "M" (monthly), "Y" (yearly)
+    agg_func: "mean", "sum", "max", "min"
+    """
+    try:
+        temp = df.copy()
+        temp[time_col] = pd.to_datetime(temp[time_col], errors="coerce")
+        temp = temp.dropna(subset=[time_col, value_col])
+
+        # Resample with chosen aggregation
+        if agg_func == "sum":
+            agg_df = temp.set_index(time_col).resample(freq)[value_col].sum().reset_index()
+        elif agg_func == "max":
+            agg_df = temp.set_index(time_col).resample(freq)[value_col].max().reset_index()
+        elif agg_func == "min":
+            agg_df = temp.set_index(time_col).resample(freq)[value_col].min().reset_index()
+        else:  # default mean
+            agg_df = temp.set_index(time_col).resample(freq)[value_col].mean().reset_index()
+
+        fig = px.line(
+            agg_df,
+            x=time_col,
+            y=value_col,
+            title=f"{value_col} Trend ({freq}, {agg_func})",
+            markers=True
+        )
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title=value_col,
+            template="plotly_white",
+            hovermode="x unified"
+        )
+        return fig
+    except Exception as e:
+        st.error(f"Time-series plot failed: {e}")
         return None
-    df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
-    df = df.dropna(subset=[date_col, value_col])
-    df = df.sort_values(date_col)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df[date_col], y=df[value_col], mode='lines+markers'))
-    fig.update_layout(title="Time Series Trend", xaxis_title=date_col, yaxis_title=value_col)
-    return fig
+
