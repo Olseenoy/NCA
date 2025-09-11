@@ -12,7 +12,7 @@ from io import BytesIO
             
 # Local imports (same src/ folder)
 from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
-from .llm_rca import generate_rca_with_llm
+from llm_rca import generate_rca_with_llm
 from visualization import visualize_fishbone_plotly
 
 # -----------------------------
