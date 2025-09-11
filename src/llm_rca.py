@@ -129,3 +129,4 @@ def _huggingface_rca(issue_text: str) -> Dict[str, Any]:
         ],
         "confidence": "low",
         "analysis": "Fallback RCA: needs human validation"
+        }
