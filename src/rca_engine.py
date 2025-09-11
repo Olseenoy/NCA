@@ -54,7 +54,7 @@ def build_context(issue_text: str, processed_df=None, sop_library=None, qc_logs=
 
 
 # -------------------------------
-# RCA Orchestrator
+# RCA Orchestrator (AI + fallback)
 # -------------------------------
 def ai_rca_with_fallback(record: dict, processed_df=None, sop_library=None, qc_logs=None) -> dict:
     try:
@@ -83,13 +83,43 @@ def ai_rca_with_fallback(record: dict, processed_df=None, sop_library=None, qc_l
 
 
 # -------------------------------
+# Rule-based RCA Fallback
+# -------------------------------
+def rule_based_rca_suggestions(issue_text: str) -> dict:
+    """
+    Simple keyword-driven RCA engine.
+    Returns fishbone-like structure based on rules.
+    """
+    text = issue_text.lower()
+    suggestions = generate_fishbone_skeleton()
+
+    if "leak" in text or "spill" in text:
+        suggestions["Material"].append("Check raw material quality / storage")
+        suggestions["Machine"].append("Inspect seals, gaskets, or pumps")
+
+    if "breakdown" in text or "failure" in text:
+        suggestions["Machine"].append("Preventive maintenance not performed")
+        suggestions["Method"].append("Improper operating procedure followed")
+
+    if "contamination" in text or "dirty" in text:
+        suggestions["Environment"].append("Poor cleaning or hygiene practices")
+        suggestions["Man"].append("Operator not following sanitation SOP")
+
+    if "weight" in text or "underfill" in text:
+        suggestions["Measurement"].append("Filler calibration error")
+        suggestions["Machine"].append("Weighing system malfunction")
+
+    # Default catch-all
+    if all(len(v) == 0 for v in suggestions.values()):
+        suggestions["Method"].append("Review SOPs and operator compliance")
+
+    return suggestions
+
+
+# -------------------------------
 # Extract recurring issues
 # -------------------------------
 def extract_recurring_issues(df: pd.DataFrame, col_name_candidates=None, top_n: int = 10) -> dict:
-    """
-    Extract the most frequent issues from logs.
-    Tries synonyms of 'issue' as column names.
-    """
     if col_name_candidates is None:
         col_name_candidates = ["issue_description", "issue", "problem", "error", "failure", "incident"]
 
@@ -111,10 +141,6 @@ def extract_recurring_issues(df: pd.DataFrame, col_name_candidates=None, top_n: 
 # Process uploaded SOPs / Docs
 # -------------------------------
 def process_uploaded_docs(uploaded_docs) -> str:
-    """
-    Convert uploaded SOPs or maintenance docs into plain text.
-    Supports TXT, DOCX, and PDF.
-    """
     texts = []
     for f in uploaded_docs:
         name = f.name.lower()
@@ -133,4 +159,3 @@ def process_uploaded_docs(uploaded_docs) -> str:
             texts.append("\n".join([page.extract_text() for page in reader.pages if page.extract_text()]))
 
     return "\n\n".join(texts)
-
