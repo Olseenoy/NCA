@@ -91,6 +91,27 @@ def _parse_json_from_text(text: str) -> dict:
     raise LLMRCAException(f"Could not parse JSON from LLM response:\n{text[:400]}...")
 
 
+def extract_issue_with_source(record: dict):
+    """
+    Extract issue text from a record dict, checking common synonyms for 'issue'.
+    Returns (text, column_name).
+    """
+    if not isinstance(record, dict):
+        return None, None
+
+    possible_cols = [
+        "issue", "issues", "problem", "problems",
+        "incident", "incidents", "fault", "faults",
+        "defect", "defects", "error", "errors"
+    ]
+
+    for col in possible_cols:
+        if col in record and record[col]:
+            return str(record[col]), col
+
+    return None, None
+
+
 # -------------------------------
 # Public API
 # -------------------------------
