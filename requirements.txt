@@ -24,3 +24,12 @@ openpyxl
 python-dotenv
 streamlit-option-menu
 hdbscan
+langchain
+ollama
+faiss-cpu
+sentence-transformers
+pypdf
+python-docx
+unstructured 
+langchain-experimental 
+langchain-community
