@@ -851,20 +851,21 @@ def main():
                     supporting_docs = uploaded_docs or []
             
                     # Run RCA
-                    if st.button("🚀 Run RCA"):
-                        with st.spinner("Running RCA (this may use a local model)..."):
-                            try:
-                                sop_text = process_uploaded_docs(supporting_docs)
-                                result = ai_rca_with_fallback(
+                    if st.button("Run RCA"):
+                            with st.spinner("Running RCA (this may use a local model)..."):
+                                try:
+                                    sop_text = process_uploaded_docs(supporting_docs)
+                                    # Call ai_rca_with_fallback which orchestrates build_context and LLM call
                                     result = ai_rca_with_fallback(
-                                        record={"issue": raw_text},   # wrap text into a dict
+                                        record={"issue": raw_text},   # wrap text in dict for compatibility
                                         processed_df=p,
                                         sop_library=sop_text,
-                                        qc_logs=None
-                                )
-                                st.session_state["rca_result"] = result
-                            except Exception as e:
-                                st.session_state["rca_result"] = {"error": str(e)}
+                                        qc_logs=None,
+                                    )
+                                    st.session_state["rca_result"] = result
+                                except Exception as e:
+                                    st.session_state["rca_result"] = {"error": str(e)}
+
             
                     # --- RCA Results ---
                     result = st.session_state.get("rca_result", {})
