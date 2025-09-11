@@ -13,6 +13,12 @@ try:
 except Exception:
     st = None
 
+# Try to import transformers for local HuggingFace models
+try:
+    from transformers import pipeline
+except ImportError:
+    pipeline = None
+
 
 # -------------------------------
 # Exceptions
@@ -20,30 +26,6 @@ except Exception:
 class LLMRCAException(Exception):
     """Raised when the LLM RCA pipeline fails or returns invalid output."""
     pass
-
-
-# -------------------------------
-# Issue Text Extractor (synonyms-aware)
-# -------------------------------
-ISSUE_COLS = [
-    "issue_description", "issue", "issues",
-    "problem", "defect", "failure",
-    "incident", "observation", "error", "complaint"
-]
-
-def extract_issue_with_source(record: dict) -> (str, str):
-    """
-    Extract issue/problem text and the column name it came from.
-    Falls back to combined_text or clean_text.
-    """
-    for col in ISSUE_COLS:
-        if col in record and record[col]:
-            return str(record[col]), col
-    if "combined_text" in record and record["combined_text"]:
-        return str(record["combined_text"]), "combined_text"
-    if "clean_text" in record and record["clean_text"]:
-        return str(record["clean_text"]), "clean_text"
-    return "", "unknown"
 
 
 # -------------------------------
@@ -62,50 +44,32 @@ def _get_api_key(provider: str = "openai") -> Optional[str]:
 
 
 # -------------------------------
-# Prompt
+# Prompt Template
 # -------------------------------
 PROMPT_TEMPLATE = """You are a senior Manufacturing Quality Engineer specialized in Root Cause Analysis (RCA).
-You are given:
-1) A structured interpretation of a production issue,
-2) The original raw text (as logged on the shop floor),
-3) Optional context: past RCAs, SOP snippets, QC trends.
-
-Your task: Return a STRICT JSON object (no prose) following EXACTLY this schema:
+Your task: Return a STRICT JSON object with the following structure:
 
 {{
   "root_causes": [
     {{"cause": "<short sentence>", "category": "<Man|Machine|Method|Material|Measurement|Environment>"}}
   ],
-  "five_whys": ["Why1 answer", "Why2 answer", "Why3 answer", "Why4 answer", "Why5 answer"],
+  "five_whys": ["Why1", "Why2", "Why3", "Why4", "Why5"],
   "capa": [
-    {{"type": "Corrective", "action": "<concrete action>", "owner": "<role or team>", "due_in_days": <int>}},
-    {{"type": "Preventive", "action": "<concrete action>", "owner": "<role or team>", "due_in_days": <int>}}
+    {{"type": "Corrective", "action": "<action>", "owner": "<role>", "due_in_days": <int>}},
+    {{"type": "Preventive", "action": "<action>", "owner": "<role>", "due_in_days": <int>}}
   ],
   "confidence": "<low|medium|high>"
 }}
 
-Rules:
-- 3–5 items in "root_causes".
-- Exactly 5 entries in "five_whys".
-- Exactly 2 CAPA entries: one Corrective and one Preventive.
-- Categories limited to: Man, Machine, Method, Material, Measurement, Environment.
-- Be concrete and operational.
+Issue to analyze:
+{issue_text}
 
-=== STRUCTURED_ISSUE ===
-{structured_issue}
-
-=== RAW_TEXT ===
-{raw_text}
-
-=== CONTEXT ===
-{context_block}
-
-Return ONLY the JSON object.
+Return ONLY JSON.
 """
 
 
 # -------------------------------
-# JSON Parsing (robust)
+# JSON Parsing
 # -------------------------------
 def _parse_json_from_text(text: str) -> dict:
     text = (text or "").strip()
@@ -137,34 +101,33 @@ def generate_rca_with_llm(
     max_retries: int = 2,
     temperature: float = 0.0,
 ) -> Dict[str, Any]:
-    structured_issue = ""
-    raw_text = issue_text
+    """
+    Try OpenAI first, then HuggingFace local model, then fallback template.
+    """
+    prompt = PROMPT_TEMPLATE.format(issue_text=issue_text + "\n\n" + context)
 
-    if "Parsed context" in issue_text or re.search(r'"\s*defect"\s*:', issue_text):
-        structured_issue = issue_text
-        raw_text = ""
-
-    prompt = PROMPT_TEMPLATE.format(
-        structured_issue=structured_issue or "(not provided)",
-        raw_text=raw_text or "(not provided)",
-        context_block=context or "No additional context provided."
-    )
-
+    # 1) Try OpenAI if key available
     try:
-        return _openai_rca(prompt, model=model, max_retries=max_retries, temperature=temperature)
-    except LLMRCAException:
-        return _huggingface_rca(raw_text or structured_issue)
+        if _get_api_key("openai"):
+            return _openai_rca(prompt, model=model, max_retries=max_retries, temperature=temperature)
+    except Exception:
+        pass
+
+    # 2) Try HuggingFace local model
+    try:
+        if pipeline:
+            return _huggingface_rca(prompt)
+    except Exception:
+        pass
+
+    # 3) Final fallback
+    return _fallback_rca()
 
 
 # -------------------------------
-# OpenAI Client
+# OpenAI RCA
 # -------------------------------
-def _openai_rca(
-    prompt: str,
-    model: str = "gpt-4o-mini",
-    max_retries: int = 2,
-    temperature: float = 0.0,
-) -> Dict[str, Any]:
+def _openai_rca(prompt: str, model: str = "gpt-4o-mini", max_retries: int = 2, temperature: float = 0.0) -> Dict[str, Any]:
     api_key = _get_api_key("openai")
     if not api_key:
         raise LLMRCAException("OPENAI_API_KEY not found.")
@@ -175,8 +138,7 @@ def _openai_rca(
         raise LLMRCAException("openai package not installed.") from e
 
     openai.api_key = api_key
-    attempt = 0
-    last_err = None
+    attempt, last_err = 0, None
 
     while attempt <= max_retries:
         try:
@@ -191,12 +153,7 @@ def _openai_rca(
             )
             content = resp["choices"][0]["message"]["content"]
             parsed = _parse_json_from_text(content)
-
-            for k in ("root_causes", "five_whys", "capa", "confidence"):
-                if k not in parsed:
-                    raise LLMRCAException(f"Incomplete JSON from OpenAI RCA: missing '{k}'")
             return parsed
-
         except Exception as e:
             last_err = e
             attempt += 1
@@ -206,9 +163,30 @@ def _openai_rca(
 
 
 # -------------------------------
-# Hugging Face Fallback
+# HuggingFace Local RCA
 # -------------------------------
-def _huggingface_rca(issue_text: str) -> Dict[str, Any]:
+def _huggingface_rca(prompt: str) -> Dict[str, Any]:
+    """
+    Use a local HuggingFace model to generate RCA JSON.
+    Default: mistralai/Mistral-7B-Instruct-v0.2
+    """
+    if not pipeline:
+        raise LLMRCAException("transformers not installed.")
+
+    generator = pipeline("text-generation", model="mistralai/Mistral-7B-Instruct-v0.2")
+    resp = generator(prompt, max_length=700, do_sample=True, temperature=0.2)
+
+    if not resp or "generated_text" not in resp[0]:
+        raise LLMRCAException("HuggingFace model returned empty response.")
+
+    text = resp[0]["generated_text"]
+    return _parse_json_from_text(text)
+
+
+# -------------------------------
+# Safe Fallback
+# -------------------------------
+def _fallback_rca() -> Dict[str, Any]:
     return {
         "root_causes": [
             {"cause": "Insufficient domain context (fallback). Review machine condition and SOP adherence.", "category": "Method"}
@@ -221,8 +199,8 @@ def _huggingface_rca(issue_text: str) -> Dict[str, Any]:
             "Why SOP gap? Review cycle missed."
         ],
         "capa": [
-            {"type": "Corrective", "action": "Perform immediate equipment check.", "owner": "Maintenance", "due_in_days": 1},
-            {"type": "Preventive", "action": "Add time-based PM triggers.", "owner": "QA", "due_in_days": 14}
+            {"type": "Corrective", "action": "Perform immediate equipment check and alignment verification.", "owner": "Maintenance", "due_in_days": 1},
+            {"type": "Preventive", "action": "Add time-based PM triggers and lane-wise inspection to SOP.", "owner": "QA", "due_in_days": 14}
         ],
         "confidence": "low"
     }
