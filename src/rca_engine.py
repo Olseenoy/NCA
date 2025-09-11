@@ -115,18 +115,40 @@ def rule_based_rca_suggestions(issue_text: str) -> dict:
 
     return suggestions
 
-
 # -------------------------------
 # Extract recurring issues
 # -------------------------------
 def extract_recurring_issues(df: pd.DataFrame, col_name_candidates=None, top_n: int = 10) -> dict:
+    """
+    Try to find a valid issue column by checking singular, plural, and synonyms.
+    Returns top recurring issues as a dict.
+    """
     if col_name_candidates is None:
-        col_name_candidates = ["issue_description", "issue", "problem", "error", "failure", "incident"]
+        col_name_candidates = [
+            "issue_description",
+            "issue",
+            "problem",
+            "error",
+            "failure",
+            "incident",
+            "defect",
+        ]
+
+    # Expand with plural forms
+    expanded_candidates = set()
+    for c in col_name_candidates:
+        expanded_candidates.add(c)
+        expanded_candidates.add(c + "s")   # plural form
+        if "_" in c:  # handle snake_case plurals
+            expanded_candidates.add(c + "es")
+
+    # Normalize DataFrame columns (lowercase, strip spaces/underscores)
+    normalized_cols = {col.strip().lower().replace(" ", "_"): col for col in df.columns}
 
     issue_col = None
-    for c in col_name_candidates:
-        if c in df.columns:
-            issue_col = c
+    for candidate in expanded_candidates:
+        if candidate in normalized_cols:
+            issue_col = normalized_cols[candidate]
             break
 
     if not issue_col:
@@ -135,6 +157,7 @@ def extract_recurring_issues(df: pd.DataFrame, col_name_candidates=None, top_n: 
     issues = df[issue_col].dropna().astype(str)
     freq = issues.value_counts().head(top_n).to_dict()
     return freq
+
 
 
 # -------------------------------
