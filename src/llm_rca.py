@@ -122,25 +122,30 @@ def generate_rca_with_llm(
     temperature: float = 0.0
 ) -> Dict[str, Any]:
     """
-    Generate RCA using OpenAI -> HuggingFace -> Fallback (in that order).
+    Try RCA generation with OpenAI -> HuggingFace -> fallback.
     """
     prompt = PROMPT_TEMPLATE.format(issue_text=issue_text + "\n\n" + context)
 
     # 1) Try OpenAI
     try:
-        if _get_api_key("openai"):
-            print("⚡ Using OpenAI for RCA")
+        api_key = _get_api_key("openai")
+        if api_key:
+            print(f"⚡ Using OpenAI for RCA | Model={model} | Key starts with: {api_key[:5]}...")
             return _openai_rca(prompt, model=model, max_retries=max_retries, temperature=temperature)
+        else:
+            print("❌ No OpenAI API key found in environment or Streamlit secrets.")
     except Exception as e:
-        print("❌ OpenAI failed:", e)
+        print("❌ OpenAI RCA failed:", e)
 
     # 2) HuggingFace
     try:
         if pipeline:
             print("⚡ Using HuggingFace pipeline for RCA")
             return _huggingface_rca(prompt)
+        else:
+            print("❌ transformers pipeline not available.")
     except Exception as e:
-        print("❌ HuggingFace failed:", e)
+        print("❌ HuggingFace RCA failed:", e)
 
     # 3) Fallback
     print("⚠️ Using fallback RCA")
@@ -150,7 +155,8 @@ def generate_rca_with_llm(
 # -------------------------------
 # OpenAI RCA
 # -------------------------------
-def _openai_rca(prompt: str, model: str = "gpt-4o-mini", max_retries: int = 2, temperature: float = 0.0) -> Dict[str, Any]:
+def _openai_rca(prompt: str, model: str = "gpt-4o-mini",
+                max_retries: int = 2, temperature: float = 0.0) -> Dict[str, Any]:
     api_key = _get_api_key("openai")
     if not api_key:
         raise LLMRCAException("OPENAI_API_KEY not found.")
@@ -180,6 +186,7 @@ def _openai_rca(prompt: str, model: str = "gpt-4o-mini", max_retries: int = 2, t
         except Exception as e:
             last_err = e
             attempt += 1
+            print(f"⚠️ OpenAI attempt {attempt} failed: {e}")
             time.sleep(1.0 * attempt)
 
     raise LLMRCAException(f"OpenAI RCA failed after {max_retries+1} attempts. Last error: {last_err}")
@@ -208,10 +215,7 @@ def _huggingface_rca(prompt: str) -> Dict[str, Any]:
 def _fallback_rca() -> Dict[str, Any]:
     return {
         "root_causes": [
-            {
-                "cause": "Insufficient domain context (fallback). Review machine condition and SOP adherence.",
-                "category": "Method"
-            }
+            {"cause": "Insufficient domain context (fallback). Review machine condition and SOP adherence.", "category": "Method"}
         ],
         "five_whys": [
             "Why was there a defect? Insufficient maintenance or SOP drift.",
@@ -221,19 +225,8 @@ def _fallback_rca() -> Dict[str, Any]:
             "Why SOP gap? Review cycle missed."
         ],
         "capa": [
-            {
-                "type": "Corrective",
-                "action": "Perform immediate equipment check and alignment verification.",
-                "owner": "Maintenance",
-                "due_in_days": 1
-            },
-            {
-                "type": "Preventive",
-                "action": "Add time-based PM triggers and lane-wise inspection to SOP.",
-                "owner": "QA",
-                "due_in_days": 14
-            }
+            {"type": "Corrective", "action": "Perform immediate equipment check and alignment verification.", "owner": "Maintenance", "due_in_days": 1},
+            {"type": "Preventive", "action": "Add time-based PM triggers and lane-wise inspection to SOP.", "owner": "QA", "due_in_days": 14}
         ],
         "confidence": "low"
     }
-
