@@ -4,10 +4,9 @@ import pandas as pd
 from sklearn.decomposition import PCA
 import plotly.graph_objects as go
 import numpy as np 
+from typing import Dict, List, Tuple
 
 # --- Pareto Chart ---
-import pandas as pd
-import plotly.graph_objects as go
 
 def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
     """
