@@ -215,4 +215,33 @@ def plot_time_series_trend(df, time_col, value_col, freq="D", agg_func="mean"):
     except Exception as e:
         st.error(f"Time-series plot failed: {e}")
         return None
+        
+def visualize_fishbone_plotly(fishbone: Dict[str, list]):
+    # Basic left/right layout
+    categories = list(fishbone.keys())
+    # Create text annotations for each category and reasons
+    fig = go.Figure()
+
+    # Draw backbone
+    fig.add_shape(type="line", x0=0.1, y0=0.5, x1=0.9, y1=0.5, line=dict(width=3, color="black"))
+
+    # For each category, place a branch
+    n = len(categories)
+    for i, cat in enumerate(categories):
+        ypos = (i + 1) / (n + 1)
+        # branch line
+        fig.add_shape(type="line", x0=0.35, y0=ypos, x1=0.1, y1=0.5, line=dict(width=2, color="black"))
+        # category label
+        fig.add_annotation(x=0.36, y=ypos, text=f"<b>{cat}</b>", showarrow=False, xanchor="left", font=dict(size=12))
+        # reasons (stacked)
+        reasons = fishbone.get(cat, [])
+        for j, r in enumerate(reasons[:5]):
+            fig.add_annotation(x=0.25, y=ypos - (j * 0.03), text=f"- {r}", showarrow=False, xanchor="left", font=dict(size=10))
+
+    fig.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=500, template=None)
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    return fig
+
+
 
