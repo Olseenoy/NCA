@@ -94,34 +94,29 @@ def _parse_json_from_text(text: str) -> dict:
 # -------------------------------
 # Public API
 # -------------------------------
-def generate_rca_with_llm(
-    issue_text: str,
-    context: str = "",
-    model: str = "gpt-4o-mini",
-    max_retries: int = 2,
-    temperature: float = 0.0,
-) -> Dict[str, Any]:
-    """
-    Try OpenAI first, then HuggingFace local model, then fallback template.
-    """
+def generate_rca_with_llm(...):
     prompt = PROMPT_TEMPLATE.format(issue_text=issue_text + "\n\n" + context)
 
-    # 1) Try OpenAI if key available
+    # 1) Try OpenAI
     try:
         if _get_api_key("openai"):
+            print("⚡ Using OpenAI for RCA")
             return _openai_rca(prompt, model=model, max_retries=max_retries, temperature=temperature)
-    except Exception:
-        pass
+    except Exception as e:
+        print("❌ OpenAI failed:", e)
 
-    # 2) Try HuggingFace local model
+    # 2) HuggingFace
     try:
         if pipeline:
+            print("⚡ Using HuggingFace pipeline for RCA")
             return _huggingface_rca(prompt)
-    except Exception:
-        pass
+    except Exception as e:
+        print("❌ HuggingFace failed:", e)
 
-    # 3) Final fallback
+    # 3) Fallback
+    print("⚠️ Using fallback RCA")
     return _fallback_rca()
+
 
 
 # -------------------------------
