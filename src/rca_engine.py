@@ -56,9 +56,21 @@ def build_context(issue_text: str, processed_df=None, sop_library=None, qc_logs=
 # -------------------------------
 # RCA Orchestrator (AI + fallback)
 # -------------------------------
-def ai_rca_with_fallback(record: dict, processed_df=None, sop_library=None, qc_logs=None) -> dict:
+def ai_rca_with_fallback(record: dict = None, original_text: str = None, clean_text: str = None,
+                         processed_df=None, sop_library=None, qc_logs=None) -> dict:
     try:
-        issue_text, source_col = extract_issue_with_source(record)
+        issue_text = None
+        source_col = None
+
+        if record:  # new way
+            issue_text, source_col = extract_issue_with_source(record)
+        elif original_text:  # backward compatibility
+            issue_text = original_text
+            source_col = "original_text"
+        elif clean_text:
+            issue_text = clean_text
+            source_col = "clean_text"
+
         if not issue_text:
             return {"error": "No valid issue text found.", "fishbone": generate_fishbone_skeleton()}
 
@@ -80,6 +92,7 @@ def ai_rca_with_fallback(record: dict, processed_df=None, sop_library=None, qc_l
         return {"error": "LLM unavailable, fallback used.", "fishbone": generate_fishbone_skeleton()}
     except Exception as e:
         return {"error": f"RCA Engine Failure: {e}", "fishbone": generate_fishbone_skeleton()}
+
 
 
 # -------------------------------
