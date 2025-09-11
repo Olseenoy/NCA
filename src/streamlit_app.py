@@ -762,15 +762,14 @@ def main():
             
             
 
-            # --- Root Cause Analysis (RCA) ---
-    
-                        
-            
+            # --- Root Cause Analysis (RCA) --
+
+            # ✅ Set up page
             st.set_page_config(page_title="AI-Powered RCA", layout="wide")
             st.title("🛠️ AI-Powered Root Cause Analysis")
             st.markdown("Upload logs, SOPs, or maintenance files and run RCA using a free local LLM (preferred) or fallbacks.")
             
-            # --- Upload / Load Data ---
+            # --- Upload Logs ---
             uploaded_logs = st.file_uploader("Upload log file (CSV)", type=["csv"], key="upload_logs")
             uploaded_docs = st.file_uploader(
                 "Upload supporting SOPs / Maintenance Docs (optional)",
@@ -779,42 +778,52 @@ def main():
                 key="upload_docs",
             )
             
+            logs_df = None
             if uploaded_logs:
                 try:
                     logs_df = pd.read_csv(uploaded_logs)
                 except Exception:
                     uploaded_logs.seek(0)
                     logs_df = pd.read_csv(BytesIO(uploaded_logs.getvalue()))
-                st.success(f"Loaded logs: {len(logs_df)} rows")
+            
+                st.success(f"✅ Loaded logs: {len(logs_df)} rows")
                 st.dataframe(logs_df.head())
             
             # --- Preprocess / Extract recurring issues ---
-            if uploaded_logs and st.button("Extract recurring issues"):
-                top = extract_recurring_issues(logs_df, col_name="issue_description", top_n=10)
+            if uploaded_logs and st.button("🔍 Extract recurring issues"):
+                top = extract_recurring_issues(
+                    logs_df,
+                    col_name_candidates=["issue_description", "issue", "problem", "error", "failure", "incident"],
+                    top_n=10
+                )
                 if top:
                     st.subheader("Top recurring issues (from logs)")
                     st.json(top)
-                    # Save to session for later RCA
                     st.session_state["recurring_issues"] = top
                 else:
-                    st.info("No 'issue_description' column found. Please preprocess logs or name column accordingly.")
+                    st.warning("⚠️ No valid issue column found. Please preprocess logs or rename one of your columns.")
             
             st.markdown("---")
             
-            # --- RCA Section (from your previous block but upgraded to use engine + LLM) ---
+            # --- RCA Section ---
             st.subheader("Root Cause Analysis (RCA)")
             
             p = st.session_state.get("processed")
-            
-            # If user preprocessed dataset (legacy) or we have recurring_issues
-            has_issues = isinstance(p, pd.DataFrame) and not p.empty or st.session_state.get("recurring_issues")
+            has_issues = (
+                (isinstance(p, pd.DataFrame) and not p.empty)
+                or st.session_state.get("recurring_issues")
+            )
             
             if has_issues:
                 try:
-                    # Choose issue source
-                    issue_source = st.radio("Issue source", options=["Processed table (session)", "Top recurring issues (from logs)"], index=1 if st.session_state.get("recurring_issues") else 0)
+                    # Select issue source
+                    issue_source = st.radio(
+                        "Issue source",
+                        options=["Processed table (session)", "Top recurring issues (from logs)"],
+                        index=1 if st.session_state.get("recurring_issues") else 0
+                    )
             
-                    if issue_source == "Processed table (session)":
+                    if issue_source == "Processed table (session)" and isinstance(p, pd.DataFrame):
                         idx = st.number_input(
                             "Pick row index to analyze",
                             min_value=0,
@@ -825,39 +834,46 @@ def main():
                         raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
                         st.markdown("**Selected row preview:**")
                         st.write(raw_text)
+            
                     else:
-                        # show recurring issues selection
+                        # Use recurring issues
                         choices = list(st.session_state.get("recurring_issues", {}).items())
-                        issue_text = st.selectbox("Pick recurring issue", options=[f"{k} — {v} occurrences" for k, v in choices])
-                        # extract text before the dash
+                        issue_text = st.selectbox(
+                            "Pick recurring issue",
+                            options=[f"{k} — {v} occurrences" for k, v in choices]
+                        )
                         raw_text = issue_text.split(" — ")[0]
                         st.markdown("**Selected recurring issue:**")
                         st.write(raw_text)
             
                     # RCA mode selector
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
-            
-                    # Optionally upload supporting docs
                     supporting_docs = uploaded_docs or []
             
-                    if st.button("Run RCA"):
+                    # Run RCA
+                    if st.button("🚀 Run RCA"):
                         with st.spinner("Running RCA (this may use a local model)..."):
                             try:
                                 sop_text = process_uploaded_docs(supporting_docs)
-                                # Call ai_rca_with_fallback which orchestrates build_context and LLM call
-                                result = ai_rca_with_fallback(original_text=raw_text, clean_text=raw_text, processed_df=p, sop_library=sop_text, qc_logs=None)
+                                result = ai_rca_with_fallback(
+                                    original_text=raw_text,
+                                    clean_text=raw_text,
+                                    processed_df=p,
+                                    sop_library=sop_text,
+                                    qc_logs=None,
+                                )
                                 st.session_state["rca_result"] = result
                             except Exception as e:
                                 st.session_state["rca_result"] = {"error": str(e)}
             
-                    # Display results
+                    # --- RCA Results ---
                     result = st.session_state.get("rca_result", {})
-            
                     if result:
                         col1, col2 = st.columns([1, 1])
             
                         with col1:
                             st.markdown("### RCA - Details")
+            
                             if result.get("error"):
                                 st.error(result.get("error"))
             
@@ -902,9 +918,9 @@ def main():
                     st.error(f"RCA setup failed: {e}")
             
             else:
-                st.warning("No processed data available for RCA. Please preprocess first or upload logs to extract recurring issues.")
+                st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs or upload new ones.")
             
-                # --- Manual 5-Whys & CAPA creation (unchanged) ---
+                # --- Manual RCA entry ---
                 st.markdown("---")
                 st.subheader("Manual 5-Whys & CAPA creation")
                 manual_whys = []
@@ -920,8 +936,7 @@ def main():
                     due_days = st.number_input("Due in (days)", min_value=1, max_value=365, value=14)
                     submitted = st.form_submit_button("Create CAPA")
                     if submitted:
-                        # Placeholder: implement DB save logic as in your previous app
-                        st.success("CAPA created (temporary - implement DB save)")
+                        st.success("✅ CAPA created (DB save not yet implemented)")
 
 
 
