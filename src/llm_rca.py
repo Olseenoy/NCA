@@ -5,7 +5,6 @@ import os
 import json
 import re
 import time
-import requests
 from typing import Dict, Any, Optional
 
 try:
@@ -115,7 +114,16 @@ def extract_issue_with_source(record: dict):
 # -------------------------------
 # Public API
 # -------------------------------
-def generate_rca_with_llm(...):
+def generate_rca_with_llm(
+    issue_text: str,
+    context: str,
+    model: str = "gpt-4o-mini",
+    max_retries: int = 2,
+    temperature: float = 0.0
+) -> Dict[str, Any]:
+    """
+    Generate RCA using OpenAI -> HuggingFace -> Fallback (in that order).
+    """
     prompt = PROMPT_TEMPLATE.format(issue_text=issue_text + "\n\n" + context)
 
     # 1) Try OpenAI
@@ -137,7 +145,6 @@ def generate_rca_with_llm(...):
     # 3) Fallback
     print("⚠️ Using fallback RCA")
     return _fallback_rca()
-
 
 
 # -------------------------------
@@ -182,10 +189,6 @@ def _openai_rca(prompt: str, model: str = "gpt-4o-mini", max_retries: int = 2, t
 # HuggingFace Local RCA
 # -------------------------------
 def _huggingface_rca(prompt: str) -> Dict[str, Any]:
-    """
-    Use a local HuggingFace model to generate RCA JSON.
-    Default: mistralai/Mistral-7B-Instruct-v0.2
-    """
     if not pipeline:
         raise LLMRCAException("transformers not installed.")
 
@@ -205,7 +208,10 @@ def _huggingface_rca(prompt: str) -> Dict[str, Any]:
 def _fallback_rca() -> Dict[str, Any]:
     return {
         "root_causes": [
-            {"cause": "Insufficient domain context (fallback). Review machine condition and SOP adherence.", "category": "Method"}
+            {
+                "cause": "Insufficient domain context (fallback). Review machine condition and SOP adherence.",
+                "category": "Method"
+            }
         ],
         "five_whys": [
             "Why was there a defect? Insufficient maintenance or SOP drift.",
@@ -215,8 +221,19 @@ def _fallback_rca() -> Dict[str, Any]:
             "Why SOP gap? Review cycle missed."
         ],
         "capa": [
-            {"type": "Corrective", "action": "Perform immediate equipment check and alignment verification.", "owner": "Maintenance", "due_in_days": 1},
-            {"type": "Preventive", "action": "Add time-based PM triggers and lane-wise inspection to SOP.", "owner": "QA", "due_in_days": 14}
+            {
+                "type": "Corrective",
+                "action": "Perform immediate equipment check and alignment verification.",
+                "owner": "Maintenance",
+                "due_in_days": 1
+            },
+            {
+                "type": "Preventive",
+                "action": "Add time-based PM triggers and lane-wise inspection to SOP.",
+                "owner": "QA",
+                "due_in_days": 14
+            }
         ],
         "confidence": "low"
     }
+
