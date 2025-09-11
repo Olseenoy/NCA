@@ -856,11 +856,12 @@ def main():
                             try:
                                 sop_text = process_uploaded_docs(supporting_docs)
                                 result = ai_rca_with_fallback(
-                                    original_text=raw_text,
-                                    clean_text=raw_text,
-                                    processed_df=p,
-                                    sop_library=sop_text,
-                                    qc_logs=None,
+                                    result = ai_rca_with_fallback(
+                                        record={"issue": raw_text},   # wrap text into a dict
+                                        processed_df=p,
+                                        sop_library=sop_text,
+                                        qc_logs=None,
+
                                 )
                                 st.session_state["rca_result"] = result
                             except Exception as e:
