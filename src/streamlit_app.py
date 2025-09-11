@@ -860,8 +860,7 @@ def main():
                                         record={"issue": raw_text},   # wrap text into a dict
                                         processed_df=p,
                                         sop_library=sop_text,
-                                        qc_logs=None,
-
+                                        qc_logs=None
                                 )
                                 st.session_state["rca_result"] = result
                             except Exception as e:
