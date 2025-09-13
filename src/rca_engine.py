@@ -5,7 +5,7 @@ import json
 import re
 from datetime import datetime
 import pandas as pd
-from src.llm_rca import generate_rca_with_llm, LLMRCAException, extract_issue_with_source
+from llm_rca import generate_rca_with_llm, LLMRCAException, extract_issue_with_source
 
 FISHBONE_CATEGORIES = ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
 
