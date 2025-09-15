@@ -11,10 +11,7 @@ from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
             
 # Local imports (same src/ folder)
-from rca_engine import load_latest_logs,
-    load_sop_documents,
-    extract_recurring_issues,
-    run_rca_analysis
+from rca_engine import load_latest_logs, load_sop_documents, extract_recurring_issues, run_rca_analysis
 from visualization import visualize_fishbone_plotly
 
 # -----------------------------
