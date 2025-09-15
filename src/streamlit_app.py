@@ -11,7 +11,7 @@ from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
             
 # Local imports (same src/ folder)
-from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
+from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from visualization import visualize_fishbone_plotly
 
 # -----------------------------
@@ -47,7 +47,7 @@ from visualization import (
 )
 from pareto import pareto_table
 from db import init_db, SessionLocal, CAPA
-from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
+from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
 
 # Load .env if present
