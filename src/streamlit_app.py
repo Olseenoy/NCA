@@ -47,7 +47,7 @@ from visualization import (
 )
 from pareto import pareto_table
 from db import init_db, SessionLocal, CAPA
-from rca_engine import rule_based_rca_suggestions, ai_rca_with_fallback
+from rca_engine import load_latest_logs, load_sop_documents, extract_recurring_issues, run_rca_analysis
 from fishbone_visualizer import visualize_fishbone
 
 # Load .env if present
