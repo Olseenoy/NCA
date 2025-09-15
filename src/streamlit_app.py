@@ -768,14 +768,14 @@ def main():
             st.title("🛠️ AI-Powered Root Cause Analysis (RCA)")
             
             # --- AUTO-LOAD DATA ---
-            logs_df = load_latest_logs("nca/data/processed")
-            sop_text = load_sop_documents("nca/data/documents")
+            logs_df = load_latest_logs("NCA/data/processed")
+            sop_text = load_sop_documents("NCA/data/documents")
 
             if logs_df is not None:
                 st.success(f"✅ Logs loaded: {len(logs_df)} rows")
                 st.dataframe(logs_df.head())
             else:
-                st.warning("⚠️ No processed logs found in `src/data/processed`")
+                st.warning("⚠️ No processed logs found in `NCA/data/processed`")
             
             # --- Extract Recurring Issues (Pareto) ---
             if logs_df is not None and st.button("🔍 Extract recurring issues"):
