@@ -11,8 +11,10 @@ from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
             
 # Local imports (same src/ folder)
-from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
-from llm_rca import generate_rca_with_llm
+from rca_engine import load_latest_logs,
+    load_sop_documents,
+    extract_recurring_issues,
+    run_rca_analysis
 from visualization import visualize_fishbone_plotly
 
 # -----------------------------
@@ -764,110 +766,80 @@ def main():
 
             # --- Root Cause Analysis (RCA) --
 
-            # ✅ Set up page
+                       # --- PAGE SETUP ---
             st.set_page_config(page_title="AI-Powered RCA", layout="wide")
-            st.title("🛠️ AI-Powered Root Cause Analysis")
-            st.markdown("Upload logs, SOPs, or maintenance files and run RCA using a free local LLM (preferred) or fallbacks.")
+            st.title("🛠️ AI-Powered Root Cause Analysis (RCA)")
             
-            # --- Upload Logs ---
-            uploaded_logs = st.file_uploader("Upload log file (CSV)", type=["csv"], key="upload_logs")
-            uploaded_docs = st.file_uploader(
-                "Upload supporting SOPs / Maintenance Docs (optional)",
-                type=["pdf", "docx", "txt"],
-                accept_multiple_files=True,
-                key="upload_docs",
-            )
+            # --- AUTO-LOAD DATA ---
+            logs_df = load_latest_logs("src/data/processed")
+            sop_text = load_sop_documents("src/data/documents")
             
-            logs_df = None
-            if uploaded_logs:
-                try:
-                    logs_df = pd.read_csv(uploaded_logs)
-                except Exception:
-                    uploaded_logs.seek(0)
-                    logs_df = pd.read_csv(BytesIO(uploaded_logs.getvalue()))
-            
-                st.success(f"✅ Loaded logs: {len(logs_df)} rows")
+            if logs_df is not None:
+                st.success(f"✅ Logs loaded: {len(logs_df)} rows")
                 st.dataframe(logs_df.head())
+            else:
+                st.warning("⚠️ No processed logs found in `src/data/processed`")
             
-            # --- Preprocess / Extract recurring issues ---
-            if uploaded_logs and st.button("🔍 Extract recurring issues"):
-                top = extract_recurring_issues(
-                    logs_df,
-                    col_name_candidates=["issue_description", "issue", "problem", "error", "failure", "incident"],
-                    top_n=10
-                )
+            # --- Extract Recurring Issues (Pareto) ---
+            if logs_df is not None and st.button("🔍 Extract recurring issues"):
+                top = extract_recurring_issues(logs_df, top_n=10)
                 if top:
+                    st.session_state["recurring_issues"] = top
                     st.subheader("Top recurring issues (from logs)")
                     st.json(top)
-                    st.session_state["recurring_issues"] = top
                 else:
-                    st.warning("⚠️ No valid issue column found. Please preprocess logs or rename one of your columns.")
+                    st.warning("⚠️ No recurring issues extracted.")
             
             st.markdown("---")
             
-            # --- RCA Section ---
+            # --- RCA SECTION ---
             st.subheader("Root Cause Analysis (RCA)")
             
-            p = st.session_state.get("processed")
-            has_issues = (
-                (isinstance(p, pd.DataFrame) and not p.empty)
-                or st.session_state.get("recurring_issues")
-            )
+            processed_df = logs_df
+            recurring_issues = st.session_state.get("recurring_issues", {})
+            has_issues = (processed_df is not None and not processed_df.empty) or recurring_issues
             
             if has_issues:
                 try:
                     # Select issue source
                     issue_source = st.radio(
                         "Issue source",
-                        options=["Processed table (session)", "Top recurring issues (from logs)"],
-                        index=1 if st.session_state.get("recurring_issues") else 0
+                        options=["Processed table (session)", "Top recurring issues (from Pareto)"],
+                        index=0,
                     )
             
-                    if issue_source == "Processed table (session)" and isinstance(p, pd.DataFrame):
+                    if issue_source == "Processed table (session)" and processed_df is not None:
                         idx = st.number_input(
                             "Pick row index to analyze",
                             min_value=0,
-                            max_value=len(p) - 1,
+                            max_value=len(processed_df) - 1,
                             value=0,
                         )
-                        row = p.iloc[int(idx)]
+                        row = processed_df.iloc[int(idx)]
                         raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
                         st.markdown("**Selected row preview:**")
                         st.write(raw_text)
             
                     else:
-                        # Use recurring issues
-                        choices = list(st.session_state.get("recurring_issues", {}).items())
+                        choices = list(recurring_issues.items())
                         issue_text = st.selectbox(
                             "Pick recurring issue",
-                            options=[f"{k} — {v} occurrences" for k, v in choices]
+                            options=[f"{k} — {v} occurrences" for k, v in choices],
                         )
                         raw_text = issue_text.split(" — ")[0]
                         st.markdown("**Selected recurring issue:**")
                         st.write(raw_text)
             
-                    # RCA mode selector
+                    # RCA mode
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
-                    supporting_docs = uploaded_docs or []
             
                     # Run RCA
                     if st.button("Run RCA"):
-                            with st.spinner("Running RCA (this may use a local model)..."):
-                                try:
-                                    sop_text = process_uploaded_docs(supporting_docs)
-                                    # Call ai_rca_with_fallback which orchestrates build_context and LLM call
-                                    result = ai_rca_with_fallback(
-                                        record={"issue": raw_text},   # wrap text in dict for compatibility
-                                        processed_df=p,
-                                        sop_library=sop_text,
-                                        qc_logs=None,
-                                    )
-                                    st.session_state["rca_result"] = result
-                                except Exception as e:
-                                    st.session_state["rca_result"] = {"error": str(e)}
-
+                        with st.spinner("Running RCA (may take a while)..."):
+                            result = run_rca_analysis(raw_text, processed_df, sop_text, mode)
+                            st.session_state["rca_result"] = result
             
-                    # --- RCA Results ---
+                    # --- RCA RESULTS ---
                     result = st.session_state.get("rca_result", {})
                     if result:
                         col1, col2 = st.columns([1, 1])
@@ -901,26 +873,15 @@ def main():
             
                         with col2:
                             st.markdown("### Fishbone Diagram")
-                            fishbone_data = result.get("fishbone") or {}
-            
                             if result.get("fishbone_fig"):
                                 st.plotly_chart(result.get("fishbone_fig"), use_container_width=True)
-                            elif not any(fishbone_data.values()):
-                                st.info("No fishbone data available to plot.")
                             else:
-                                try:
-                                    fig = visualize_fishbone_plotly(fishbone_data)
-                                    st.plotly_chart(fig, use_container_width=True)
-                                except Exception as e:
-                                    st.error(f"Fishbone visualization failed: {e}")
-                                    st.json(fishbone_data)
+                                st.info("No fishbone data available.")
             
                 except Exception as e:
                     st.error(f"RCA setup failed: {e}")
-            
             else:
-                st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs or upload new ones.")
-            
+                st.warning("⚠️ No processed data or recurring issues available.")
                 # --- Manual RCA entry ---
                 st.markdown("---")
                 st.subheader("Manual 5-Whys & CAPA creation")
