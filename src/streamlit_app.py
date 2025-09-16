@@ -759,7 +759,40 @@ def main():
                     st.warning("No valid datetime and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
+
+            def find_recurring_issues(df, top_n=10):
+                """
+                Detect recurring issues from a DataFrame by scanning for columns
+                whose header matches 'issue' or synonyms (case-insensitive).
+                Returns top N recurring issue phrases.
+                """
+                # Define synonyms for "issue"
+                synonyms = [
+                    "issue", "issues", "problem", "problems", "fault", "faults",
+                    "defect", "defects", "complaint", "complaints",
+                    "incident", "incidents", "error", "errors"
+                ]
             
+                # Find matching columns
+                issue_cols = [c for c in df.columns if any(s in c.lower() for s in synonyms)]
+            
+                if not issue_cols:
+                    return {}  # No issue columns found
+            
+                # Collect texts from all matching columns
+                all_issues = []
+                for col in issue_cols:
+                    all_issues.extend(df[col].dropna().astype(str).tolist())
+            
+                # Normalize text (lower, strip spaces/numbers)
+                normalized = [re.sub(r"\d+", "", t).strip().lower() for t in all_issues if t.strip()]
+            
+                # Count recurring phrases
+                counter = Counter(normalized)
+                top_recurring = dict(counter.most_common(top_n))
+                return top_recurring
+
+                    
             
             # --- Root Cause Analysis (RCA) --
 
@@ -768,29 +801,33 @@ def main():
             st.title("🛠️ AI-Powered Root Cause Analysis")
             st.markdown(
                 "This RCA tool uses your preprocessed data and a reference folder of past issues "
-                "in `NCA/data/` to generate RCA, 5-Whys, CAPA, and Fishbone diagrams."
+                "to generate RCA, 5-Whys, CAPA, and Fishbone diagrams."
             )
             st.markdown("---")
             
-            # --- RCA Section ---
-            st.subheader("Root Cause Analysis (RCA)")
-            
-            # Get preprocessed data from session
+            # ---------------------------
+            # Get processed data
+            # ---------------------------
             p = st.session_state.get("processed")
-            recurring = st.session_state.get("recurring_issues")
-            
-            has_issues = (isinstance(p, pd.DataFrame) and not p.empty) or recurring
+            raw_text = ""
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                # Detect recurring issues
+                recurring = find_recurring_issues(p, top_n=10)
+                has_issues = True
+            else:
+                recurring = {}
+                has_issues = False
             
             if has_issues:
                 try:
-                    # Select issue source
+                    # --- Select issue source ---
                     issue_source = st.radio(
                         "Issue source",
                         options=["Processed table (session)", "Recurring issues (session)"],
                         index=0,
                     )
             
-                    if issue_source == "Processed table (session)" and isinstance(p, pd.DataFrame):
+                    if issue_source == "Processed table (session)":
                         idx = st.number_input(
                             "Pick row index to analyze",
                             min_value=0,
@@ -803,17 +840,19 @@ def main():
                         st.write(raw_text)
             
                     else:
-                        # Use recurring issues from session
-                        choices = list(recurring.items()) if recurring else []
-                        issue_text = st.selectbox(
-                            "Pick recurring issue",
-                            options=[f"{k} — {v} occurrences" for k, v in choices],
-                        )
-                        raw_text = issue_text.split(" — ")[0]
-                        st.markdown("**Selected recurring issue:**")
-                        st.write(raw_text)
+                        # --- Recurring issues dropdown ---
+                        if recurring:
+                            issue_text = st.selectbox(
+                                "Pick recurring issue to run RCA",
+                                options=[f"{k} — {v} occurrences" for k, v in recurring.items()]
+                            )
+                            raw_text = issue_text.split(" — ")[0]
+                            st.markdown("**Selected recurring issue:**")
+                            st.write(raw_text)
+                        else:
+                            st.info("No recurring issues detected.")
             
-                    # RCA mode selector
+                    # --- RCA mode selector ---
                     mode = st.radio(
                         "RCA Mode",
                         options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"]
