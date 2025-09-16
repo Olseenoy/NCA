@@ -13,6 +13,7 @@ from io import BytesIO
 # Local imports (same src/ folder)
 from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from visualization import visualize_fishbone_plotly
+from snca_rca_module import ai_rca_with_fallback, visualize_fishbone_plotly
 
 # -----------------------------
 # Ensure import paths are correct
@@ -762,55 +763,27 @@ def main():
             
 
             # --- Root Cause Analysis (RCA) --
-
-                       # ✅ Set up page
+            
+            
+            # --- Root Cause Analysis (RCA) --
+            
+            # ✅ Set up page
             st.set_page_config(page_title="AI-Powered RCA", layout="wide")
             st.title("🛠️ AI-Powered Root Cause Analysis")
-            st.markdown("Upload logs, SOPs, or maintenance files and run RCA using a free local LLM (preferred) or fallbacks.")
-            
-            # --- Upload Logs ---
-            uploaded_logs = st.file_uploader("Upload log file (CSV)", type=["csv"], key="upload_logs")
-            uploaded_docs = st.file_uploader(
-                "Upload supporting SOPs / Maintenance Docs (optional)",
-                type=["pdf", "docx", "txt"],
-                accept_multiple_files=True,
-                key="upload_docs",
-            )
-            
-            logs_df = None
-            if uploaded_logs:
-                try:
-                    logs_df = pd.read_csv(uploaded_logs)
-                except Exception:
-                    uploaded_logs.seek(0)
-                    logs_df = pd.read_csv(BytesIO(uploaded_logs.getvalue()))
-            
-                st.success(f"✅ Loaded logs: {len(logs_df)} rows")
-                st.dataframe(logs_df.head())
-            
-            # --- Preprocess / Extract recurring issues ---
-            if uploaded_logs and st.button("🔍 Extract recurring issues"):
-                top = extract_recurring_issues(
-                    logs_df,
-                    col_name_candidates=["issue_description", "issue", "problem", "error", "failure", "incident"],
-                    top_n=10
-                )
-                if top:
-                    st.subheader("Top recurring issues (from logs)")
-                    st.json(top)
-                    st.session_state["recurring_issues"] = top
-                else:
-                    st.warning("⚠️ No valid issue column found. Please preprocess logs or rename one of your columns.")
+            st.markdown("This RCA tool uses your preprocessed data and a reference folder of past issues in `nca/data/` to generate RCA, 5-Whys, CAPA, and Fishbone diagrams.")
             
             st.markdown("---")
             
             # --- RCA Section ---
             st.subheader("Root Cause Analysis (RCA)")
             
+            # Get preprocessed data from session
             p = st.session_state.get("processed")
+            recurring = st.session_state.get("recurring_issues")
+            
             has_issues = (
                 (isinstance(p, pd.DataFrame) and not p.empty)
-                or st.session_state.get("recurring_issues")
+                or recurring
             )
             
             if has_issues:
@@ -818,8 +791,8 @@ def main():
                     # Select issue source
                     issue_source = st.radio(
                         "Issue source",
-                        options=["Processed table (session)", "Top recurring issues (from logs)"],
-                        index=1 if st.session_state.get("recurring_issues") else 0
+                        options=["Processed table (session)", "Recurring issues (session)"],
+                        index=0,
                     )
             
                     if issue_source == "Processed table (session)" and isinstance(p, pd.DataFrame):
@@ -835,11 +808,11 @@ def main():
                         st.write(raw_text)
             
                     else:
-                        # Use recurring issues
-                        choices = list(st.session_state.get("recurring_issues", {}).items())
+                        # Use recurring issues from session
+                        choices = list(recurring.items()) if recurring else []
                         issue_text = st.selectbox(
                             "Pick recurring issue",
-                            options=[f"{k} — {v} occurrences" for k, v in choices]
+                            options=[f"{k} — {v} occurrences" for k, v in choices],
                         )
                         raw_text = issue_text.split(" — ")[0]
                         st.markdown("**Selected recurring issue:**")
@@ -847,24 +820,28 @@ def main():
             
                     # RCA mode selector
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
-                    supporting_docs = uploaded_docs or []
             
                     # Run RCA
                     if st.button("Run RCA"):
-                            with st.spinner("Running RCA (this may use a local model)..."):
-                                try:
-                                    sop_text = process_uploaded_docs(supporting_docs)
-                                    # Call ai_rca_with_fallback which orchestrates build_context and LLM call
-                                    result = ai_rca_with_fallback(
-                                        record={"issue": raw_text},   # wrap text in dict for compatibility
-                                        processed_df=p,
-                                        sop_library=sop_text,
-                                        qc_logs=None,
-                                    )
-                                    st.session_state["rca_result"] = result
-                                except Exception as e:
-                                    st.session_state["rca_result"] = {"error": str(e)}
-
+                        with st.spinner("Running RCA using reference folder and AI agent..."):
+                            try:
+                                # Reference folder for past RCAs
+                                reference_folder = "nca/data/"
+                                if not os.path.exists(reference_folder):
+                                    st.warning("⚠️ Reference folder not found. Please create `nca/data/` and add past RCA files.")
+                                
+                                # Run RCA with LLM + Agent (Ollama / LangChain / etc.)
+                                result = ai_rca_with_fallback(
+                                    record={"issue": raw_text},
+                                    processed_df=p,
+                                    sop_library=None,
+                                    qc_logs=None,
+                                    reference_folder=reference_folder,  # << new input
+                                    llm_backend="ollama",  # or "langchain", configurable
+                                )
+                                st.session_state["rca_result"] = result
+                            except Exception as e:
+                                st.session_state["rca_result"] = {"error": str(e)}
             
                     # --- RCA Results ---
                     result = st.session_state.get("rca_result", {})
@@ -918,9 +895,8 @@ def main():
                     st.error(f"RCA setup failed: {e}")
             
             else:
-                st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs or upload new ones.")
-
-                # --- Manual RCA entry ---
+                st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
+                       # --- Manual RCA entry ---
                 st.markdown("---")
                 st.subheader("Manual 5-Whys & CAPA creation")
                 manual_whys = []
