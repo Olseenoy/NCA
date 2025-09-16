@@ -820,14 +820,18 @@ def main():
                     if st.button("Run RCA"):
                         with st.spinner("Running RCA using reference folder and AI agent..."):
                             try:
-                                # Possible folder paths (handles case sensitivity & GitHub clone structure)
+                                # Base directory of this script
+                                current_dir = os.path.dirname(os.path.abspath(__file__))
+                        
+                                # Possible data folder locations (relative to repo structure)
                                 possible_folders = [
+                                    os.path.join(current_dir, "..", "data"),       # NCA/data (relative to src/)
+                                    os.path.join(current_dir, "..", "main", "data"), # NCA/main/data
                                     os.path.join(os.getcwd(), "NCA", "data"),
                                     os.path.join(os.getcwd(), "nca", "data"),
                                     os.path.join(os.getcwd(), "NCA", "main", "data"),
                                     os.path.join(os.getcwd(), "nca", "main", "data"),
-                                    "NCA/data",
-                                    "nca/data"
+                        
 
                                 ]
                                 reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
