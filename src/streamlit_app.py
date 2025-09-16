@@ -832,10 +832,10 @@ def main():
                                 try:
                                     # Try multiple possible folder paths (case-sensitive systems)
                                     possible_folders = [
-                                        os.path.join(os.getcwd(), "NCA", "data"),
-                                        os.path.join(os.getcwd(), "nca", "data"),
-                                        "NCA/data",
-                                        "nca/data"
+                                        os.path.join(os.getcwd(), "NCA", "main", "data"),
+                                        os.path.join(os.getcwd(), "nca", "main", "data"),
+                                        "NCA/main/data",
+                                        "nca/main/data"
                                     ]
                                     reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
                         
