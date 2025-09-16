@@ -826,10 +826,11 @@ def main():
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
             
                     # Run RCA
+                    # --- Run RCA ---
                     if st.button("Run RCA"):
-                        with st.spinner("Running RCA using reference folder and AI agent..."):
-                            try:
-                                # Try multiple possible folder paths (case-sensitive systems)
+                            with st.spinner("Running RCA using reference folder and AI agent..."):
+                                try:
+                                    # Try multiple possible folder paths (case-sensitive systems)
                                     possible_folders = [
                                         os.path.join(os.getcwd(), "NCA", "data"),
                                         os.path.join(os.getcwd(), "nca", "data"),
@@ -842,20 +843,21 @@ def main():
                                         st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
                                     else:
                                         st.success(f"📂 Using reference folder: {reference_folder}")
-                                
-                                                                
-                                        # Run RCA with LLM + Agent (Ollama / LangChain / etc.)
-                                result = ai_rca_with_fallback(
-                                    record={"issue": raw_text},
-                                    processed_df=p,
-                                    sop_library=None,
-                                    qc_logs=None,
-                                    reference_folder=reference_folder,  # << new input
-                                    llm_backend="ollama",  # or "langchain", configurable
-                                )
-                                st.session_state["rca_result"] = result
-                            except Exception as e:
-                                st.session_state["rca_result"] = {"error": str(e)}
+                        
+                                        # Run RCA with LLM + Agent
+                                        result = ai_rca_with_fallback(
+                                            record={"issue": raw_text},
+                                            processed_df=p,
+                                            sop_library=None,
+                                            qc_logs=None,
+                                            reference_folder=reference_folder,  # dynamic folder path
+                                            llm_backend="ollama",  # or "langchain", configurable
+                                        )
+                                        st.session_state["rca_result"] = result
+                        
+                                except Exception as e:
+                                    st.session_state["rca_result"] = {"error": str(e)}
+
             
                     # --- RCA Results ---
                     result = st.session_state.get("rca_result", {})
