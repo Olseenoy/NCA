@@ -822,14 +822,13 @@ def main():
                             try:
                                 # Possible folder paths (handles case sensitivity & GitHub clone structure)
                                 possible_folders = [
-                                    os.path.join(current_dir, "..", "data"),       # NCA/data (relative to src/)
-                                    os.path.join(current_dir, "..", "main", "data"), # NCA/main/data
                                     os.path.join(os.getcwd(), "NCA", "data"),
                                     os.path.join(os.getcwd(), "nca", "data"),
                                     os.path.join(os.getcwd(), "NCA", "main", "data"),
                                     os.path.join(os.getcwd(), "nca", "main", "data"),
                                     "NCA/data",
                                     "nca/data"
+
                                 ]
                                 reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
             
