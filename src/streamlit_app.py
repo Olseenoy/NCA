@@ -12,8 +12,7 @@ from io import BytesIO
             
 # Local imports (same src/ folder)
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
-from visualization import visualize_fishbone_plotly
-from snca_rca_module import ai_rca_with_fallback, visualize_fishbone_plotly
+from visualization import ai_rca_with_fallback, visualize_fishbone_plotly
 
 # -----------------------------
 # Ensure import paths are correct
