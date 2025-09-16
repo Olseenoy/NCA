@@ -830,33 +830,43 @@ def main():
                     if st.button("Run RCA"):
                             with st.spinner("Running RCA using reference folder and AI agent..."):
                                 try:
-                                    # Try multiple possible folder paths (case-sensitive systems)
+                                    # Base directory of this script
+                                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                        
+                                    # Possible data folder locations (relative to repo structure)
                                     possible_folders = [
+                                        os.path.join(current_dir, "..", "data"),       # NCA/data (relative to src/)
+                                        os.path.join(current_dir, "..", "main", "data"), # NCA/main/data
+                                        os.path.join(os.getcwd(), "NCA", "data"),
+                                        os.path.join(os.getcwd(), "nca", "data"),
                                         os.path.join(os.getcwd(), "NCA", "main", "data"),
                                         os.path.join(os.getcwd(), "nca", "main", "data"),
-                                        "NCA/main/data",
-                                        "nca/main/data"
                                     ]
+                        
+                                    # Pick the first existing folder
                                     reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
                         
                                     if not reference_folder:
                                         st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
                                     else:
-                                        st.success(f"📂 Using reference folder: {reference_folder}")
+                                        st.success(f"📂 Using reference folder: {os.path.abspath(reference_folder)}")
+                                        st.write("Files inside reference folder:", os.listdir(reference_folder))
                         
-                                        # Run RCA with LLM + Agent
+                                        # Run RCA with the resolved folder
                                         result = ai_rca_with_fallback(
                                             record={"issue": raw_text},
                                             processed_df=p,
                                             sop_library=None,
                                             qc_logs=None,
-                                            reference_folder=reference_folder,  # dynamic folder path
-                                            llm_backend="ollama",  # or "langchain", configurable
+                                            reference_folder=reference_folder,
+                                            llm_backend="ollama",  # or "langchain"
                                         )
                                         st.session_state["rca_result"] = result
                         
                                 except Exception as e:
                                     st.session_state["rca_result"] = {"error": str(e)}
+
+                        
 
             
                     # --- RCA Results ---
