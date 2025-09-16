@@ -2,6 +2,8 @@
 # File: src/streamlit_app.py
 # ================================
 import os
+import re
+import nltk
 import sys
 import streamlit as st
 import pandas as pd
@@ -9,6 +11,7 @@ import numpy as np
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
+from collections import Counter
             
 # Local imports (same src/ folder)
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
@@ -760,37 +763,47 @@ def main():
             else:
                 st.warning("No processed data available. Please preprocess first.")
 
+
+            # Make sure NLTK has the WordNet lemmatizer
+            from nltk.stem import WordNetLemmatizer
+            nltk.download("wordnet", quiet=True)
+            lemmatizer = WordNetLemmatizer()
+            
+            def normalize_text(text):
+                """
+                Clean, lowercase, remove numbers, and lemmatize words (singular form).
+                """
+                text = str(text).lower()
+                text = re.sub(r"\d+", "", text)  # remove numbers (e.g. lane 5)
+                text = re.sub(r"[^a-z\s]", "", text)  # remove punctuation
+                tokens = text.split()
+                tokens = [lemmatizer.lemmatize(t) for t in tokens]
+                return " ".join(tokens).strip()
+            
             def find_recurring_issues(df, top_n=10):
                 """
-                Detect recurring issues from a DataFrame by scanning for columns
-                whose header matches 'issue' or synonyms (case-insensitive).
-                Returns top N recurring issue phrases.
+                Detect recurring issues by looking for issue-like columns
+                (issue, issues, problem, problems, defect, defects, fault, faults).
+                Normalize them and return the top recurring ones.
                 """
-                # Define synonyms for "issue"
-                synonyms = [
-                    "issue", "issues", "problem", "problems", "fault", "faults",
-                    "defect", "defects", "complaint", "complaints",
-                    "incident", "incidents", "error", "errors"
-                ]
-            
-                # Find matching columns
-                issue_cols = [c for c in df.columns if any(s in c.lower() for s in synonyms)]
-            
+                issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
+                
+                # find candidate columns
+                issue_cols = [col for col in df.columns if any(syn in col.lower() for syn in issue_synonyms)]
+                
                 if not issue_cols:
-                    return {}  # No issue columns found
+                    return {}
             
-                # Collect texts from all matching columns
                 all_issues = []
                 for col in issue_cols:
                     all_issues.extend(df[col].dropna().astype(str).tolist())
             
-                # Normalize text (lower, strip spaces/numbers)
-                normalized = [re.sub(r"\d+", "", t).strip().lower() for t in all_issues if t.strip()]
+                # normalize
+                normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
             
-                # Count recurring phrases
+                # count frequency
                 counter = Counter(normalized)
-                top_recurring = dict(counter.most_common(top_n))
-                return top_recurring
+                return dict(counter.most_common(top_n))
 
                     
             
