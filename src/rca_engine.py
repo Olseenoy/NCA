@@ -22,19 +22,45 @@ def load_reference_files(reference_folder):
     docs = []
     for fname in os.listdir(reference_folder):
         fpath = os.path.join(reference_folder, fname)
-        if fname.endswith(".txt"):
-            with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
-                docs.append(f.read())
-        elif fname.endswith(".docx"):
-            doc = Document(fpath)
-            docs.append("\n".join([p.text for p in doc.paragraphs]))
-        elif fname.endswith(".pdf"):
-            reader = PdfReader(fpath)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() or ""
-            docs.append(text)
+        ext = os.path.splitext(fname)[1].lower()
+
+        try:
+            if ext in [".txt", ".log", ".md", ".json", ".csv"]:
+                if ext == ".csv":
+                    df = pd.read_csv(fpath)
+                    text = "\n".join(df.astype(str).apply(lambda x: " ".join(x), axis=1))
+                else:
+                    with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                        text = f.read()
+                docs.append(text)
+
+            elif ext in [".xlsx", ".xls"]:
+                df = pd.read_excel(fpath)
+                text = "\n".join(df.astype(str).apply(lambda x: " ".join(x), axis=1))
+                docs.append(text)
+
+            elif ext == ".docx":
+                doc = Document(fpath)
+                text = "\n".join([p.text for p in doc.paragraphs])
+                docs.append(text)
+
+            elif ext == ".pdf":
+                reader = PdfReader(fpath)
+                text = ""
+                for page in reader.pages:
+                    text += page.extract_text() or ""
+                docs.append(text)
+
+            else:
+                warnings.warn(f"Unsupported file type skipped: {fname}")
+
+        except Exception as e:
+            warnings.warn(f"Failed to read {fname}: {e}")
+
+    if not docs:
+        warnings.warn("No reference documents found in folder!")
     return docs
+
 
 # --- Utility: Build FAISS index ---
 def build_faiss_index(docs):
