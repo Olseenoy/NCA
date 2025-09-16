@@ -3,6 +3,7 @@
 # =========================
 
 import os
+import pandas as pd
 import warnings
 import faiss
 import torch
