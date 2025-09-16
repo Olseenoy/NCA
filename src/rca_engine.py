@@ -9,7 +9,8 @@ from langchain.llms import Ollama
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from docx import Document
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
+
 
 # Load embedding model once
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
