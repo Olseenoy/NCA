@@ -1,0 +1,70 @@
+# snca_rca_module.py
+import plotly.graph_objects as go
+
+
+def rule_based_rca_fallback(issue_text, processed_df=None):
+    """
+    Very simple rule-based RCA fallback.
+    Scans processed data for patterns and generates generic RCA.
+    """
+    root_causes = ["Insufficient data for AI RCA. Used fallback."]
+    five_whys = [
+        f"Why 1: {issue_text} occurred due to lack of clear cause.",
+        "Why 2: No deeper analysis available without AI.",
+        "Why 3: Using rule-based template.",
+        "Why 4: Limited context from data.",
+        "Why 5: Suggest collecting more structured RCA cases.",
+    ]
+    capa = [
+        {"type": "Preventive", "action": "Collect more RCA cases", "owner": "QA", "due_in_days": 30},
+        {"type": "Corrective", "action": "Investigate issue manually", "owner": "Ops", "due_in_days": 7},
+    ]
+
+    fishbone = {
+        "Man": ["Insufficient training"],
+        "Machine": ["No AI inference available"],
+        "Method": ["Fallback rule-based analysis"],
+        "Material": [],
+        "Measurement": [],
+        "Environment": [],
+    }
+
+    return {
+        "analysis": "Fallback RCA used. AI analysis failed or unavailable.",
+        "root_causes": root_causes,
+        "five_whys": five_whys,
+        "capa": capa,
+        "fishbone": fishbone,
+    }
+
+
+def visualize_fishbone_plotly(fishbone_data):
+    """
+    Plot fishbone diagram using Plotly.
+    """
+    fig = go.Figure()
+
+    categories = list(fishbone_data.keys())
+    y_positions = list(range(len(categories)))
+
+    for y, cat in zip(y_positions, categories):
+        causes = fishbone_data.get(cat, [])
+        for c in causes:
+            fig.add_trace(
+                go.Scatter(
+                    x=[0, 1],
+                    y=[y, y],
+                    mode="lines+text",
+                    text=[cat, c],
+                    textposition="top center"
+                )
+            )
+
+    fig.update_layout(
+        title="Fishbone Diagram",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        height=400,
+    )
+
+    return fig
