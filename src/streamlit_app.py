@@ -821,7 +821,7 @@ def main():
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
             
                     # Run RCA
-                        # --- Run RCA ---
+                    # --- Run RCA ---
                     if st.button("Run RCA"):
                             with st.spinner("Running RCA using reference folder and AI agent..."):
                                 try:
