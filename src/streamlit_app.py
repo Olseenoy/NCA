@@ -762,12 +762,14 @@ def main():
             
             
             # --- Root Cause Analysis (RCA) --
-            
+
             # ✅ Set up page
             st.set_page_config(page_title="AI-Powered RCA", layout="wide")
             st.title("🛠️ AI-Powered Root Cause Analysis")
-            st.markdown("This RCA tool uses your preprocessed data and a reference folder of past issues in `nca/data/` to generate RCA, 5-Whys, CAPA, and Fishbone diagrams.")
-            
+            st.markdown(
+                "This RCA tool uses your preprocessed data and a reference folder of past issues "
+                "in `nca/data/` to generate RCA, 5-Whys, CAPA, and Fishbone diagrams."
+            )
             st.markdown("---")
             
             # --- RCA Section ---
@@ -777,10 +779,7 @@ def main():
             p = st.session_state.get("processed")
             recurring = st.session_state.get("recurring_issues")
             
-            has_issues = (
-                (isinstance(p, pd.DataFrame) and not p.empty)
-                or recurring
-            )
+            has_issues = (isinstance(p, pd.DataFrame) and not p.empty) or recurring
             
             if has_issues:
                 try:
@@ -802,7 +801,6 @@ def main():
                         raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
                         st.markdown("**Selected row preview:**")
                         st.write(raw_text)
-            
                     else:
                         # Use recurring issues from session
                         choices = list(recurring.items()) if recurring else []
@@ -817,28 +815,28 @@ def main():
                     # RCA mode selector
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
             
-                    # Run RCA
+                    # --- Run RCA ---
                     if st.button("Run RCA"):
                         with st.spinner("Running RCA using reference folder and AI agent..."):
                             try:
                                 # Base directory of this script
                                 current_dir = os.path.dirname(os.path.abspath(__file__))
-                        
+            
                                 # Possible data folder locations (relative to repo structure)
                                 possible_folders = [
-                                    os.path.join(current_dir, "..", "data"),       # NCA/data (relative to src/)
+                                    os.path.join(current_dir, "..", "data"),        # NCA/data relative to src/
                                     os.path.join(current_dir, "..", "main", "data"), # NCA/main/data
                                     os.path.join(os.getcwd(), "NCA", "data"),
                                     os.path.join(os.getcwd(), "nca", "data"),
                                     os.path.join(os.getcwd(), "NCA", "main", "data"),
                                     os.path.join(os.getcwd(), "nca", "main", "data"),
-                        
-
                                 ]
                                 reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
             
                                 if not reference_folder:
-                                    st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
+                                    st.warning(
+                                        "⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files."
+                                    )
                                 else:
                                     st.success(f"📂 Using reference folder: {reference_folder}")
             
@@ -849,7 +847,7 @@ def main():
                                         sop_library=None,
                                         qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend="ollama"  # switch to "langchain" if needed
+                                        llm_backend="ollama",  # switch to "langchain" if needed
                                     )
                                     st.session_state["rca_result"] = result
             
