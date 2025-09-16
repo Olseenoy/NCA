@@ -826,96 +826,93 @@ def main():
                     mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
             
                     # Run RCA
-                    # --- Run RCA ---
+                        # --- Run RCA ---
                     if st.button("Run RCA"):
                             with st.spinner("Running RCA using reference folder and AI agent..."):
                                 try:
-                                    # Base directory of this script
-                                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                        
-                                    # Possible data folder locations (relative to repo structure)
+                                    # Possible folder paths (handles case sensitivity & GitHub clone structure)
                                     possible_folders = [
-                                        os.path.join(current_dir, "..", "data"),       # NCA/data (relative to src/)
-                                        os.path.join(current_dir, "..", "main", "data"), # NCA/main/data
                                         os.path.join(os.getcwd(), "NCA", "data"),
                                         os.path.join(os.getcwd(), "nca", "data"),
                                         os.path.join(os.getcwd(), "NCA", "main", "data"),
                                         os.path.join(os.getcwd(), "nca", "main", "data"),
+                                        "NCA/data",
+                                        "nca/data"
                                     ]
-                        
-                                    # Pick the first existing folder
                                     reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
                         
                                     if not reference_folder:
                                         st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
                                     else:
-                                        st.success(f"📂 Using reference folder: {os.path.abspath(reference_folder)}")
-                                        st.write("Files inside reference folder:", os.listdir(reference_folder))
+                                        st.success(f"📂 Using reference folder: {reference_folder}")
                         
-                                        # Run RCA with the resolved folder
+                                        # Call RCA engine
                                         result = ai_rca_with_fallback(
                                             record={"issue": raw_text},
                                             processed_df=p,
                                             sop_library=None,
                                             qc_logs=None,
                                             reference_folder=reference_folder,
-                                            llm_backend="ollama",  # or "langchain"
+                                            llm_backend="ollama"  # switch to "langchain" if needed
                                         )
                                         st.session_state["rca_result"] = result
                         
                                 except Exception as e:
                                     st.session_state["rca_result"] = {"error": str(e)}
-
                         
+                        # --- RCA Results ---
+                        result = st.session_state.get("rca_result", {})
+                        if result:
+                            col1, col2 = st.columns([1, 1])
+                        
+                            with col1:
+                                st.markdown("### RCA - Details")
+                        
+                                if result.get("error"):
+                                    st.error(result.get("error"))
+                        
+                                # Show WHY Analysis
+                                why = result.get("why_analysis") or result.get("five_whys")
+                                if why:
+                                    st.markdown("**5-Whys Analysis:**")
+                                    if isinstance(why, list):
+                                        for i, w in enumerate(why, start=1):
+                                            st.write(f"{i}. {w}")
+                                    else:
+                                        st.write(why)
+                        
+                                # Show Root Cause
+                                if result.get("root_cause"):
+                                    st.markdown("**Root Cause:**")
+                                    st.write(result["root_cause"])
+                        
+                                # Show CAPA
+                                capa = result.get("capa")
+                                if capa:
+                                    st.markdown("**CAPA Recommendations:**")
+                                    if isinstance(capa, list):
+                                        for c in capa:
+                                            st.write(
+                                                f"- **{c.get('type', '')}**: {c.get('action', '')} "
+                                                f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
+                                            )
+                                    else:
+                                        st.write(capa)
+                        
+                            with col2:
+                                st.markdown("### Fishbone Diagram")
+                        
+                                fishbone_data = result.get("fishbone") or {}
+                                if not fishbone_data:
+                                    st.info("No fishbone data available.")
+                                else:
+                                    try:
+                                        fig = visualize_fishbone_plotly(fishbone_data)
+                                        st.plotly_chart(fig, use_container_width=True)
+                                    except Exception as e:
+                                        st.error(f"Fishbone visualization failed: {e}")
+                                        st.json(fishbone_data)
 
-            
-                    # --- RCA Results ---
-                    result = st.session_state.get("rca_result", {})
-                    if result:
-                        col1, col2 = st.columns([1, 1])
-            
-                        with col1:
-                            st.markdown("### RCA - Details")
-            
-                            if result.get("error"):
-                                st.error(result.get("error"))
-            
-                            if result.get("analysis"):
-                                st.markdown("**AI Analysis:**")
-                                st.write(result.get("analysis"))
-            
-                            if result.get("root_causes"):
-                                st.markdown("**Root causes:**")
-                                st.json(result.get("root_causes"))
-            
-                            if result.get("five_whys"):
-                                st.markdown("**5-Whys**")
-                                for i, w in enumerate(result.get("five_whys"), start=1):
-                                    st.write(f"{i}. {w}")
-            
-                            if result.get("capa"):
-                                st.markdown("**CAPA Recommendations**")
-                                for capa in result.get("capa"):
-                                    st.write(
-                                        f"- **{capa.get('type', '')}**: {capa.get('action', '')} "
-                                        f"(Owner: {capa.get('owner', '')}, due in {capa.get('due_in_days', '?')} days)"
-                                    )
-            
-                        with col2:
-                            st.markdown("### Fishbone Diagram")
-                            fishbone_data = result.get("fishbone") or {}
-            
-                            if result.get("fishbone_fig"):
-                                st.plotly_chart(result.get("fishbone_fig"), use_container_width=True)
-                            elif not any(fishbone_data.values()):
-                                st.info("No fishbone data available to plot.")
-                            else:
-                                try:
-                                    fig = visualize_fishbone_plotly(fishbone_data)
-                                    st.plotly_chart(fig, use_container_width=True)
-                                except Exception as e:
-                                    st.error(f"Fishbone visualization failed: {e}")
-                                    st.json(fishbone_data)
             
                 except Exception as e:
                     st.error(f"RCA setup failed: {e}")
