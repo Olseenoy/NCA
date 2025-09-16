@@ -825,7 +825,7 @@ def main():
                         with st.spinner("Running RCA using reference folder and AI agent..."):
                             try:
                                 # Reference folder for past RCAs
-                                reference_folder = "nca/data/"
+                                reference_folder = "NCA/data/"
                                 if not os.path.exists(reference_folder):
                                     st.warning("⚠️ Reference folder not found. Please create `nca/data/` and add past RCA files.")
                                 
