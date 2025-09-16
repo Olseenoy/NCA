@@ -215,32 +215,75 @@ def plot_time_series_trend(df, time_col, value_col, freq="D", agg_func="mean"):
         st.error(f"Time-series plot failed: {e}")
         return None
         
-def visualize_fishbone_plotly(fishbone: Dict[str, list]):
-    # Basic left/right layout
-    categories = list(fishbone.keys())
-    # Create text annotations for each category and reasons
+# snca_rca_module.py
+
+def rule_based_rca_fallback(issue_text, processed_df=None):
+    """
+    Very simple rule-based RCA fallback.
+    Scans processed data for patterns and generates generic RCA.
+    """
+    root_causes = ["Insufficient data for AI RCA. Used fallback."]
+    five_whys = [
+        f"Why 1: {issue_text} occurred due to lack of clear cause.",
+        "Why 2: No deeper analysis available without AI.",
+        "Why 3: Using rule-based template.",
+        "Why 4: Limited context from data.",
+        "Why 5: Suggest collecting more structured RCA cases.",
+    ]
+    capa = [
+        {"type": "Preventive", "action": "Collect more RCA cases", "owner": "QA", "due_in_days": 30},
+        {"type": "Corrective", "action": "Investigate issue manually", "owner": "Ops", "due_in_days": 7},
+    ]
+
+    fishbone = {
+        "Man": ["Insufficient training"],
+        "Machine": ["No AI inference available"],
+        "Method": ["Fallback rule-based analysis"],
+        "Material": [],
+        "Measurement": [],
+        "Environment": [],
+    }
+
+    return {
+        "analysis": "Fallback RCA used. AI analysis failed or unavailable.",
+        "root_causes": root_causes,
+        "five_whys": five_whys,
+        "capa": capa,
+        "fishbone": fishbone,
+    }
+
+
+def visualize_fishbone_plotly(fishbone_data):
+    """
+    Plot fishbone diagram using Plotly.
+    """
     fig = go.Figure()
 
-    # Draw backbone
-    fig.add_shape(type="line", x0=0.1, y0=0.5, x1=0.9, y1=0.5, line=dict(width=3, color="black"))
+    categories = list(fishbone_data.keys())
+    y_positions = list(range(len(categories)))
 
-    # For each category, place a branch
-    n = len(categories)
-    for i, cat in enumerate(categories):
-        ypos = (i + 1) / (n + 1)
-        # branch line
-        fig.add_shape(type="line", x0=0.35, y0=ypos, x1=0.1, y1=0.5, line=dict(width=2, color="black"))
-        # category label
-        fig.add_annotation(x=0.36, y=ypos, text=f"<b>{cat}</b>", showarrow=False, xanchor="left", font=dict(size=12))
-        # reasons (stacked)
-        reasons = fishbone.get(cat, [])
-        for j, r in enumerate(reasons[:5]):
-            fig.add_annotation(x=0.25, y=ypos - (j * 0.03), text=f"- {r}", showarrow=False, xanchor="left", font=dict(size=10))
+    for y, cat in zip(y_positions, categories):
+        causes = fishbone_data.get(cat, [])
+        for c in causes:
+            fig.add_trace(
+                go.Scatter(
+                    x=[0, 1],
+                    y=[y, y],
+                    mode="lines+text",
+                    text=[cat, c],
+                    textposition="top center"
+                )
+            )
 
-    fig.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=500, template=None)
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
+    fig.update_layout(
+        title="Fishbone Diagram",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        height=400,
+    )
+
     return fig
+
 
 
 
