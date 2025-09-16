@@ -2,11 +2,6 @@
 # File: src/streamlit_app.py
 # ================================
 import os
-print("📂 Current working directory:", os.getcwd())
-print("📂 Contents here:", os.listdir("."))
-
-
-import os
 import sys
 import streamlit as st
 import pandas as pd
