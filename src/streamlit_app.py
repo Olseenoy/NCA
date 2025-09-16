@@ -829,12 +829,22 @@ def main():
                     if st.button("Run RCA"):
                         with st.spinner("Running RCA using reference folder and AI agent..."):
                             try:
-                                # Reference folder for past RCAs
-                                reference_folder = "NCA/data/"
-                                if not os.path.exists(reference_folder):
-                                    st.warning("⚠️ Reference folder not found. Please create `nca/data/` and add past RCA files.")
+                                # Try multiple possible folder paths (case-sensitive systems)
+                                    possible_folders = [
+                                        os.path.join(os.getcwd(), "NCA", "data"),
+                                        os.path.join(os.getcwd(), "nca", "data"),
+                                        "NCA/data",
+                                        "nca/data"
+                                    ]
+                                    reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
+                        
+                                    if not reference_folder:
+                                        st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
+                                    else:
+                                        st.success(f"📂 Using reference folder: {reference_folder}")
                                 
-                                # Run RCA with LLM + Agent (Ollama / LangChain / etc.)
+                                                                
+                                        # Run RCA with LLM + Agent (Ollama / LangChain / etc.)
                                 result = ai_rca_with_fallback(
                                     record={"issue": raw_text},
                                     processed_df=p,
