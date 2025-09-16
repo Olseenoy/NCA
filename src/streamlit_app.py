@@ -763,12 +763,12 @@ def main():
             
             # --- Root Cause Analysis (RCA) --
 
-            # ✅ Set up page
+            # --- Page Setup ---
             st.set_page_config(page_title="AI-Powered RCA", layout="wide")
             st.title("🛠️ AI-Powered Root Cause Analysis")
             st.markdown(
                 "This RCA tool uses your preprocessed data and a reference folder of past issues "
-                "in `nca/data/` to generate RCA, 5-Whys, CAPA, and Fishbone diagrams."
+                "in `NCA/data/` to generate RCA, 5-Whys, CAPA, and Fishbone diagrams."
             )
             st.markdown("---")
             
@@ -801,6 +801,7 @@ def main():
                         raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
                         st.markdown("**Selected row preview:**")
                         st.write(raw_text)
+            
                     else:
                         # Use recurring issues from session
                         choices = list(recurring.items()) if recurring else []
@@ -813,7 +814,10 @@ def main():
                         st.write(raw_text)
             
                     # RCA mode selector
-                    mode = st.radio("RCA Mode", options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"])
+                    mode = st.radio(
+                        "RCA Mode",
+                        options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"]
+                    )
             
                     # --- Run RCA ---
                     if st.button("Run RCA"):
@@ -822,10 +826,10 @@ def main():
                                 # Base directory of this script
                                 current_dir = os.path.dirname(os.path.abspath(__file__))
             
-                                # Possible data folder locations (relative to repo structure)
+                                # Possible data folder locations
                                 possible_folders = [
-                                    os.path.join(current_dir, "..", "data"),        # NCA/data relative to src/
-                                    os.path.join(current_dir, "..", "main", "data"), # NCA/main/data
+                                    os.path.join(current_dir, "..", "data"),         # NCA/data relative to src/
+                                    os.path.join(current_dir, "..", "main", "data"),# NCA/main/data
                                     os.path.join(os.getcwd(), "NCA", "data"),
                                     os.path.join(os.getcwd(), "nca", "data"),
                                     os.path.join(os.getcwd(), "NCA", "main", "data"),
@@ -834,9 +838,8 @@ def main():
                                 reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
             
                                 if not reference_folder:
-                                    st.warning(
-                                        "⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files."
-                                    )
+                                    st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
+                                    st.session_state["rca_result"] = {"error": "Reference folder missing."}
                                 else:
                                     st.success(f"📂 Using reference folder: {reference_folder}")
             
@@ -847,7 +850,7 @@ def main():
                                         sop_library=None,
                                         qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend="ollama",  # switch to "langchain" if needed
+                                        llm_backend="ollama"  # switch to "langchain" if needed
                                     )
                                     st.session_state["rca_result"] = result
             
@@ -912,6 +915,7 @@ def main():
             
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
+
 
                        # --- Manual RCA entry ---
                 st.markdown("---")
