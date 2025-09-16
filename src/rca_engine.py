@@ -1,9 +1,12 @@
+# =========================
 # rca_engine.py
+# =========================
 
 import os
 import faiss
 import torch
 import numpy as np
+import plotly.graph_objects as go
 from sentence_transformers import SentenceTransformer
 from langchain.llms import Ollama
 from langchain.prompts import PromptTemplate
@@ -11,8 +14,7 @@ from langchain.chains import LLMChain
 from docx import Document
 from pypdf import PdfReader
 
-
-# Load embedding model once
+# --- Load embedding model once ---
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 # --- Utility: Load files from reference folder ---
@@ -20,22 +22,18 @@ def load_reference_files(reference_folder):
     docs = []
     for fname in os.listdir(reference_folder):
         fpath = os.path.join(reference_folder, fname)
-
         if fname.endswith(".txt"):
             with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
                 docs.append(f.read())
-
         elif fname.endswith(".docx"):
             doc = Document(fpath)
             docs.append("\n".join([p.text for p in doc.paragraphs]))
-
         elif fname.endswith(".pdf"):
             reader = PdfReader(fpath)
             text = ""
             for page in reader.pages:
                 text += page.extract_text() or ""
             docs.append(text)
-
     return docs
 
 # --- Utility: Build FAISS index ---
@@ -47,11 +45,12 @@ def build_faiss_index(docs):
     return index, embeddings, docs
 
 # --- Main RCA Function ---
-def ai_rca_with_fallback(record, processed_df, sop_library, qc_logs, reference_folder, llm_backend="ollama"):
+def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
+                         reference_folder=None, llm_backend="ollama"):
     issue_text = record.get("issue", "No issue text provided.")
 
     # Load and index reference docs
-    reference_docs = load_reference_files(reference_folder)
+    reference_docs = load_reference_files(reference_folder or "NCA/data")
     if not reference_docs:
         return {"error": "No reference documents found in folder."}
 
@@ -60,13 +59,11 @@ def ai_rca_with_fallback(record, processed_df, sop_library, qc_logs, reference_f
     # Embed issue
     issue_vec = embedder.encode([issue_text], convert_to_numpy=True)
     D, I = index.search(issue_vec, k=3)  # Top 3 matches
-
     retrieved_context = "\n\n".join([docs[i] for i in I[0]])
 
     # Setup LLM (Ollama local backend)
     if llm_backend == "ollama":
-        llm = Ollama(model="llama2")  # Change to any local Ollama model
-
+        llm = Ollama(model="llama2")  # Local Ollama model
         prompt_template = PromptTemplate(
             input_variables=["issue", "context"],
             template="""
@@ -85,13 +82,29 @@ Relevant past RCA cases:
 Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
 """
         )
-
         chain = LLMChain(llm=llm, prompt=prompt_template)
         response = chain.run(issue=issue_text, context=retrieved_context)
-
     else:
-        response = {
-            "error": f"Unsupported LLM backend: {llm_backend}"
-        }
+        response = {"error": f"Unsupported LLM backend: {llm_backend}"}
 
     return response
+
+# --- Utility: Plot Fishbone diagram ---
+def visualize_fishbone_plotly(fishbone_dict):
+    categories = list(fishbone_dict.keys())
+    fig = go.Figure()
+    for i, cat in enumerate(categories):
+        causes = fishbone_dict[cat]
+        for j, cause in enumerate(causes):
+            fig.add_trace(go.Scatter(
+                x=[i, i+0.5],
+                y=[0, - (j+1)],
+                mode="lines+markers+text",
+                text=[cat, cause],
+                textposition="top center",
+                line=dict(color="blue", width=2),
+                marker=dict(size=8)
+            ))
+    fig.update_layout(title="Fishbone Diagram", showlegend=False)
+    return fig
+
