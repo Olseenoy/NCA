@@ -24,51 +24,41 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
 # --- Utility: Load files recursively from reference folder ---
 def load_reference_files(reference_folder):
     docs = []
-    if not os.path.exists(reference_folder):
-        warnings.warn(f"Reference folder does not exist: {reference_folder}")
-        return docs
-
-    for root, _, files in os.walk(reference_folder):
+    for root, _, files in os.walk(reference_folder):  # <-- recursively walk subfolders
         for fname in files:
             fpath = os.path.join(root, fname)
             ext = os.path.splitext(fname)[1].lower()
-
             try:
                 if ext in [".txt", ".log", ".md", ".json", ".csv"]:
                     if ext == ".csv":
-                        df = pd.read_csv(fpath, encoding="utf-8", errors="ignore")
+                        df = pd.read_csv(fpath)
                         text = "\n".join(df.astype(str).apply(lambda x: " ".join(x), axis=1))
                     else:
                         with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
                             text = f.read()
                     docs.append(text)
-
                 elif ext in [".xlsx", ".xls"]:
                     df = pd.read_excel(fpath)
                     text = "\n".join(df.astype(str).apply(lambda x: " ".join(x), axis=1))
                     docs.append(text)
-
                 elif ext == ".docx":
                     doc = Document(fpath)
                     text = "\n".join([p.text for p in doc.paragraphs])
                     docs.append(text)
-
                 elif ext == ".pdf":
                     reader = PdfReader(fpath)
                     text = ""
                     for page in reader.pages:
                         text += page.extract_text() or ""
                     docs.append(text)
-
                 else:
                     warnings.warn(f"Unsupported file type skipped: {fname}")
-
             except Exception as e:
                 warnings.warn(f"Failed to read {fname}: {e}")
-
     if not docs:
-        warnings.warn("No reference documents found in folder!")
+        warnings.warn(f"No reference documents found in folder: {reference_folder}")
     return docs
+
 
 
 # --- Utility: Build FAISS index ---
