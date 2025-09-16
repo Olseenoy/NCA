@@ -5,6 +5,7 @@
 import os
 import faiss
 import torch
+import warnings
 import numpy as np
 import plotly.graph_objects as go
 from sentence_transformers import SentenceTransformer
