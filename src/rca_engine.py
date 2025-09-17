@@ -8,9 +8,8 @@ import faiss
 import torch
 import numpy as np
 import plotly.graph_objects as go
-import pandas as pd
 import json
-import requests
+import re
 from sentence_transformers import SentenceTransformer
 from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOpenAI
@@ -63,7 +62,6 @@ def load_reference_files(reference_folder):
     return docs
 
 
-
 # --- Utility: Build FAISS index ---
 def build_faiss_index(docs):
     embeddings = embedder.encode(docs, convert_to_numpy=True)
@@ -91,6 +89,9 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     D, I = index.search(issue_vec, k=min(3, len(docs)))
     retrieved_context = "\n\n".join([docs[i] for i in I[0]])
 
+    # --- Escape curly braces to prevent LangChain errors ---
+    safe_context = retrieved_context.replace("{", "{{").replace("}", "}}")
+
     # --- Prompt ---
     prompt = PromptTemplate(
         input_variables=["issue"],
@@ -100,7 +101,7 @@ You are an RCA (Root Cause Analysis) assistant.
 Issue: {{issue}}
 
 Relevant past RCA cases:
-{retrieved_context}
+{safe_context}
 
 1. Perform a 5 WHY analysis for this issue.
 2. Identify the most probable Root Cause.
@@ -112,39 +113,45 @@ Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
     )
 
     # --- Choose backend ---
-    if llm_backend == "ollama":
-        try:
+    try:
+        if llm_backend == "ollama":
             if remote_host:
                 llm = Ollama(model="llama2", base_url=f"http://{remote_host}")
             else:
                 llm = Ollama(model="llama2")
             chain = LLMChain(llm=llm, prompt=prompt)
             response = chain.run(issue=issue_text)
-        except Exception as e:
-            return {"error": f"Ollama failed: {e}"}
 
-    elif llm_backend == "openai":
-        try:
-            llm = ChatOpenAI(model="gpt-4", temperature=0)
+        elif llm_backend == "openai":
+            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
             chain = LLMChain(llm=llm, prompt=prompt)
             response = chain.run(issue=issue_text)
-        except Exception as e:
-            return {"error": f"OpenAI failed: {e}"}
 
-    elif llm_backend == "huggingface":
-        try:
+        elif llm_backend == "huggingface":
             pipe = pipeline("text-generation", model="tiiuae/falcon-7b-instruct")
             response = pipe(prompt.format(issue=issue_text),
                             max_new_tokens=500, do_sample=True)[0]["generated_text"]
-        except Exception as e:
-            return {"error": f"Hugging Face failed: {e}"}
 
-    else:
-        return {"error": f"Unsupported LLM backend: {llm_backend}"}
+        else:
+            return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
-    return response
+        # --- Try to parse response as JSON ---
+        try:
+            parsed = json.loads(response)
+        except Exception:
+            match = re.search(r"\{.*\}", response, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group(0))
+                except Exception:
+                    parsed = {"raw_text": response}
+            else:
+                parsed = {"raw_text": response}
 
+        return parsed
 
+    except Exception as e:
+        return {"error": f"{llm_backend} failed: {e}"}
 
 
 # --- Utility: Plot Fishbone diagram ---
@@ -165,3 +172,4 @@ def visualize_fishbone_plotly(fishbone_dict):
             ))
     fig.update_layout(title="Fishbone Diagram", showlegend=False)
     return fig
+
