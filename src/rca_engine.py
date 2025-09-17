@@ -9,6 +9,8 @@ import torch
 import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
+import json
+import requests
 from sentence_transformers import SentenceTransformer
 from langchain.llms import Ollama, OpenAI
 from langchain.prompts import PromptTemplate
@@ -71,6 +73,7 @@ def build_faiss_index(docs):
 
 
 # --- Main RCA Function ---
+# --- Main RCA Function ---
 
 def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
                          reference_folder=None, llm_backend="ollama", remote_host=None):
@@ -103,8 +106,10 @@ Relevant past RCA cases:
 3. Suggest CAPA (Corrective and Preventive Actions).
 4. Provide a fishbone diagram structure (JSON with categories: Methods, Machines, People, Materials, Environment, Measurement).
 
-Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
+Respond ONLY in JSON with keys: why_analysis, root_cause, capa, fishbone.
 """
+
+    response_text = ""
 
     # --- Choose backend ---
     if llm_backend == "ollama":
@@ -117,7 +122,7 @@ Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
                 llm=llm,
                 prompt=PromptTemplate(input_variables=["issue", "context"], template=prompt_text)
             )
-            response = chain.run(issue=issue_text, context=retrieved_context)
+            response_text = chain.run(issue=issue_text, context=retrieved_context)
         except Exception as e:
             return {"error": f"Ollama failed: {e}"}
 
@@ -128,21 +133,53 @@ Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
                 llm=llm,
                 prompt=PromptTemplate(input_variables=["issue", "context"], template=prompt_text)
             )
-            response = chain.run(issue=issue_text, context=retrieved_context)
+            response_text = chain.run(issue=issue_text, context=retrieved_context)
         except Exception as e:
             return {"error": f"OpenAI failed: {e}"}
 
     elif llm_backend == "huggingface":
         try:
-            pipe = pipeline("text-generation", model="tiiuae/falcon-7b-instruct")
-            response = pipe(prompt_text, max_new_tokens=500, do_sample=True)[0]["generated_text"]
+            api_key = os.getenv("HUGGINGFACE_API_KEY")
+            if not api_key:
+                return {"error": "HUGGINGFACE_API_KEY not set in environment."}
+
+            headers = {"Authorization": f"Bearer {api_key}"}
+            payload = {"inputs": prompt_text, "parameters": {"max_new_tokens": 600}}
+
+            resp = requests.post(
+                "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+                headers=headers,
+                json=payload,
+                timeout=90,
+            )
+            resp.raise_for_status()
+            output = resp.json()
+
+            if isinstance(output, list) and "generated_text" in output[0]:
+                response_text = output[0]["generated_text"]
+            else:
+                response_text = str(output)
+
         except Exception as e:
             return {"error": f"Hugging Face failed: {e}"}
 
     else:
         return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
-    return response
+    # --- Parse JSON safely ---
+    try:
+        # Some models may return extra text before/after JSON → extract JSON substring
+        start = response_text.find("{")
+        end = response_text.rfind("}") + 1
+        if start != -1 and end != -1:
+            json_str = response_text[start:end]
+            parsed = json.loads(json_str)
+            return parsed
+        else:
+            return {"error": "Model did not return valid JSON", "raw_output": response_text}
+    except Exception as e:
+        return {"error": f"Failed to parse JSON: {e}", "raw_output": response_text}
+
 
 
 # --- Utility: Plot Fishbone diagram ---
