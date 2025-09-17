@@ -931,8 +931,7 @@ def main():
                                         sop_library=None,
                                         qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend=llm_backend,
-                                        remote_host=remote_host if llm_backend == "ollama" else None
+                                        llm_backend=llm_backend
                                     )
                                     st.session_state["rca_result"] = result
             
