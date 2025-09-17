@@ -12,7 +12,8 @@ import pandas as pd
 import json
 import requests
 from sentence_transformers import SentenceTransformer
-from langchain_community.llms import Ollama, OpenAI
+from langchain_community.llms import Ollama
+from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from transformers import pipeline
