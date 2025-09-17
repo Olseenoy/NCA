@@ -23,10 +23,10 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
-if "HF_API_TOKEN" in st.secrets:
-    os.environ["HF_API_TOKEN"] = st.secrets["HF_API_TOKEN"]
+if "HUGGINGFACE_API_KEY" in st.secrets:
+    os.environ["HUGGINGFACE_API_KEY"] = st.secrets["HUGGINGFACE_API_KEY"]
 
-st.write("HF_API_TOKEN loaded:", bool(os.getenv("HF_API_TOKEN")))
+st.write("HF_API_TOKEN loaded:", bool(os.getenv("HUGGINGFACE_API_KEY")))
 st.write("OPENAI_API_KEY loaded:", bool(os.getenv("OPENAI_API_KEY")))
 
 # -----------------------------
@@ -926,24 +926,17 @@ def main():
             
                                     # Call RCA engine with dynamic backend
 
-                                    backend_choice = st.selectbox("Select RCA backend:", ["ollama", "openai", "huggingface"])
-
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
                                         processed_df=p,
-                                        sop_library=None,
-                                        qc_logs=None,
                                         reference_folder=reference_folder,
                                         llm_backend=backend_choice,
                                         openai_key=st.secrets.get("OPENAI_API_KEY"),
-                                        hf_token=st.secrets.get("HF_API_TOKEN")
+                                        hf_token=st.secrets.get("HUGGINGFACE_API_KEY")
                                     )
+
                                     
-                                    st.session_state["rca_result"] = result
-
-
-
-                                            
+                                    st.session_state["rca_result"] = result     
                                    
             
                             except Exception as e:
