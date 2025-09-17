@@ -26,7 +26,7 @@ if "OPENAI_API_KEY" in st.secrets:
 if "HUGGINGFACE_API_KEY" in st.secrets:
     os.environ["HUGGINGFACE_API_KEY"] = st.secrets["HUGGINGFACE_API_KEY"]
 
-st.write("HF_API_TOKEN loaded:", bool(os.getenv("HUGGINGFACE_API_KEY")))
+st.write("HUGGINGFACE_API_KEY loaded:", bool(os.getenv("HUGGINGFACE_API_KEY")))
 st.write("OPENAI_API_KEY loaded:", bool(os.getenv("OPENAI_API_KEY")))
 
 # -----------------------------
