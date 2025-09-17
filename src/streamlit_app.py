@@ -20,10 +20,13 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 
 # --- Load secrets into environment ---
-for key in ["OPENAI_API_KEY", "HF_API_TOKEN"]:
-    if key in st.secrets:
-        os.environ[key] = st.secrets[key]
+if "OPENAI_API_KEY" in st.secrets:
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
+if "HF_API_TOKEN" in st.secrets:
+    os.environ["HF_API_TOKEN"] = st.secrets["HF_API_TOKEN"]
+
+st.write("HF_API_TOKEN loaded:", bool(os.getenv("HF_API_TOKEN")))
 
 # -----------------------------
 # Ensure import paths are correct
