@@ -155,8 +155,8 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
 
         return parsed
 
-    except Exception as e:
-        return {"error": f"{llm_backend} failed: {e}"}
+        except Exception as e:
+            return {"error": f"{llm_backend} failed: {e}"}
 
 
 # --- Utility: Plot Fishbone diagram ---
