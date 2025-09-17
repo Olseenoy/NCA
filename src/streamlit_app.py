@@ -926,9 +926,7 @@ def main():
             
                                     # Call RCA engine with dynamic backend
                                     # Let user pick backend
-                                    backend_choice = st.selectbox(
-                                        "Select RCA backend:",
-                                        ["ollama", "openai", "huggingface"]
+                                    backend_choice = st.selectbox( "Select RCA backend:",["ollama", "openai", "huggingface"] )
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
                                         processed_df=p,
