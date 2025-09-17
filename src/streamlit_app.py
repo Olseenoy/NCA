@@ -819,6 +819,24 @@ def main():
             st.markdown("---")
             
             # ---------------------------
+            # Sidebar: LLM Backend Choice
+            # ---------------------------
+            st.sidebar.header("⚙️ Settings")
+            llm_backend = st.sidebar.radio(
+                "Select LLM Backend",
+                options=["ollama", "openai", "huggingface"],
+                index=0
+            )
+            
+            # For Ollama remote setups, allow host input
+            remote_host = None
+            if llm_backend == "ollama":
+                remote_host = st.sidebar.text_input(
+                    "Ollama Host (default: http://localhost:11434)",
+                    value="http://localhost:11434"
+                )
+            
+            # ---------------------------
             # Get processed data
             # ---------------------------
             p = st.session_state.get("processed")
@@ -880,8 +898,8 @@ def main():
             
                                 # Possible data folder locations
                                 possible_folders = [
-                                    os.path.join(current_dir, "..", "data", "processed"),         # NCA/data relative to src/
-                                    os.path.join(current_dir, "..", "main", "data", "processed"),# NCA/main/data
+                                    os.path.join(current_dir, "..", "data", "processed"),         
+                                    os.path.join(current_dir, "..", "main", "data", "processed"),
                                     os.path.join(os.getcwd(), "NCA", "data", "processed"),
                                     os.path.join(os.getcwd(), "nca", "data", "processed"),
                                     os.path.join(os.getcwd(), "NCA", "main", "data", "processed"),
@@ -895,14 +913,15 @@ def main():
                                 else:
                                     st.success(f"📂 Using reference folder: {reference_folder}")
             
-                                    # Call RCA engine
+                                    # Call RCA engine with dynamic backend
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
                                         processed_df=p,
                                         sop_library=None,
                                         qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend="ollama"  # switch to "langchain" if needed
+                                        llm_backend=llm_backend,
+                                        remote_host=remote_host if llm_backend == "ollama" else None
                                     )
                                     st.session_state["rca_result"] = result
             
