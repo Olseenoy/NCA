@@ -74,8 +74,6 @@ def build_faiss_index(docs):
 
 
 # --- Main RCA Function ---
-# --- Main RCA Function ---
-
 def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
                          reference_folder=None, llm_backend="ollama", remote_host=None):
     issue_text = record.get("issue", "No issue text provided.")
@@ -93,16 +91,16 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     D, I = index.search(issue_vec, k=min(3, len(docs)))
     retrieved_context = "\n\n".join([docs[i] for i in I[0]])
 
-    # --- Prompt (only ONE variable: issue) ---
+    # --- Prompt ---
     prompt = PromptTemplate(
         input_variables=["issue"],
-        template="""
+        template=f"""
 You are an RCA (Root Cause Analysis) assistant.
 
-Issue: {issue}
+Issue: {{issue}}
 
 Relevant past RCA cases:
-""" + retrieved_context + """
+{retrieved_context}
 
 1. Perform a 5 WHY analysis for this issue.
 2. Identify the most probable Root Cause.
@@ -127,8 +125,7 @@ Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
 
     elif llm_backend == "openai":
         try:
-            from langchain_community.chat_models import ChatOpenAI
-            llm = OpenAI(model_name="gpt-4", temperature=0)
+            llm = ChatOpenAI(model="gpt-4", temperature=0)
             chain = LLMChain(llm=llm, prompt=prompt)
             response = chain.run(issue=issue_text)
         except Exception as e:
@@ -146,6 +143,7 @@ Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
         return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
     return response
+
 
 
 
