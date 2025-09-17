@@ -119,10 +119,10 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     # 3. Hugging Face
     elif llm_backend == "huggingface":
         try:
-            if not os.getenv("HF_API_TOKEN"):
-                return {"error": "Hugging Face token not set. Please set HF_API_TOKEN."}
+            if not os.getenv("HUGGINGFACE_API_KEY"):
+                return {"error": "Hugging Face token not set. Please set HUGGINGFACE_API_KEY."}
 
-            headers = {"Authorization": f"Bearer {os.getenv('HF_API_TOKEN')}"}
+            headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"}
             api_url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
             payload = {
                 "inputs": prompt.format(issue=issue_text),
