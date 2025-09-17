@@ -74,14 +74,14 @@ def build_faiss_index(docs):
 
 # --- Main RCA Function ---
 
+import requests  # ensure this is at the top
+
 def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
-                         reference_folder=None, llm_backend="ollama",
-                         openai_key=None, hf_token=None):
+                         reference_folder=None, llm_backend="ollama"):
     """
     Run RCA using Ollama, OpenAI, or Hugging Face dynamically.
     Always returns: {"backend": ..., "response": ..., "parsed": ...}
     """
-
     issue_text = str(record.get("issue", "")).strip()
     if not issue_text:
         return {"error": "No issue text provided."}
@@ -95,21 +95,20 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     response_text = None
     backend_used = llm_backend
 
-    # --- Ollama ---
+    # 1. Ollama
     if llm_backend == "ollama":
         try:
             llm = Ollama(model="llama2")
-            response_text = llm.invoke(prompt.format(issue=issue_text))
+            response = llm.invoke(prompt.format(issue=issue_text))
+            response_text = response if isinstance(response, str) else str(response)
         except Exception as e:
             return {"error": f"Ollama failed: {e}"}
 
-    # --- OpenAI ---
+    # 2. OpenAI
     elif llm_backend == "openai":
         try:
-            key = openai_key or os.getenv("OPENAI_API_KEY")
-            if not key:
-                return {"error": "OpenAI API key not set. Please provide openai_key or set OPENAI_API_KEY."}
-            os.environ["OPENAI_API_KEY"] = key
+            if not os.getenv("OPENAI_API_KEY"):
+                return {"error": "OpenAI API key not set. Please set OPENAI_API_KEY."}
 
             llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
             response = llm.invoke(prompt.format(issue=issue_text))
@@ -117,22 +116,22 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
         except Exception as e:
             return {"error": f"OpenAI failed: {e}"}
 
-    # --- Hugging Face ---
+    # 3. Hugging Face
     elif llm_backend == "huggingface":
         try:
-            token = hf_token or os.getenv("HUGGINGFACE_API_KEY") or os.getenv("HF_API_TOKEN")
-            if not token:
-                return {"error": "Hugging Face token not set. Provide hf_token or set HF_API_TOKEN/HUGGINGFACE_API_KEY."}
+            if not os.getenv("HF_API_TOKEN"):
+                return {"error": "Hugging Face token not set. Please set HF_API_TOKEN."}
 
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = {"Authorization": f"Bearer {os.getenv('HF_API_TOKEN')}"}
             api_url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
             payload = {
                 "inputs": prompt.format(issue=issue_text),
                 "parameters": {"max_new_tokens": 500}
             }
-            r = requests.post(api_url, headers=headers, json=payload, timeout=60)
-            r.raise_for_status()
-            result = r.json()
+            response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            result = response.json()
+
             if isinstance(result, list) and "generated_text" in result[0]:
                 response_text = result[0]["generated_text"]
             else:
@@ -140,6 +139,7 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
         except Exception as e:
             return {"error": f"Hugging Face failed: {e}"}
 
+    # Invalid backend
     else:
         return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
@@ -147,8 +147,10 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     parsed = None
     if response_text:
         try:
+            # Direct JSON
             parsed = json.loads(response_text)
         except Exception:
+            # Try to extract JSON substring
             match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if match:
                 try:
@@ -163,6 +165,8 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
         "backend": backend_used,
         "response": response_text,
         "parsed": parsed
+    }
+
     }
 
 
