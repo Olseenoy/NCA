@@ -72,29 +72,33 @@ def build_faiss_index(docs):
 
 
 # --- Main RCA Function ---
+import requests  # ensure this is at the top
+
 def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
                          reference_folder=None, llm_backend="ollama"):
     """
     Run RCA using Ollama, OpenAI, or Hugging Face dynamically.
+    Always returns: {"backend": ..., "response": ..., "parsed": ...}
     """
-
     issue_text = str(record.get("issue", "")).strip()
     if not issue_text:
         return {"error": "No issue text provided."}
 
-    # RCA Prompt
     prompt = (
         "You are an RCA (Root Cause Analysis) assistant.\n"
         "Issue: {issue}\n\n"
         "Analyze the possible root causes and suggest corrective and preventive actions (CAPA)."
     )
 
+    response_text = None
+    backend_used = llm_backend
+
     # 1. Ollama
     if llm_backend == "ollama":
         try:
             llm = Ollama(model="llama2")
             response = llm.invoke(prompt.format(issue=issue_text))
-            return {"backend": "ollama", "response": response}
+            response_text = response if isinstance(response, str) else str(response)
         except Exception as e:
             return {"error": f"Ollama failed: {e}"}
 
@@ -106,7 +110,7 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
 
             llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
             response = llm.invoke(prompt.format(issue=issue_text))
-            return {"backend": "openai", "response": response.content if hasattr(response, "content") else str(response)}
+            response_text = response.content if hasattr(response, "content") else str(response)
         except Exception as e:
             return {"error": f"OpenAI failed: {e}"}
 
@@ -126,37 +130,40 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
             response.raise_for_status()
             result = response.json()
 
-            # Handle HF response format
             if isinstance(result, list) and "generated_text" in result[0]:
-                output = result[0]["generated_text"]
+                response_text = result[0]["generated_text"]
             else:
-                output = json.dumps(result)
-
-            return {"backend": "huggingface", "response": output}
+                response_text = json.dumps(result)
         except Exception as e:
             return {"error": f"Hugging Face failed: {e}"}
 
-        # 4. Invalid backend
+    # Invalid backend
     else:
         return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
-        # --- Try to parse response as JSON ---
+    # --- Unified JSON Parsing ---
+    parsed = None
+    if response_text:
         try:
-            parsed = json.loads(response)
+            # Direct JSON
+            parsed = json.loads(response_text)
         except Exception:
-            match = re.search(r"\{.*\}", response, re.DOTALL)
+            # Try to extract JSON substring
+            match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if match:
                 try:
                     parsed = json.loads(match.group(0))
                 except Exception:
-                    parsed = {"raw_text": response}
-            else:
-                parsed = {"raw_text": response}
+                    parsed = None
 
-        return parsed
+    if parsed is None:
+        parsed = {"raw_text": response_text}
 
-        except Exception as e:
-            return {"error": f"{llm_backend} failed: {e}"}
+    return {
+        "backend": backend_used,
+        "response": response_text,
+        "parsed": parsed
+    }
 
 
 
