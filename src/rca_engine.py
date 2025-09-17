@@ -136,7 +136,7 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
         except Exception as e:
             return {"error": f"Hugging Face failed: {e}"}
 
-    # 4. Invalid backend
+        # 4. Invalid backend
     else:
         return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
@@ -157,6 +157,7 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
 
         except Exception as e:
             return {"error": f"{llm_backend} failed: {e}"}
+
 
 
 # --- Utility: Plot Fishbone diagram ---
