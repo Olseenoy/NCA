@@ -18,6 +18,13 @@ from collections import Counter
 from rca_engine import ai_rca_with_fallback
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
+
+# --- Load secrets into environment ---
+for key in ["OPENAI_API_KEY", "HF_API_TOKEN"]:
+    if key in st.secrets:
+        os.environ[key] = st.secrets[key]
+
+
 # -----------------------------
 # Ensure import paths are correct
 # -----------------------------
