@@ -167,8 +167,6 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
         "parsed": parsed
     }
 
-    }
-
 
 
 # --- Utility: Plot Fishbone diagram ---
