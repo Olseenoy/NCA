@@ -925,20 +925,16 @@ def main():
                                     st.success(f"📂 Using reference folder: {reference_folder}")
             
                                     # Call RCA engine with dynamic backend
-                                    # Let user pick backend
-                                    backend_choice = st.selectbox( "Select RCA backend:",["ollama", "openai", "huggingface"] )
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
                                         processed_df=p,
+                                        sop_library=None,
+                                        qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend=backend_choice,
-                                        openai_key=st.secrets.get("OPENAI_API_KEY"),
-                                        hf_token=st.secrets.get("HUGGINGFACE_API_KEY")
+                                        llm_backend=llm_backend,
+                                        remote_host=remote_host if llm_backend == "ollama" else None
                                     )
-
-                                    
-                                    st.session_state["rca_result"] = result     
-                                   
+                                    st.session_state["rca_result"] = result
             
                             except Exception as e:
                                 st.session_state["rca_result"] = {"error": str(e)}
@@ -1001,6 +997,7 @@ def main():
             
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
+
 
 
                        # --- Manual RCA entry ---
