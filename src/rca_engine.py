@@ -1,7 +1,6 @@
 # =========================
 # rca_engine.py
 # =========================
-
 import os
 import pandas as pd
 import warnings
@@ -11,9 +10,10 @@ import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from langchain.llms import Ollama
+from langchain.llms import Ollama, OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+from transformers import pipeline
 from docx import Document
 from pypdf import PdfReader
 
@@ -71,8 +71,9 @@ def build_faiss_index(docs):
 
 
 # --- Main RCA Function ---
+
 def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
-                         reference_folder=None, llm_backend="ollama"):
+                         reference_folder=None, llm_backend="ollama", remote_host=None):
     issue_text = record.get("issue", "No issue text provided.")
 
     # Load and index reference docs
@@ -85,21 +86,17 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
 
     # Embed issue
     issue_vec = embedder.encode([issue_text], convert_to_numpy=True)
-    D, I = index.search(issue_vec, k=min(3, len(docs)))  # Top 3 matches
+    D, I = index.search(issue_vec, k=min(3, len(docs)))
     retrieved_context = "\n\n".join([docs[i] for i in I[0]])
 
-    # Setup LLM (Ollama local backend)
-    if llm_backend == "ollama":
-        llm = Ollama(model="llama2")  # Local Ollama model
-        prompt_template = PromptTemplate(
-            input_variables=["issue", "context"],
-            template="""
+    # --- Prompt ---
+    prompt_text = f"""
 You are an RCA (Root Cause Analysis) assistant.
 
-Issue: {issue}
+Issue: {issue_text}
 
 Relevant past RCA cases:
-{context}
+{retrieved_context}
 
 1. Perform a 5 WHY analysis for this issue.
 2. Identify the most probable Root Cause.
@@ -108,11 +105,42 @@ Relevant past RCA cases:
 
 Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
 """
-        )
-        chain = LLMChain(llm=llm, prompt=prompt_template)
-        response = chain.run(issue=issue_text, context=retrieved_context)
+
+    # --- Choose backend ---
+    if llm_backend == "ollama":
+        try:
+            if remote_host:
+                llm = Ollama(model="llama2", base_url=f"http://{remote_host}")
+            else:
+                llm = Ollama(model="llama2")
+            chain = LLMChain(
+                llm=llm,
+                prompt=PromptTemplate(input_variables=["issue", "context"], template=prompt_text)
+            )
+            response = chain.run(issue=issue_text, context=retrieved_context)
+        except Exception as e:
+            return {"error": f"Ollama failed: {e}"}
+
+    elif llm_backend == "openai":
+        try:
+            llm = OpenAI(model_name="gpt-4", temperature=0)
+            chain = LLMChain(
+                llm=llm,
+                prompt=PromptTemplate(input_variables=["issue", "context"], template=prompt_text)
+            )
+            response = chain.run(issue=issue_text, context=retrieved_context)
+        except Exception as e:
+            return {"error": f"OpenAI failed: {e}"}
+
+    elif llm_backend == "huggingface":
+        try:
+            pipe = pipeline("text-generation", model="tiiuae/falcon-7b-instruct")
+            response = pipe(prompt_text, max_new_tokens=500, do_sample=True)[0]["generated_text"]
+        except Exception as e:
+            return {"error": f"Hugging Face failed: {e}"}
+
     else:
-        response = {"error": f"Unsupported LLM backend: {llm_backend}"}
+        return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
     return response
 
