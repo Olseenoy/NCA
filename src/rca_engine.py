@@ -92,24 +92,25 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     D, I = index.search(issue_vec, k=min(3, len(docs)))
     retrieved_context = "\n\n".join([docs[i] for i in I[0]])
 
-    # --- Prompt ---
-    prompt_text = f"""
+    # --- Prompt (only ONE variable: issue) ---
+    prompt = PromptTemplate(
+        input_variables=["issue"],
+        template="""
 You are an RCA (Root Cause Analysis) assistant.
 
-Issue: {issue_text}
+Issue: {issue}
 
 Relevant past RCA cases:
-{retrieved_context}
+""" + retrieved_context + """
 
 1. Perform a 5 WHY analysis for this issue.
 2. Identify the most probable Root Cause.
 3. Suggest CAPA (Corrective and Preventive Actions).
 4. Provide a fishbone diagram structure (JSON with categories: Methods, Machines, People, Materials, Environment, Measurement).
 
-Respond ONLY in JSON with keys: why_analysis, root_cause, capa, fishbone.
+Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
 """
-
-    response_text = ""
+    )
 
     # --- Choose backend ---
     if llm_backend == "ollama":
@@ -118,67 +119,31 @@ Respond ONLY in JSON with keys: why_analysis, root_cause, capa, fishbone.
                 llm = Ollama(model="llama2", base_url=f"http://{remote_host}")
             else:
                 llm = Ollama(model="llama2")
-            chain = LLMChain(
-                llm=llm,
-                prompt=PromptTemplate(input_variables=["issue", "context"], template=prompt_text)
-            )
-            response_text = chain.run(issue=issue_text, context=retrieved_context)
+            chain = LLMChain(llm=llm, prompt=prompt)
+            response = chain.run(issue=issue_text)
         except Exception as e:
             return {"error": f"Ollama failed: {e}"}
 
     elif llm_backend == "openai":
         try:
             llm = OpenAI(model_name="gpt-4", temperature=0)
-            chain = LLMChain(
-                llm=llm,
-                prompt=PromptTemplate(input_variables=["issue", "context"], template=prompt_text)
-            )
-            response_text = chain.run(issue=issue_text, context=retrieved_context)
+            chain = LLMChain(llm=llm, prompt=prompt)
+            response = chain.run(issue=issue_text)
         except Exception as e:
             return {"error": f"OpenAI failed: {e}"}
 
     elif llm_backend == "huggingface":
         try:
-            api_key = os.getenv("HUGGINGFACE_API_KEY")
-            if not api_key:
-                return {"error": "HUGGINGFACE_API_KEY not set in environment."}
-
-            headers = {"Authorization": f"Bearer {api_key}"}
-            payload = {"inputs": prompt_text, "parameters": {"max_new_tokens": 600}}
-
-            resp = requests.post(
-                "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-                headers=headers,
-                json=payload,
-                timeout=90,
-            )
-            resp.raise_for_status()
-            output = resp.json()
-
-            if isinstance(output, list) and "generated_text" in output[0]:
-                response_text = output[0]["generated_text"]
-            else:
-                response_text = str(output)
-
+            pipe = pipeline("text-generation", model="tiiuae/falcon-7b-instruct")
+            response = pipe(prompt.format(issue=issue_text),
+                            max_new_tokens=500, do_sample=True)[0]["generated_text"]
         except Exception as e:
             return {"error": f"Hugging Face failed: {e}"}
 
     else:
         return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
-    # --- Parse JSON safely ---
-    try:
-        # Some models may return extra text before/after JSON → extract JSON substring
-        start = response_text.find("{")
-        end = response_text.rfind("}") + 1
-        if start != -1 and end != -1:
-            json_str = response_text[start:end]
-            parsed = json.loads(json_str)
-            return parsed
-        else:
-            return {"error": "Model did not return valid JSON", "raw_output": response_text}
-    except Exception as e:
-        return {"error": f"Failed to parse JSON: {e}", "raw_output": response_text}
+    return response
 
 
 
