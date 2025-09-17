@@ -7,7 +7,7 @@ import nltk
 import sys
 import streamlit as st
 import pandas as pd
-import numpy as np 
+import numpy as np
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
