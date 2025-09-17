@@ -27,6 +27,7 @@ if "HF_API_TOKEN" in st.secrets:
     os.environ["HF_API_TOKEN"] = st.secrets["HF_API_TOKEN"]
 
 st.write("HF_API_TOKEN loaded:", bool(os.getenv("HF_API_TOKEN")))
+st.write("OPENAI_API_KEY loaded:", bool(os.getenv("OPENAI_API_KEY")))
 
 # -----------------------------
 # Ensure import paths are correct
