@@ -914,16 +914,23 @@ def main():
                                     st.success(f"📂 Using reference folder: {reference_folder}")
             
                                     # Call RCA engine with dynamic backend
+
+                                    backend_choice = st.selectbox("Select RCA backend:", ["ollama", "openai", "huggingface"])
+                                    
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
                                         processed_df=p,
                                         sop_library=None,
                                         qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend=llm_backend,
-                                        remote_host=remote_host if llm_backend == "ollama" else None
+                                        llm_backend=backend_choice
                                     )
                                     st.session_state["rca_result"] = result
+
+
+
+                                            
+                                   
             
                             except Exception as e:
                                 st.session_state["rca_result"] = {"error": str(e)}
