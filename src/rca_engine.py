@@ -127,6 +127,7 @@ Respond in JSON with keys: why_analysis, root_cause, capa, fishbone.
 
     elif llm_backend == "openai":
         try:
+            from langchain_community.chat_models import ChatOpenAI
             llm = OpenAI(model_name="gpt-4", temperature=0)
             chain = LLMChain(llm=llm, prompt=prompt)
             response = chain.run(issue=issue_text)
