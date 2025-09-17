@@ -927,15 +927,18 @@ def main():
                                     # Call RCA engine with dynamic backend
 
                                     backend_choice = st.selectbox("Select RCA backend:", ["ollama", "openai", "huggingface"])
-                                    
+
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
                                         processed_df=p,
                                         sop_library=None,
                                         qc_logs=None,
                                         reference_folder=reference_folder,
-                                        llm_backend=backend_choice
+                                        llm_backend=backend_choice,
+                                        openai_key=st.secrets.get("OPENAI_API_KEY"),
+                                        hf_token=st.secrets.get("HF_API_TOKEN")
                                     )
+                                    
                                     st.session_state["rca_result"] = result
 
 
