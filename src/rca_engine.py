@@ -75,100 +75,63 @@ def build_faiss_index(docs):
 # --- Main RCA Function ---
 
 def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=None,
-                         reference_folder=None, llm_backend="ollama"):
-    """
-    Run RCA using Ollama, OpenAI, or Hugging Face dynamically.
-    Always returns: {"backend": ..., "response": ..., "parsed": ...}
-    """
+                         reference_folder=None, llm_backend="ollama",
+                         openai_key=None, hf_token=None):
+    import os
+    import json, re
+    import requests
+    from langchain_community.chat_models import ChatOpenAI
+    from langchain_community.llms import Ollama
 
-    # --- Input issue ---
+    # Read tokens from environment if not passed
+    openai_key = openai_key or os.getenv("OPENAI_API_KEY")
+    hf_token = hf_token or os.getenv("HF_API_TOKEN")
+
     issue_text = str(record.get("issue", "")).strip()
     if not issue_text:
         return {"error": "No issue text provided."}
 
-    # --- Prompt ---
-    prompt = (
-        "You are an RCA (Root Cause Analysis) assistant.\n"
-        "Issue: {issue}\n\n"
-        "Analyze the possible root causes and suggest corrective and preventive actions (CAPA)."
-    )
-
-    # --- Fetch API keys (env or Streamlit secrets) ---
-    openai_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
-    hf_token = os.getenv("HF_API_TOKEN") or st.secrets.get("HF_API_TOKEN")
+    prompt = f"You are an RCA assistant.\nIssue: {issue_text}\nSuggest root causes and CAPA."
 
     response_text = None
-    backend_used = llm_backend
 
-    # --- 1. Ollama ---
     if llm_backend == "ollama":
-        try:
-            llm = Ollama(model="llama2")
-            response = llm.invoke(prompt.format(issue=issue_text))
-            response_text = response if isinstance(response, str) else str(response)
-        except Exception as e:
-            return {"error": f"Ollama failed: {e}"}
+        llm = Ollama(model="llama2")
+        response_text = llm.invoke(prompt)
 
-    # --- 2. OpenAI ---
     elif llm_backend == "openai":
-        try:
-            if not openai_key:
-                return {"error": "OpenAI API key not set. Please set OPENAI_API_KEY in env or Streamlit secrets."}
+        if not openai_key:
+            return {"error": "OpenAI API key not set."}
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, openai_api_key=openai_key)
+        response = llm.invoke(prompt)
+        response_text = response.content if hasattr(response, "content") else str(response)
 
-            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-            response = llm.invoke(prompt.format(issue=issue_text))
-            response_text = response.content if hasattr(response, "content") else str(response)
-        except Exception as e:
-            return {"error": f"OpenAI failed: {e}"}
-
-    # --- 3. Hugging Face ---
     elif llm_backend == "huggingface":
-        try:
-            if not hf_token:
-                return {"error": "Hugging Face token not set. Please set HF_API_TOKEN in env or Streamlit secrets."}
+        if not hf_token:
+            return {"error": "Hugging Face token not set."}
+        headers = {"Authorization": f"Bearer {hf_token}"}
+        api_url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
+        payload = {"inputs": prompt, "parameters": {"max_new_tokens": 500}}
+        r = requests.post(api_url, headers=headers, json=payload, timeout=60)
+        r.raise_for_status()
+        result = r.json()
+        if isinstance(result, list) and "generated_text" in result[0]:
+            response_text = result[0]["generated_text"]
+        else:
+            response_text = json.dumps(result)
 
-            headers = {"Authorization": f"Bearer {hf_token}"}
-            api_url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
-            payload = {
-                "inputs": prompt.format(issue=issue_text),
-                "parameters": {"max_new_tokens": 500}
-            }
-            response = requests.post(api_url, headers=headers, json=payload, timeout=60)
-            response.raise_for_status()
-            result = response.json()
-
-            if isinstance(result, list) and "generated_text" in result[0]:
-                response_text = result[0]["generated_text"]
-            else:
-                response_text = json.dumps(result)
-        except Exception as e:
-            return {"error": f"Hugging Face failed: {e}"}
-
-    # --- Invalid backend ---
     else:
-        return {"error": f"Unsupported LLM backend: {llm_backend}"}
+        return {"error": f"Unsupported backend: {llm_backend}"}
 
-    # --- Parse JSON if possible ---
-    parsed = None
-    if response_text:
-        try:
-            parsed = json.loads(response_text)
-        except Exception:
-            match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if match:
-                try:
-                    parsed = json.loads(match.group(0))
-                except Exception:
-                    parsed = None
+    # Try to parse JSON if possible
+    try:
+        parsed = json.loads(response_text)
+    except Exception:
+        match = re.search(r"\{.*\}", response_text, re.DOTALL)
+        parsed = json.loads(match.group(0)) if match else {"raw_text": response_text}
 
-    if parsed is None:
-        parsed = {"raw_text": response_text}
+    return {"backend": llm_backend, "response": response_text, "parsed": parsed}
 
-    return {
-        "backend": backend_used,
-        "response": response_text,
-        "parsed": parsed
-    }
 
 
 
