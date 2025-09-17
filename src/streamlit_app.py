@@ -19,15 +19,7 @@ from rca_engine import ai_rca_with_fallback
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 
-# --- Load secrets into environment ---
-if "OPENAI_API_KEY" in st.secrets:
-    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
-if "HUGGINGFACE_API_KEY" in st.secrets:
-    os.environ["HUGGINGFACE_API_KEY"] = st.secrets["HUGGINGFACE_API_KEY"]
-
-st.write("HUGGINGFACE_API_KEY loaded:", bool(os.getenv("HUGGINGFACE_API_KEY")))
-st.write("OPENAI_API_KEY loaded:", bool(os.getenv("OPENAI_API_KEY")))
 
 # -----------------------------
 # Ensure import paths are correct
