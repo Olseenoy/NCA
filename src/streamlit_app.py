@@ -843,47 +843,33 @@ def main():
                 )
 
 
-             # --- Recurring issues table ---
-                
-            if recurring:
-            
-                # Build a table: Issue | Occurrences
-                data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
-                df = pd.DataFrame(data)
-                
-                # Reset index to start at 1
-                df.index = df.index + 1
-                df.index.name = "S/N"
-                
-                st.markdown("### Recurring Issues")
-                st.table(df)
-            
-            else:
-                st.info("No recurring issues detected.")
-                            
-            # ---------------------------
-            # Get processed data
-            # ---------------------------
-            p = st.session_state.get("processed")
-            raw_text = ""
-            if isinstance(p, pd.DataFrame) and not p.empty:
-                # Detect recurring issues
-                recurring = find_recurring_issues(p, top_n=10)
-                has_issues = True
-            else:
-                recurring = {}
-                has_issues = False
-            
-            if has_issues:
-                try:
-                    # --- Select issue source ---
-                    issue_source = st.radio(
-                        "Issue source",
-                        options=["Processed table (session)", "Recurring issues (session)"],
-                        index=0,
-                    )
-            
-                    if issue_source == "Processed table (session)":
+                    # ---------------------------
+                    # Get processed data
+                    # ---------------------------
+                    p = st.session_state.get("processed")
+                    raw_text = ""
+                    
+                    if isinstance(p, pd.DataFrame) and not p.empty:
+                        # Detect recurring issues
+                        recurring = find_recurring_issues(p, top_n=10)
+                    
+                        # --- Recurring issues table (always shown first) ---
+                        if recurring:
+                            import pandas as pd
+                    
+                            data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
+                            df = pd.DataFrame(data)
+                    
+                            # Reset index to start at 1
+                            df.index = df.index + 1
+                            df.index.name = "S/N"
+                    
+                            st.markdown("### Recurring Issues")
+                            st.table(df)
+                        else:
+                            st.info("No recurring issues detected.")
+                    
+                        # --- Only Processed table session ---
                         idx = st.number_input(
                             "Pick row index to analyze",
                             min_value=0,
@@ -894,20 +880,9 @@ def main():
                         raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
                         st.markdown("**Selected row preview:**")
                         st.write(raw_text)
-            
+                    
                     else:
-                        # --- Recurring issues dropdown ---
-                        if recurring:
-                            issue_text = st.selectbox(
-                                "Pick recurring issue to run RCA",
-                                options=[f"{k} — {v} occurrences" for k, v in recurring.items()]
-                            )
-                            raw_text = issue_text.split(" — ")[0]
-                            st.markdown("**Selected recurring issue:**")
-                            st.write(raw_text)
-                        else:
-                            st.info("No recurring issues detected.")
-
+                        st.info("No processed issues available.")
 
                        
 
