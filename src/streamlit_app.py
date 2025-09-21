@@ -866,14 +866,10 @@ def main():
             
 
 
-            
-            
-            # --- RCA mode selector ---
+    
             # --- RCA mode (fixed to AI) ---
             mode = "AI-Powered (LLM+Agent)"
             st.markdown("**RCA Mode:** AI-Powered (LLM+Agent)")
-
-            
             
             # --- Run RCA ---
             if st.button("Run RCA"):
@@ -884,7 +880,7 @@ def main():
             
                         # Possible data folder locations
                         possible_folders = [
-                            os.path.join(current_dir, "..", "data", "processed"),         
+                            os.path.join(current_dir, "..", "data", "processed"),
                             os.path.join(current_dir, "..", "main", "data", "processed"),
                             os.path.join(os.getcwd(), "NCA", "data", "processed"),
                             os.path.join(os.getcwd(), "nca", "data", "processed"),
@@ -899,18 +895,19 @@ def main():
                         else:
                             st.success(f"📂 Using reference folder: {reference_folder}")
             
-                            # Call RCA engine with dynamic backend
-                           # Call RCA engine (auto Gemini→Groq, with fallback fishbone)
+                            # Call RCA engine (auto Gemini→Groq, with fallback fishbone)
                             try:
                                 result = run_llm_rca(
                                     issue_text=raw_text,
                                     reference_folder=reference_folder
                                 )
                                 st.session_state["rca_result"] = result
-                            
+            
                             except Exception as e:
                                 st.session_state["rca_result"] = {"error": str(e)}
-
+            
+                    except Exception as e:
+                        st.session_state["rca_result"] = {"error": f"Setup error: {e}"}
             
             # --- RCA Results ---
             result = st.session_state.get("rca_result", {})
@@ -973,6 +970,7 @@ def main():
                         except Exception as e:
                             st.error(f"Fishbone visualization failed: {e}")
                             st.json(fishbone_data)
+
             
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
