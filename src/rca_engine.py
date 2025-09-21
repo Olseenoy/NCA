@@ -112,7 +112,7 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
         try:
             if not os.getenv("GROQ_API_KEY"):
                 return {"error": "Groq API key not set. Please set GROQ_API_KEY."}
-            llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+            llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
             chain = LLMChain(
                 llm=llm,
                 prompt=PromptTemplate(input_variables=["issue"], template=prompt)
