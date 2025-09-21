@@ -884,8 +884,7 @@ def main():
                 st.markdown("**Selected row preview:**")
                 st.write(raw_text)
             
-            else:
-                st.info("No processed issues available.")
+            
 
 
             
