@@ -841,7 +841,26 @@ def main():
                 groq_api_key = st.sidebar.text_input(
                     "Groq API Key", type="password", placeholder="Enter your free Groq key"
                 )
-            
+
+
+             # --- Recurring issues table ---
+                
+                        if recurring:
+                        
+                            # Build a table: Issue | Occurrences
+                            data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
+                            df = pd.DataFrame(data)
+                            
+                            # Reset index to start at 1
+                            df.index = df.index + 1
+                            df.index.name = "S/N"
+                            
+                            st.markdown("### Recurring Issues")
+                            st.table(df)
+                        
+                        else:
+                            st.info("No recurring issues detected.")
+                            
             # ---------------------------
             # Get processed data
             # ---------------------------
@@ -890,15 +909,8 @@ def main():
                             st.info("No recurring issues detected.")
 
 
-                        # --- Recurring issues table ---
-                        if recurring:
-                            
-                            # Build a table: Issue | Occurrences
-                            data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
-                            df = pd.DataFrame(data)
-                            
-                            st.markdown("### Recurring Issues")
-                            st.table(df)
+                       
+
                     # --- RCA mode selector ---
                     mode = st.radio(
                         "RCA Mode",
