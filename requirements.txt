@@ -35,3 +35,4 @@ langchain-experimental
 langchain-community
 google-generativeai 
 groq  
+langchain-groq
