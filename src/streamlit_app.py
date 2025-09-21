@@ -918,7 +918,8 @@ def main():
                                     st.session_state["rca_result"] = {"error": "Reference folder missing."}
                                 else:
                                     st.success(f"📂 Using reference folder: {reference_folder}")
-            
+                                    st.write("DEBUG raw_text:", raw_text)
+
                                     # Call RCA engine with dynamic backend
                                     result = ai_rca_with_fallback(
                                         record={"issue": raw_text},
@@ -929,6 +930,8 @@ def main():
                                         llm_backend=llm_backend
                                     )
                                     st.session_state["rca_result"] = result
+                                    st.json(result)  # temporary, to see exactly what’s being returned
+
             
                             except Exception as e:
                                 st.session_state["rca_result"] = {"error": str(e)}
