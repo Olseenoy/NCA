@@ -1,5 +1,5 @@
 # =========================
-# llm_rca.py (patched)
+# llm_rca.py (patched with strict JSON + fishbone requirement)
 # =========================
 import os
 import json
@@ -41,18 +41,30 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
     if not issue_text.strip():
         raise ValueError("No issue text provided for RCA")
 
-    # Build the RCA prompt
+    # Build the RCA prompt (STRICT JSON enforced)
     prompt_template = (
         "You are an RCA expert. An issue was reported:\n\n"
         "ISSUE: {issue}\n\n"
         "We have past RCA documents:\n{reference}\n\n"
-        "Please provide:\n"
-        "1. A detailed analysis of the issue.\n"
-        "2. Likely root causes (structured JSON list).\n"
-        "3. A 5-Whys analysis (stepwise).\n"
-        "4. CAPA recommendations (JSON: type, action, owner, due_in_days).\n"
-        "5. Fishbone categories (Man, Machine, Method, Material, Measurement, Environment) with possible causes.\n\n"
-        "Return the answer in JSON format with keys: analysis, root_causes, five_whys, capa, fishbone."
+        "⚠️ IMPORTANT: Respond ONLY in valid JSON. No explanations outside JSON.\n\n"
+        "{\n"
+        "  \"analysis\": \"detailed narrative of the issue\",\n"
+        "  \"root_causes\": [\"list of likely root causes\"],\n"
+        "  \"five_whys\": [\"Why1\", \"Why2\", \"Why3\", \"Why4\", \"Why5\"],\n"
+        "  \"capa\": [\n"
+        "    {\"type\": \"Preventive/Corrective\", \"action\": \"what to do\", \"owner\": \"who\", \"due_in_days\": 10}\n"
+        "  ],\n"
+        "  \"fishbone\": {\n"
+        "    \"Man\": [\"example cause\"],\n"
+        "    \"Machine\": [\"example cause\"],\n"
+        "    \"Method\": [\"example cause\"],\n"
+        "    \"Material\": [\"example cause\"],\n"
+        "    \"Measurement\": [\"example cause\"],\n"
+        "    \"Environment\": [\"example cause\"]\n"
+        "  }\n"
+        "}\n\n"
+        "Always return all six keys (analysis, root_causes, five_whys, capa, fishbone), "
+        "even if some lists are empty."
     )
 
     response = None
@@ -75,7 +87,10 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
         llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
         chain = LLMChain(
             llm=llm,
-            prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt_template)
+            prompt=PromptTemplate(
+                input_variables=["issue", "reference"], 
+                template=prompt_template
+            )
         )
         response = chain.run(issue=issue_text, reference=reference_text)
 
@@ -84,7 +99,10 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
         llm = Ollama(model="mistral")
         chain = LLMChain(
             llm=llm,
-            prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt_template)
+            prompt=PromptTemplate(
+                input_variables=["issue", "reference"], 
+                template=prompt_template
+            )
         )
         response = chain.run(issue=issue_text, reference=reference_text)
 
@@ -98,3 +116,4 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
         parsed = {"analysis": response}
 
     return parsed
+
