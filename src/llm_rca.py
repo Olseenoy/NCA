@@ -1,10 +1,13 @@
+update llm_rca
+
 # =========================
-# llm_rca.py (Auto Gemini→Groq, Fallback Fishbone)
+# llm_rca.py (with Fallback Fishbone)
 # =========================
 import os
 import json
 import google.generativeai as genai
 from langchain_groq import ChatGroq
+from langchain_community.llms import Ollama
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
@@ -28,10 +31,13 @@ def load_reference_texts(reference_folder: str):
 
 
 def _generate_fallback_fishbone(parsed: dict) -> dict:
-    """Generate a fallback fishbone from root causes / whys if LLM does not provide one."""
+    """
+    Generate a fallback fishbone from root causes / whys if LLM does not provide one.
+    """
     categories = ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
     fishbone = {c: [] for c in categories}
 
+    # Use root causes
     root_causes = parsed.get("root_causes", [])
     if isinstance(root_causes, str):
         root_causes = [root_causes]
@@ -53,7 +59,7 @@ def _generate_fallback_fishbone(parsed: dict) -> dict:
         else:
             fishbone["Method"].append(cause)  # default bucket
 
-    # If root causes empty → use 5 Whys
+    # Also use 5-Whys hints if root causes were empty
     if not any(fishbone.values()):
         whys = parsed.get("five_whys", [])
         if isinstance(whys, str):
@@ -64,31 +70,17 @@ def _generate_fallback_fishbone(parsed: dict) -> dict:
     return fishbone
 
 
-def _run_gemini(prompt: str) -> str:
-    if not os.getenv("GEMINI_API_KEY"):
-        raise EnvironmentError("Missing GEMINI_API_KEY")
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    return model.generate_content(prompt).text
-
-
-def _run_groq(prompt: str) -> str:
-    if not os.getenv("GROQ_API_KEY"):
-        raise EnvironmentError("Missing GROQ_API_KEY")
-    llm = ChatGroq(model="llama-3.1-70b-versatile", temperature=0)
-    chain = LLMChain(
-        llm=llm,
-        prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt)
-    )
-    return chain.run(issue="", reference="")  # actual vars injected by caller
-
-
-def run_llm_rca(issue_text: str, reference_folder="nca/data/"):
-    """Run RCA with Gemini first, Groq as fallback. Always returns fishbone."""
+def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini"):
+    """
+    Runs RCA using Gemini, Groq, or Ollama + LangChain.
+    Returns dict with RCA analysis, 5-Whys, CAPA, and fishbone data.
+    """
     reference_text = load_reference_texts(reference_folder)
+
     if not issue_text.strip():
         raise ValueError("No issue text provided for RCA")
 
+    # Prompt stays flexible (we won't enforce JSON too hard here since we have fallback)
     prompt_template = (
         "You are an RCA expert. An issue was reported:\n\n"
         "ISSUE: {issue}\n\n"
@@ -98,31 +90,53 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/"):
         "2. Likely root causes (list).\n"
         "3. A 5-Whys analysis (stepwise).\n"
         "4. CAPA recommendations (structured).\n"
-        "5. Fishbone categories (Man, Machine, Method, Material, Measurement, Environment).\n\n"
+        "5. Fishbone categories (Man, Machine, Method, Material, Measurement, Environment) with possible causes.\n\n"
         "Return the answer in JSON format with keys: analysis, root_causes, five_whys, capa, fishbone."
     )
 
-    prompt = prompt_template.format(issue=issue_text, reference=reference_text)
-
     response = None
-    parsed = {}
 
-    # --- Try Gemini ---
+    # --- Gemini Backend ---
+    if backend == "gemini":
+        if not os.getenv("GEMINI_API_KEY"):
+            raise EnvironmentError("Missing GEMINI_API_KEY")
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response_obj = model.generate_content(
+            prompt_template.format(issue=issue_text, reference=reference_text)
+        )
+        response = response_obj.text
+
+    # --- Groq Backend ---
+    elif backend == "groq":
+        if not os.getenv("GROQ_API_KEY"):
+            raise EnvironmentError("Missing GROQ_API_KEY")
+        llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+        chain = LLMChain(
+            llm=llm,
+            prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt_template)
+        )
+        response = chain.run(issue=issue_text, reference=reference_text)
+
+    # --- Ollama (optional legacy) ---
+    elif backend == "ollama":
+        llm = Ollama(model="mistral")
+        chain = LLMChain(
+            llm=llm,
+            prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt_template)
+        )
+        response = chain.run(issue=issue_text, reference=reference_text)
+
+    else:
+        raise ValueError(f"Unsupported backend: {backend}")
+
+    # Parse JSON response safely
     try:
-        response = _run_gemini(prompt)
         parsed = json.loads(response)
-    except Exception as e:
-        print(f"[LLM RCA] Gemini failed: {e}")
+    except Exception:
+        parsed = {"analysis": response}
 
-        # --- Try Groq fallback ---
-        try:
-            response = _run_groq(prompt_template)
-            parsed = json.loads(response)
-        except Exception as e2:
-            print(f"[LLM RCA] Groq also failed: {e2}")
-            parsed = {"analysis": response or "LLM call failed."}
-
-    # ✅ Ensure fishbone always present
+    # ✅ Fallback fishbone
     if "fishbone" not in parsed or not parsed.get("fishbone"):
         parsed["fishbone"] = _generate_fallback_fishbone(parsed)
 
