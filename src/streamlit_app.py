@@ -888,7 +888,17 @@ def main():
                             st.write(raw_text)
                         else:
                             st.info("No recurring issues detected.")
-            
+
+
+                        # --- Recurring issues table ---
+                        if recurring:
+                            
+                            # Build a table: Issue | Occurrences
+                            data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
+                            df = pd.DataFrame(data)
+                            
+                            st.markdown("### Recurring Issues")
+                            st.table(df)
                     # --- RCA mode selector ---
                     mode = st.radio(
                         "RCA Mode",
