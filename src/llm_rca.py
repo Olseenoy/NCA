@@ -1,5 +1,5 @@
 # =========================
-# llm_rca.py (patched with strict JSON + fishbone requirement)
+# llm_rca.py (with Fallback Fishbone)
 # =========================
 import os
 import json
@@ -11,10 +11,7 @@ from langchain.chains import LLMChain
 
 
 def load_reference_texts(reference_folder: str):
-    """
-    Load past RCA documentation from the reference folder.
-    Returns concatenated string of all file contents.
-    """
+    """Load past RCA documentation from the reference folder."""
     if not os.path.exists(reference_folder):
         return ""
 
@@ -31,6 +28,46 @@ def load_reference_texts(reference_folder: str):
     return "\n\n".join(texts)
 
 
+def _generate_fallback_fishbone(parsed: dict) -> dict:
+    """
+    Generate a fallback fishbone from root causes / whys if LLM does not provide one.
+    """
+    categories = ["Man", "Machine", "Method", "Material", "Measurement", "Environment"]
+    fishbone = {c: [] for c in categories}
+
+    # Use root causes
+    root_causes = parsed.get("root_causes", [])
+    if isinstance(root_causes, str):
+        root_causes = [root_causes]
+
+    for cause in root_causes:
+        c_lower = cause.lower()
+        if any(word in c_lower for word in ["operator", "staff", "training", "human", "error"]):
+            fishbone["Man"].append(cause)
+        elif any(word in c_lower for word in ["machine", "equipment", "motor", "seal", "pump", "calibration"]):
+            fishbone["Machine"].append(cause)
+        elif any(word in c_lower for word in ["method", "process", "procedure", "handling"]):
+            fishbone["Method"].append(cause)
+        elif any(word in c_lower for word in ["material", "film", "raw", "supply", "milk", "packaging"]):
+            fishbone["Material"].append(cause)
+        elif any(word in c_lower for word in ["measure", "test", "qc", "inspection", "gauge"]):
+            fishbone["Measurement"].append(cause)
+        elif any(word in c_lower for word in ["environment", "humidity", "temperature", "dust", "floor", "lighting"]):
+            fishbone["Environment"].append(cause)
+        else:
+            fishbone["Method"].append(cause)  # default bucket
+
+    # Also use 5-Whys hints if root causes were empty
+    if not any(fishbone.values()):
+        whys = parsed.get("five_whys", [])
+        if isinstance(whys, str):
+            whys = [whys]
+        for w in whys:
+            fishbone["Method"].append(w)
+
+    return fishbone
+
+
 def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini"):
     """
     Runs RCA using Gemini, Groq, or Ollama + LangChain.
@@ -41,30 +78,18 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
     if not issue_text.strip():
         raise ValueError("No issue text provided for RCA")
 
-    # Build the RCA prompt (STRICT JSON enforced)
+    # Prompt stays flexible (we won't enforce JSON too hard here since we have fallback)
     prompt_template = (
         "You are an RCA expert. An issue was reported:\n\n"
         "ISSUE: {issue}\n\n"
         "We have past RCA documents:\n{reference}\n\n"
-        "⚠️ IMPORTANT: Respond ONLY in valid JSON. No explanations outside JSON.\n\n"
-        "{\n"
-        "  \"analysis\": \"detailed narrative of the issue\",\n"
-        "  \"root_causes\": [\"list of likely root causes\"],\n"
-        "  \"five_whys\": [\"Why1\", \"Why2\", \"Why3\", \"Why4\", \"Why5\"],\n"
-        "  \"capa\": [\n"
-        "    {\"type\": \"Preventive/Corrective\", \"action\": \"what to do\", \"owner\": \"who\", \"due_in_days\": 10}\n"
-        "  ],\n"
-        "  \"fishbone\": {\n"
-        "    \"Man\": [\"example cause\"],\n"
-        "    \"Machine\": [\"example cause\"],\n"
-        "    \"Method\": [\"example cause\"],\n"
-        "    \"Material\": [\"example cause\"],\n"
-        "    \"Measurement\": [\"example cause\"],\n"
-        "    \"Environment\": [\"example cause\"]\n"
-        "  }\n"
-        "}\n\n"
-        "Always return all six keys (analysis, root_causes, five_whys, capa, fishbone), "
-        "even if some lists are empty."
+        "Please provide:\n"
+        "1. Detailed analysis of the issue.\n"
+        "2. Likely root causes (list).\n"
+        "3. A 5-Whys analysis (stepwise).\n"
+        "4. CAPA recommendations (structured).\n"
+        "5. Fishbone categories (Man, Machine, Method, Material, Measurement, Environment) with possible causes.\n\n"
+        "Return the answer in JSON format with keys: analysis, root_causes, five_whys, capa, fishbone."
     )
 
     response = None
@@ -87,10 +112,7 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
         llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
         chain = LLMChain(
             llm=llm,
-            prompt=PromptTemplate(
-                input_variables=["issue", "reference"], 
-                template=prompt_template
-            )
+            prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt_template)
         )
         response = chain.run(issue=issue_text, reference=reference_text)
 
@@ -99,10 +121,7 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
         llm = Ollama(model="mistral")
         chain = LLMChain(
             llm=llm,
-            prompt=PromptTemplate(
-                input_variables=["issue", "reference"], 
-                template=prompt_template
-            )
+            prompt=PromptTemplate(input_variables=["issue", "reference"], template=prompt_template)
         )
         response = chain.run(issue=issue_text, reference=reference_text)
 
@@ -115,5 +134,8 @@ def run_llm_rca(issue_text: str, reference_folder="nca/data/", backend="gemini")
     except Exception:
         parsed = {"analysis": response}
 
-    return parsed
+    # ✅ Fallback fishbone
+    if "fishbone" not in parsed or not parsed.get("fishbone"):
+        parsed["fishbone"] = _generate_fallback_fishbone(parsed)
 
+    return parsed
