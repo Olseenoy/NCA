@@ -890,10 +890,11 @@ def main():
             
             
             # --- RCA mode selector ---
-            mode = st.radio(
-                "RCA Mode",
-                options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"]
-            )
+            # --- RCA mode (fixed to AI) ---
+            mode = "AI-Powered (LLM+Agent)"
+            st.markdown("**RCA Mode:** AI-Powered (LLM+Agent)")
+
+            
             
             # --- Run RCA ---
             if st.button("Run RCA"):
