@@ -822,27 +822,6 @@ def main():
             )
             st.markdown("---")
             
-            # ---------------------------
-            # Sidebar: LLM Backend Choice
-            # ---------------------------
-            st.sidebar.header("⚙️ Settings")
-            llm_backend = st.sidebar.radio(
-                "Select LLM Backend",
-                options=["gemini", "groq"],   # ✅ replaced ollama/openai/huggingface
-                index=0
-            )
-            
-            # For Gemini you could add an API key input (optional)
-            if llm_backend == "gemini":
-                gemini_api_key = st.sidebar.text_input(
-                    "Gemini API Key", type="password", placeholder="Enter your free Gemini key"
-                )
-            
-            # For Groq you could add an API key input (optional)
-            if llm_backend == "groq":
-                groq_api_key = st.sidebar.text_input(
-                    "Groq API Key", type="password", placeholder="Enter your free Groq key"
-                )
             
             
             # ---------------------------
@@ -921,18 +900,17 @@ def main():
                             st.success(f"📂 Using reference folder: {reference_folder}")
             
                             # Call RCA engine with dynamic backend
-                            result = ai_rca_with_fallback(
-                                record={"issue": raw_text},
-                                processed_df=p,
-                                sop_library=None,
-                                qc_logs=None,
-                                reference_folder=reference_folder,
-                                llm_backend=llm_backend
-                            )
-                            st.session_state["rca_result"] = result
-            
-                    except Exception as e:
-                        st.session_state["rca_result"] = {"error": str(e)}
+                           # Call RCA engine (auto Gemini→Groq, with fallback fishbone)
+                            try:
+                                result = run_llm_rca(
+                                    issue_text=raw_text,
+                                    reference_folder=reference_folder
+                                )
+                                st.session_state["rca_result"] = result
+                            
+                            except Exception as e:
+                                st.session_state["rca_result"] = {"error": str(e)}
+
             
             # --- RCA Results ---
             result = st.session_state.get("rca_result", {})
