@@ -15,6 +15,7 @@ from collections import Counter
 # Local imports (same src/ folder)
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from rca_engine import ai_rca_with_fallback
+from llm_rca import run_llm_rca
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 
