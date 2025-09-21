@@ -937,16 +937,17 @@ def main():
                                 st.session_state["rca_result"] = {"error": str(e)}
             
                     # --- RCA Results ---
+                    # --- RCA Results ---
                     result = st.session_state.get("rca_result", {})
                     if result:
                         col1, col2 = st.columns([1, 1])
-            
+                    
                         with col1:
                             st.markdown("### RCA - Details")
-            
+                    
                             if result.get("error"):
                                 st.error(result.get("error"))
-            
+                    
                             # Show WHY Analysis
                             why = result.get("why_analysis") or result.get("five_whys")
                             if why:
@@ -956,12 +957,12 @@ def main():
                                         st.write(f"{i}. {w}")
                                 else:
                                     st.write(why)
-            
+                    
                             # Show Root Cause
                             if result.get("root_cause"):
                                 st.markdown("**Root Cause:**")
                                 st.write(result["root_cause"])
-            
+                    
                             # Show CAPA
                             capa = result.get("capa")
                             if capa:
@@ -974,10 +975,19 @@ def main():
                                         )
                                 else:
                                     st.write(capa)
-            
+                    
+                            # 🚑 Fallback: show raw response if no structured fields exist
+                            if not any([why, result.get("root_cause"), capa]):
+                                if result.get("parsed", {}).get("raw_text"):
+                                    st.markdown("**AI RCA Report:**")
+                                    st.markdown(result["parsed"]["raw_text"])
+                                elif result.get("response"):
+                                    st.markdown("**AI RCA Report:**")
+                                    st.markdown(result["response"])
+                    
                         with col2:
                             st.markdown("### Fishbone Diagram")
-            
+                    
                             fishbone_data = result.get("fishbone") or {}
                             if not fishbone_data:
                                 st.info("No fishbone data available.")
@@ -988,6 +998,7 @@ def main():
                                 except Exception as e:
                                     st.error(f"Fishbone visualization failed: {e}")
                                     st.json(fishbone_data)
+
             
                 except Exception as e:
                     st.error(f"RCA setup failed: {e}")
