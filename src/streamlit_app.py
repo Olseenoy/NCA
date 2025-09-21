@@ -811,6 +811,8 @@ def main():
             
             # --- Root Cause Analysis (RCA) --
 
+            # --- Root Cause Analysis (RCA) --
+
             # --- Page Setup ---
             st.set_page_config(page_title="AI-Powered RCA", layout="wide")
             st.title("🛠️ AI-Powered Root Cause Analysis")
@@ -841,187 +843,158 @@ def main():
                 groq_api_key = st.sidebar.text_input(
                     "Groq API Key", type="password", placeholder="Enter your free Groq key"
                 )
-
-
-                    # ---------------------------
-                    # Get processed data
-                    # ---------------------------
-                    p = st.session_state.get("processed")
-                    raw_text = ""
-                    
-                    if isinstance(p, pd.DataFrame) and not p.empty:
-                        # Detect recurring issues
-                        recurring = find_recurring_issues(p, top_n=10)
-                    
-                        # --- Recurring issues table (always shown first) ---
-                        if recurring:
-                            import pandas as pd
-                    
-                            data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
-                            df = pd.DataFrame(data)
-                    
-                            # Reset index to start at 1
-                            df.index = df.index + 1
-                            df.index.name = "S/N"
-                    
-                            st.markdown("### Recurring Issues")
-                            st.table(df)
+            
+            
+            # ---------------------------
+            # Get processed data
+            # ---------------------------
+            p = st.session_state.get("processed")
+            raw_text = ""
+            
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                # Detect recurring issues
+                recurring = find_recurring_issues(p, top_n=10)
+            
+                # --- Recurring issues table (always shown first) ---
+                if recurring:
+                    import pandas as pd
+            
+                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
+                    df = pd.DataFrame(data)
+            
+                    # Reset index to start at 1
+                    df.index = df.index + 1
+                    df.index.name = "S/N"
+            
+                    st.markdown("### Recurring Issues")
+                    st.table(df)
+                else:
+                    st.info("No recurring issues detected.")
+            
+                # --- Only Processed table session ---
+                idx = st.number_input(
+                    "Pick row index to analyze",
+                    min_value=0,
+                    max_value=len(p) - 1,
+                    value=0,
+                )
+                row = p.iloc[int(idx)]
+                raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
+                st.markdown("**Selected row preview:**")
+                st.write(raw_text)
+            
+            else:
+                st.info("No processed issues available.")
+            
+            
+            # --- RCA mode selector ---
+            mode = st.radio(
+                "RCA Mode",
+                options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"]
+            )
+            
+            # --- Run RCA ---
+            if st.button("Run RCA"):
+                with st.spinner("Running RCA using reference folder and AI agent..."):
+                    try:
+                        # Base directory of this script
+                        current_dir = os.path.dirname(os.path.abspath(__file__))
+            
+                        # Possible data folder locations
+                        possible_folders = [
+                            os.path.join(current_dir, "..", "data", "processed"),         
+                            os.path.join(current_dir, "..", "main", "data", "processed"),
+                            os.path.join(os.getcwd(), "NCA", "data", "processed"),
+                            os.path.join(os.getcwd(), "nca", "data", "processed"),
+                            os.path.join(os.getcwd(), "NCA", "main", "data", "processed"),
+                            os.path.join(os.getcwd(), "nca", "main", "data", "processed"),
+                        ]
+                        reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
+            
+                        if not reference_folder:
+                            st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
+                            st.session_state["rca_result"] = {"error": "Reference folder missing."}
                         else:
-                            st.info("No recurring issues detected.")
-                    
-                        # --- Only Processed table session ---
-                        idx = st.number_input(
-                            "Pick row index to analyze",
-                            min_value=0,
-                            max_value=len(p) - 1,
-                            value=0,
-                        )
-                        row = p.iloc[int(idx)]
-                        raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
-                        st.markdown("**Selected row preview:**")
-                        st.write(raw_text)
-                    
+                            st.success(f"📂 Using reference folder: {reference_folder}")
+            
+                            # Call RCA engine with dynamic backend
+                            result = ai_rca_with_fallback(
+                                record={"issue": raw_text},
+                                processed_df=p,
+                                sop_library=None,
+                                qc_logs=None,
+                                reference_folder=reference_folder,
+                                llm_backend=llm_backend
+                            )
+                            st.session_state["rca_result"] = result
+            
+                    except Exception as e:
+                        st.session_state["rca_result"] = {"error": str(e)}
+            
+            # --- RCA Results ---
+            result = st.session_state.get("rca_result", {})
+            if result:
+                col1, col2 = st.columns([1, 1])
+            
+                with col1:
+                    st.markdown("### RCA - Details")
+            
+                    if result.get("error"):
+                        st.error(result.get("error"))
+            
+                    # Show WHY Analysis
+                    why = result.get("why_analysis") or result.get("five_whys")
+                    if why:
+                        st.markdown("**5-Whys Analysis:**")
+                        if isinstance(why, list):
+                            for i, w in enumerate(why, start=1):
+                                st.write(f"{i}. {w}")
+                        else:
+                            st.write(why)
+            
+                    # Show Root Cause
+                    if result.get("root_cause"):
+                        st.markdown("**Root Cause:**")
+                        st.write(result["root_cause"])
+            
+                    # Show CAPA
+                    capa = result.get("capa")
+                    if capa:
+                        st.markdown("**CAPA Recommendations:**")
+                        if isinstance(capa, list):
+                            for c in capa:
+                                st.write(
+                                    f"- **{c.get('type', '')}**: {c.get('action', '')} "
+                                    f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
+                                )
+                        else:
+                            st.write(capa)
+            
+                    # 🚑 Fallback: show raw response if no structured fields exist
+                    if not any([why, result.get("root_cause"), capa]):
+                        if result.get("parsed", {}).get("raw_text"):
+                            st.markdown("**AI RCA Report:**")
+                            st.markdown(result["parsed"]["raw_text"])
+                        elif result.get("response"):
+                            st.markdown("**AI RCA Report:**")
+                            st.markdown(result["response"])
+            
+                with col2:
+                    st.markdown("### Fishbone Diagram")
+            
+                    fishbone_data = result.get("fishbone") or {}
+                    if not fishbone_data:
+                        st.info("No fishbone data available.")
                     else:
-                        st.info("No processed issues available.")
-
-                       
-
-                    # --- RCA mode selector ---
-                    mode = st.radio(
-                        "RCA Mode",
-                        options=["AI-Powered (LLM+Agent)", "Rule-Based (fallback)"]
-                    )
-            
-                    # --- Run RCA ---
-                    if st.button("Run RCA"):
-                        with st.spinner("Running RCA using reference folder and AI agent..."):
-                            try:
-                                # Base directory of this script
-                                current_dir = os.path.dirname(os.path.abspath(__file__))
-            
-                                # Possible data folder locations
-                                possible_folders = [
-                                    os.path.join(current_dir, "..", "data", "processed"),         
-                                    os.path.join(current_dir, "..", "main", "data", "processed"),
-                                    os.path.join(os.getcwd(), "NCA", "data", "processed"),
-                                    os.path.join(os.getcwd(), "nca", "data", "processed"),
-                                    os.path.join(os.getcwd(), "NCA", "main", "data", "processed"),
-                                    os.path.join(os.getcwd(), "nca", "main", "data", "processed"),
-                                ]
-                                reference_folder = next((f for f in possible_folders if os.path.exists(f)), None)
-            
-                                if not reference_folder:
-                                    st.warning("⚠️ Reference folder not found. Please create `NCA/data/` and add past RCA files.")
-                                    st.session_state["rca_result"] = {"error": "Reference folder missing."}
-                                else:
-                                    st.success(f"📂 Using reference folder: {reference_folder}")
-                                
-
-                                    # Call RCA engine with dynamic backend
-                                    result = ai_rca_with_fallback(
-                                        record={"issue": raw_text},
-                                        processed_df=p,
-                                        sop_library=None,
-                                        qc_logs=None,
-                                        reference_folder=reference_folder,
-                                        llm_backend=llm_backend
-                                    )
-                                    st.session_state["rca_result"] = result
-                                
-
-            
-                            except Exception as e:
-                                st.session_state["rca_result"] = {"error": str(e)}
-            
-                    # --- RCA Results ---
-                    # --- RCA Results ---
-                    result = st.session_state.get("rca_result", {})
-                    if result:
-                        col1, col2 = st.columns([1, 1])
-                    
-                        with col1:
-                            st.markdown("### RCA - Details")
-                    
-                            if result.get("error"):
-                                st.error(result.get("error"))
-                    
-                            # Show WHY Analysis
-                            why = result.get("why_analysis") or result.get("five_whys")
-                            if why:
-                                st.markdown("**5-Whys Analysis:**")
-                                if isinstance(why, list):
-                                    for i, w in enumerate(why, start=1):
-                                        st.write(f"{i}. {w}")
-                                else:
-                                    st.write(why)
-                    
-                            # Show Root Cause
-                            if result.get("root_cause"):
-                                st.markdown("**Root Cause:**")
-                                st.write(result["root_cause"])
-                    
-                            # Show CAPA
-                            capa = result.get("capa")
-                            if capa:
-                                st.markdown("**CAPA Recommendations:**")
-                                if isinstance(capa, list):
-                                    for c in capa:
-                                        st.write(
-                                            f"- **{c.get('type', '')}**: {c.get('action', '')} "
-                                            f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
-                                        )
-                                else:
-                                    st.write(capa)
-                    
-                            # 🚑 Fallback: show raw response if no structured fields exist
-                            if not any([why, result.get("root_cause"), capa]):
-                                if result.get("parsed", {}).get("raw_text"):
-                                    st.markdown("**AI RCA Report:**")
-                                    st.markdown(result["parsed"]["raw_text"])
-                                elif result.get("response"):
-                                    st.markdown("**AI RCA Report:**")
-                                    st.markdown(result["response"])
-                    
-                        with col2:
-                            st.markdown("### Fishbone Diagram")
-                    
-                            fishbone_data = result.get("fishbone") or {}
-                            if not fishbone_data:
-                                st.info("No fishbone data available.")
-                            else:
-                                try:
-                                    fig = visualize_fishbone_plotly(fishbone_data)
-                                    st.plotly_chart(fig, use_container_width=True)
-                                except Exception as e:
-                                    st.error(f"Fishbone visualization failed: {e}")
-                                    st.json(fishbone_data)
-
-            
-                except Exception as e:
-                    st.error(f"RCA setup failed: {e}")
+                        try:
+                            fig = visualize_fishbone_plotly(fishbone_data)
+                            st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Fishbone visualization failed: {e}")
+                            st.json(fishbone_data)
             
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
-
-
-
-                       # --- Manual RCA entry ---
-                st.markdown("---")
-                st.subheader("Manual 5-Whys & CAPA creation")
-                manual_whys = []
-                for i in range(5):
-                    manual_whys.append(st.text_input(f"Why {i+1}", key=f"manual_why_{i}"))
-            
-                with st.form("capa_form"):
-                    issue_id = st.text_input("Issue ID", value=f"manual-{int(st.session_state.get('current_log', 1))}")
-                    desc = st.text_area("Description")
-                    corrective = st.text_area("Corrective Action")
-                    preventive = st.text_area("Preventive Action")
-                    owner = st.text_input("Owner")
-                    due_days = st.number_input("Due in (days)", min_value=1, max_value=365, value=14)
-                    submitted = st.form_submit_button("Create CAPA")
-                    if submitted:
-                        st.success("✅ CAPA created (DB save not yet implemented)")
 
 
 
