@@ -11,8 +11,7 @@ import numpy as np
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
-from collections import Counter
-            
+from collections import Counter            
 # Local imports (same src/ folder)
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from rca_engine import ai_rca_with_fallback
