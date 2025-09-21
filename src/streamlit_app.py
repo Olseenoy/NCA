@@ -895,7 +895,8 @@ def main():
                         else:
                             st.success(f"📂 Using reference folder: {reference_folder}")
             
-                        
+                            llm_backend = "gemini"
+
                             # Call RCA engine with dynamic backend
                             result = ai_rca_with_fallback(
                                 record={"issue": raw_text},
