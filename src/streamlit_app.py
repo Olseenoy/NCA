@@ -826,16 +826,20 @@ def main():
             st.sidebar.header("⚙️ Settings")
             llm_backend = st.sidebar.radio(
                 "Select LLM Backend",
-                options=["ollama", "openai", "huggingface"],
+                options=["gemini", "groq"],   # ✅ replaced ollama/openai/huggingface
                 index=0
             )
             
-            # For Ollama remote setups, allow host input
-            remote_host = None
-            if llm_backend == "ollama":
-                remote_host = st.sidebar.text_input(
-                    "Ollama Host (default: http://localhost:11434)",
-                    value="http://localhost:11434"
+            # For Gemini you could add an API key input (optional)
+            if llm_backend == "gemini":
+                gemini_api_key = st.sidebar.text_input(
+                    "Gemini API Key", type="password", placeholder="Enter your free Gemini key"
+                )
+            
+            # For Groq you could add an API key input (optional)
+            if llm_backend == "groq":
+                groq_api_key = st.sidebar.text_input(
+                    "Groq API Key", type="password", placeholder="Enter your free Groq key"
                 )
             
             # ---------------------------
