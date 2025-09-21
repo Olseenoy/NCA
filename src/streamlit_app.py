@@ -853,6 +853,7 @@ def main():
             # ---------------------------
             p = st.session_state.get("processed")
             raw_text = ""
+            
             if isinstance(p, pd.DataFrame) and not p.empty:
                 # Detect recurring issues
                 recurring = find_recurring_issues(p, top_n=10)
@@ -894,40 +895,28 @@ def main():
                             st.write(raw_text)
                         else:
                             st.info("No recurring issues detected.")
-
-                      # --- Recurring issues table ---
-                                    
-                      if recurring:
-                        
-                            # Build a table: Issue | Occurrences
-                            data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
-                            df = pd.DataFrame(data)
-                            
-                            # Reset index to start at 1
-                            df.index = df.index + 1
-                            df.index.name = "S/N"
-                            
-                            st.markdown("### Recurring Issues")
-                            st.table(df)
-                        
-                      else:
-                            st.info("No recurring issues detected.")
-                            
             
-                # --- Only Processed table session ---
-                idx = st.number_input(
-                    "Pick row index to analyze",
-                    min_value=0,
-                    max_value=len(p) - 1,
-                    value=0,
-                )
-                row = p.iloc[int(idx)]
-                raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
-                st.markdown("**Selected row preview:**")
-                st.write(raw_text)
+                    # --- Recurring issues table ---
+                    if recurring:
+                        # Build a table: Issue | Occurrences
+                        data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
+                        df = pd.DataFrame(data)
+            
+                        # Reset index to start at 1
+                        df.index = df.index + 1
+                        df.index.name = "S/N"
+            
+                        st.markdown("### Recurring Issues")
+                        st.table(df)
+                    else:
+                        st.info("No recurring issues detected.")
+            
+                except Exception as e:
+                    st.error(f"Error while selecting issue: {e}")
             
             else:
                 st.info("No processed issues available.")
+
             
             
             # --- RCA mode selector ---
