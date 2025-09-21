@@ -15,7 +15,6 @@ from collections import Counter
 # Local imports (same src/ folder)
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from rca_engine import ai_rca_with_fallback
-from llm_rca import run_llm_rca
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 
@@ -896,19 +895,21 @@ def main():
                         else:
                             st.success(f"📂 Using reference folder: {reference_folder}")
             
-                            # Call RCA engine (auto Gemini→Groq, with fallback fishbone)
-                            try:
-                                result = run_llm_rca(
-                                    issue_text=raw_text,
-                                    reference_folder=reference_folder
-                                )
-                                st.session_state["rca_result"] = result
-            
-                            except Exception as e:
-                                st.session_state["rca_result"] = {"error": str(e)}
+                        
+                            # Call RCA engine with dynamic backend
+                            result = ai_rca_with_fallback(
+                                record={"issue": raw_text},
+                                processed_df=p,
+                                sop_library=None,
+                                qc_logs=None,
+                                reference_folder=reference_folder,
+                                llm_backend=llm_backend
+                            )
+                            st.session_state["rca_result"] = result
             
                     except Exception as e:
-                        st.session_state["rca_result"] = {"error": f"Setup error: {e}"}
+                        st.session_state["rca_result"] = {"error": str(e)}
+
             
             # --- RCA Results ---
             result = st.session_state.get("rca_result", {})
