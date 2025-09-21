@@ -33,3 +33,5 @@ python-docx
 unstructured 
 langchain-experimental 
 langchain-community
+google-generativeai 
+groq  
