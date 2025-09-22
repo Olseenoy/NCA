@@ -978,67 +978,6 @@ def main():
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
 
-            # --- RCA Results already displayed above ---
-            st.markdown("---")
-            st.title("📊 RCA Dashboard")
-            
-            # Store every RCA result into session history
-            if "all_rca_results" not in st.session_state:
-                st.session_state["all_rca_results"] = []
-            
-            # Append latest RCA result
-            result = st.session_state.get("rca_result", {})
-            if result and result not in st.session_state["all_rca_results"]:
-                st.session_state["all_rca_results"].append(result)
-            
-            # Convert to DataFrame (flatten dicts if needed)
-            import pandas as pd
-            import plotly.express as px
-            
-            if st.session_state["all_rca_results"]:
-                rca_df = pd.DataFrame(st.session_state["all_rca_results"])
-            else:
-                rca_df = pd.DataFrame()
-            
-            # Dashboard tabs
-            tab1, tab2, tab3 = st.tabs(["Overview", "Reports", "Fishbone"])
-            
-            # --- Tab 1: Overview ---
-            with tab1:
-                st.header("Overview")
-                if not rca_df.empty and "root_cause" in rca_df.columns:
-                    counts = rca_df["root_cause"].value_counts()
-                    if not counts.empty:
-                        fig = px.pie(names=counts.index, values=counts.values, title="Root Cause Distribution")
-                        st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.info("No root cause data yet.")
-                else:
-                    st.info("No RCA results yet.")
-            
-            # --- Tab 2: Reports ---
-            with tab2:
-                st.header("RCA Reports")
-                if not rca_df.empty:
-                    st.dataframe(rca_df)
-                else:
-                    st.warning("No reports available.")
-            
-            # --- Tab 3: Fishbone ---
-            with tab3:
-                st.header("Fishbone Diagrams")
-                if not rca_df.empty and "issue" in rca_df.columns:
-                    issues_with_fishbone = [i for i in rca_df["issue"] if rca_df[rca_df["issue"] == i].iloc[0].get("fishbone")]
-                    if issues_with_fishbone:
-                        selected_issue = st.selectbox("Select issue for fishbone", issues_with_fishbone)
-                        fishbone_data = rca_df[rca_df["issue"] == selected_issue].iloc[0].get("fishbone", {})
-                        fig = visualize_fishbone_plotly(fishbone_data)
-                        st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.info("No fishbone available for any issue yet.")
-                else:
-                    st.warning("No RCA data yet.")
-
             
 
 
