@@ -978,6 +978,59 @@ def main():
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
 
+            # --- RCA Results already displayed above ---
+            
+            st.markdown("---")
+            st.title("📊 RCA Dashboard")
+            
+            # Store every RCA result into session history
+            if "all_rca_results" not in st.session_state:
+                st.session_state["all_rca_results"] = []
+            
+            # Append latest RCA result
+            result = st.session_state.get("rca_result", {})
+            if result and result not in st.session_state["all_rca_results"]:
+                st.session_state["all_rca_results"].append(result)
+            
+            # Convert to DataFrame
+            import pandas as pd
+            df = pd.DataFrame(st.session_state["all_rca_results"])
+            
+            # Dashboard tabs
+            tab1, tab2, tab3 = st.tabs(["Overview", "Reports", "Fishbone"])
+            
+            # --- Tab 1: Overview ---
+            with tab1:
+                st.header("Overview")
+                if not df.empty:
+                    if "root_cause" in df:
+                        import plotly.express as px
+                        fig = px.pie(df, names="root_cause", title="Root Cause Distribution")
+                        st.plotly_chart(fig)
+                else:
+                    st.info("No RCA results yet.")
+            
+            # --- Tab 2: Reports ---
+            with tab2:
+                st.header("RCA Reports")
+                if not df.empty:
+                    st.dataframe(df)
+                else:
+                    st.warning("No reports available.")
+            
+            # --- Tab 3: Fishbone ---
+            with tab3:
+                st.header("Fishbone Diagrams")
+                if not df.empty:
+                    selected_issue = st.selectbox("Select issue for fishbone", df["issue"])
+                    fishbone_data = df[df["issue"] == selected_issue].iloc[0].get("fishbone", {})
+                    if fishbone_data:
+                        fig = visualize_fishbone_plotly(fishbone_data)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("No fishbone available.")
+                else:
+                    st.warning("No RCA data yet.")
 
 
 
