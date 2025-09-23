@@ -568,11 +568,12 @@ def main():
                 clusters_chart_path = "clusters.png"
                 try:
                     st.session_state['cluster_fig'].write_image(
-                        clusters_chart_path,
-                        format="png",
-                        scale=2,           # higher resolution
-                        engine="kaleido"   # explicitly use kaleido
+                        "clusters.jpg",
+                        format="jpg",
+                        scale=2,
+                        engine="kaleido"
                     )
+
 
                     st.session_state["clusters_chart"] = clusters_chart_path
                 except Exception as e:
