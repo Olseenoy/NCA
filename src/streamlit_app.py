@@ -743,35 +743,33 @@ def main():
             p = st.session_state.get('processed')
             
             if isinstance(p, pd.DataFrame) and not p.empty:
+                try:
+                    spc_df = p.copy()
+                    # Convert all numeric-like columns
+                    for c in spc_df.columns:
+                        if not pd.api.types.is_numeric_dtype(spc_df[c]):
+                            spc_df[c] = pd.to_numeric(spc_df[c], errors='coerce')
             
-                # Button to trigger SPC analysis
-                if st.button("Run SPC Analysis"):
-                    try:
-                        spc_df = p.copy()
-                        # Convert all numeric-like columns
-                        for c in spc_df.columns:
-                            if not pd.api.types.is_numeric_dtype(spc_df[c]):
-                                spc_df[c] = pd.to_numeric(spc_df[c], errors='coerce')
+                    num_cols = [c for c in spc_df.select_dtypes(include=['number']).columns if spc_df[c].notna().any()]
+                    if not num_cols:
+                        st.info("No numeric columns available for SPC analysis after conversion.")
+                    else:
+                        spc_col_selected = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col_select')
+                        subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
             
-                        num_cols = [c for c in spc_df.select_dtypes(include=['number']).columns if spc_df[c].notna().any()]
-                        if not num_cols:
-                            st.info("No numeric columns available for SPC analysis after conversion.")
-                        else:
-                            spc_col_selected = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col_select')
-                            subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
+                        # Optional time columns
+                        time_cols = [c for c in spc_df.columns if pd.api.types.is_datetime64_any_dtype(spc_df[c])]
+                        for c in spc_df.select_dtypes(include=['object']).columns:
+                            try:
+                                spc_df[c] = pd.to_datetime(spc_df[c], errors='coerce')
+                                if spc_df[c].notna().any():
+                                    time_cols.append(c)
+                            except Exception:
+                                continue
+                        time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
             
-                            # Optional time columns
-                            time_cols = [c for c in spc_df.columns if pd.api.types.is_datetime64_any_dtype(spc_df[c])]
-                            for c in spc_df.select_dtypes(include=['object']).columns:
-                                try:
-                                    spc_df[c] = pd.to_datetime(spc_df[c], errors='coerce')
-                                    if spc_df[c].notna().any():
-                                        time_cols.append(c)
-                                except Exception:
-                                    continue
-                            time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
-            
-                            # Generate Plotly SPC chart
+                        # --- Button appears after optional time column selection ---
+                        if st.button("Run SPC Analysis"):
                             try:
                                 from visualization import plot_spc_chart
                                 fig_spc = plot_spc_chart(spc_df, spc_col_selected, subgroup_size=subgroup_size, time_col=time_col_selected)
@@ -789,11 +787,7 @@ def main():
                                 spc_summary = "Process shows 2 points outside control limits; needs investigation."
                                 st.session_state["spc_summary"] = spc_summary
             
-                            except Exception as e:
-                                st.error(f"SPC plotting failed: {e}")
-            
-                            # Display in Streamlit
-                            if 'spc_fig' in st.session_state:
+                                # Display chart
                                 st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
                                 st.plotly_chart(
                                     st.session_state['spc_fig'],
@@ -801,11 +795,15 @@ def main():
                                     key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
                                 )
             
-                    except Exception as e:
-                        st.error(f"SPC setup failed: {e}")
+                            except Exception as e:
+                                st.error(f"SPC plotting failed: {e}")
+            
+                except Exception as e:
+                    st.error(f"SPC setup failed: {e}")
             
             else:
                 st.warning("No processed data available for SPC. Please preprocess first.")
+
 
 
             # --- Global Date Format Selector ---
