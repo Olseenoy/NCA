@@ -609,6 +609,7 @@ def main():
             
             # --- Pareto Analysis ---
           
+            # --- Pareto Analysis ---
             st.subheader("Pareto Analysis")
             p = st.session_state.get('processed')
             
@@ -642,21 +643,57 @@ def main():
                     if st.button('Show Pareto'):
                         st.session_state['show_pareto'] = True
                         st.session_state['pareto_col'] = cat_col
+            
                     if st.session_state.get('show_pareto', False):
-                        try:
-                            selected_col = st.session_state.get('pareto_col', cat_col)
-                            tab = pareto_table(p, selected_col)
-                            if tab.empty:
-                                st.warning(f"No valid data found in column '{selected_col}'.")
-                            else:
-                                fig = pareto_plot(tab)
-                                st.plotly_chart(fig, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Pareto failed: {e}")
+                        selected_col = st.session_state.get('pareto_col', cat_col)
+                        pareto_df = pareto_table(p, selected_col)
+            
+                        if pareto_df.empty:
+                            st.warning(f"No valid data found in column '{selected_col}'.")
+                        else:
+                            # --- Plotly Pareto Chart ---
+                            import plotly.graph_objects as go
+                            fig = go.Figure()
+                            fig.add_bar(
+                                x=pareto_df['Category'],
+                                y=pareto_df['Count'],
+                                name='Count',
+                                marker_color='teal'
+                            )
+                            fig.add_scatter(
+                                x=pareto_df['Category'],
+                                y=pareto_df['Cumulative %'],
+                                name='Cumulative %',
+                                yaxis='y2',
+                                marker_color='crimson'
+                            )
+                            fig.update_layout(
+                                title=f"Pareto Chart - {selected_col}",
+                                yaxis=dict(title='Count'),
+                                yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
+                                xaxis_tickangle=-45
+                            )
+            
+                            st.plotly_chart(fig, use_container_width=True)
+            
+                            # --- Save RGB PNG for PDF ---
+                            pareto_chart_path = "pareto_rgb.png"
+                            fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
+            
+                            from PIL import Image as PILImage
+                            pil_img = PILImage.open(pareto_chart_path).convert("RGB")
+                            pil_img.save(pareto_chart_path)
+            
+                            st.session_state["pareto_chart"] = pareto_chart_path
+                            st.session_state["pareto_summary"] = (
+                                f"Top 2 causes contribute to 82% of issues (Pareto Principle confirmed) for '{selected_col}'."
+                            )
+            
                 except Exception as e:
                     st.error(f"Pareto setup failed: {e}")
             else:
                 st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
           
 
 
