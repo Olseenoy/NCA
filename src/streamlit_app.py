@@ -638,12 +638,16 @@ def main():
                 """
                 Clean, lowercase, remove numbers, and lemmatize words (singular form).
                 """
+                if text is None or pd.isna(text):
+                    return ""
+                
                 text = str(text).lower()
-                text = re.sub(r"\d+", "", text)          # remove numbers
-                text = re.sub(r"[^a-z\s]", "", text)    # remove punctuation
+                text = re.sub(r"\d+", "", text)           # remove numbers
+                text = re.sub(r"[^a-z\s]", "", text)     # remove punctuation
                 tokens = text.split()
                 tokens = [lemmatizer.lemmatize(t) for t in tokens]
                 return " ".join(tokens).strip()
+
             
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
                 """
