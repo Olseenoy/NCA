@@ -725,6 +725,7 @@ def main():
                     pareto_df["Cumulative %"] = pareto_df["Percent"].cumsum().round(2)
             
                     # --- Plot Pareto using Plotly ---
+                    # --- Plot Pareto using Plotly ---
                     import plotly.graph_objects as go
                     fig = go.Figure()
                     fig.add_bar(
@@ -740,18 +741,22 @@ def main():
                         yaxis='y2',
                         marker_color='crimson'
                     )
+                    
                     fig.update_layout(
                         title="Pareto Chart of Top Recurring Issues",
-                        width=1200,
-                        height=700,
-                        margin=dict(l=80, r=80, t=100, b=150),
+                        width=1400,  # wider chart
+                        height=800,  # taller chart
+                        margin=dict(l=80, r=80, t=100, b=250),  # larger bottom margin for long labels
                         yaxis=dict(title='Occurrences'),
                         yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
-                        xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+                        xaxis=dict(
+                            tickangle=-45,           # you can try -30 or -20 if labels still cut
+                            tickfont=dict(size=12),  # slightly bigger for readability
+                            automargin=True          # ensures margin adjusts automatically
+                        ),
                         legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
                     )
-            
-                    st.plotly_chart(fig, use_container_width=True)
+
             
                     # --- Save chart for PDF ---
                     pareto_chart_path = "pareto_rgb.png"
