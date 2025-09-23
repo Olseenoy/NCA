@@ -14,6 +14,7 @@ import datetime
 from nltk.stem import WordNetLemmatizer        
 from fuzzywuzzy import process
 from reportlab.platypus import Image as RLImage
+from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
@@ -527,6 +528,8 @@ def main():
         
             # --- Clustering ---
             from PIL import Image as PILImage
+            from reportlab.platypus import Image as RLImage
+            from reportlab.lib import colors
 
             st.subheader("Clustering & Visualization")
         
