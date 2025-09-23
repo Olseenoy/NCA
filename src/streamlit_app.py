@@ -608,12 +608,9 @@ def main():
             
             
             # --- Pareto Analysis ---
-            # --- Pareto Analysis ---
             st.subheader("Pareto Analysis")
             p = st.session_state.get('processed')
             
-            # --- Helper functions ---
-        
             def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
                 if column not in df.columns:
                     return pd.DataFrame()
@@ -634,71 +631,32 @@ def main():
                 tab["Cumulative %"] = tab["Percent"].cumsum().round(2)
                 return tab
             
-            # Pareto Plot
-            def pareto_plot(df: pd.DataFrame) -> go.Figure:
-                fig = go.Figure()
-                fig.add_bar(
-                    x=df["Category"],
-                    y=df["Count"],
-                    name="Count",
-                    marker=dict(color="teal")
-                )
-                fig.add_scatter(
-                    x=df["Category"],
-                    y=df["Cumulative %"],
-                    mode="lines+markers",
-                    name="Cumulative %",
-                    yaxis="y2",
-                    line=dict(color="crimson", width=2)
-                )
-                fig.update_layout(
-                    title="Pareto Analysis",
-                    xaxis=dict(title="Category"),
-                    yaxis=dict(title="Count"),
-                    yaxis2=dict(
-                        title="Cumulative %",
-                        overlaying="y",
-                        side="right",
-                        range=[0, 110]
-                    ),
-                    template="plotly_white"
-                )
-                return fig
-            
-            # --- Main Streamlit App ---
-            def main():
-                st.title("Smart Non-Conformance Analyzer")
-            
-                # --- Pareto Analysis ---
-                st.subheader("Pareto Analysis")
-                p = st.session_state.get('processed')
-            
-                if isinstance(p, pd.DataFrame) and not p.empty:
-                    cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                try:
+                    cat_col = st.selectbox(
+                        'Select column for Pareto',
+                        options=p.columns.tolist(),
+                        help="Choose any column from processed data"
+                    )
                     if st.button('Show Pareto'):
                         st.session_state['show_pareto'] = True
                         st.session_state['pareto_col'] = cat_col
-            
                     if st.session_state.get('show_pareto', False):
-                        selected_col = st.session_state.get('pareto_col', cat_col)
-                        tab = pareto_table(p, selected_col)
-                        if not tab.empty:
-                            fig = pareto_plot(tab)
-                            st.plotly_chart(fig, use_container_width=True)
+                        try:
+                            selected_col = st.session_state.get('pareto_col', cat_col)
+                            tab = pareto_table(p, selected_col)
+                            if tab.empty:
+                                st.warning(f"No valid data found in column '{selected_col}'.")
+                            else:
+                                fig = pareto_plot(tab)
+                                st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Pareto failed: {e}")
+                except Exception as e:
+                    st.error(f"Pareto setup failed: {e}")
+            else:
+                st.warning("No processed data available for Pareto analysis. Please preprocess first.")
             
-                            # --- Save PNG for PDF (force RGB) ---
-                            pareto_chart_path = "pareto_rgb.png"
-                            fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
-                            pil_img = PILImage.open(pareto_chart_path).convert("RGB")
-                            pil_img.save(pareto_chart_path)
-                            st.session_state["pareto_chart"] = pareto_chart_path
-                        else:
-                            st.warning(f"No valid data found in column '{selected_col}'.")
-                else:
-                    st.warning("No processed data available for Pareto analysis. Please preprocess first.")
-
-
-
 
 
 
