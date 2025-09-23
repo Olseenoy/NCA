@@ -612,17 +612,25 @@ def main():
     
           
             # --- NLTK & Utilities ---
-            
-            # Ensure WordNet data is available
-            try:
-                nltk.data.find("corpora/wordnet")
-            except LookupError:
-                nltk.download("wordnet", quiet=True)
-            
-            # Initialize lemmatizer
-            lemmatizer = WordNetLemmatizer()
 
+            def main():
+                # Ensure WordNet data is available before creating the lemmatizer
+                try:
+                    nltk.data.find("corpora/wordnet")
+                except LookupError:
+                    nltk.download("wordnet", quiet=True)
             
+                # Now safe to initialize
+                lemmatizer = WordNetLemmatizer()
+            
+                # Example usage
+                text = "leakages in cans"
+                tokens = [lemmatizer.lemmatize(t) for t in text.lower().split()]
+                print(tokens)
+            
+            if __name__ == "__main__":
+                main()
+
             # ---------------------------
             # Text normalization & recurring issues
             # ---------------------------
