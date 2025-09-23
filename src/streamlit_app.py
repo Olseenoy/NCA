@@ -1064,14 +1064,15 @@ def main():
             
 
             # Helper to fix black & white issue
+
             def rgb_image_for_pdf(path, width=400, height=250):
-                """Convert chart image to RGB and return a ReportLab-safe Image."""
-                pil_img = PILImage.open(path).convert("RGB")
+                """Convert any chart image into true RGB and return ReportLab-safe Image."""
+                pil_img = PILImage.open(path).convert("RGB")   # force RGB, drop alpha
                 img_buffer = io.BytesIO()
-                pil_img.save(img_buffer, format="PNG")   # force RGB PNG
+                pil_img.save(img_buffer, format="PNG")         # re-save as RGB PNG
                 img_buffer.seek(0)
                 return RLImage(img_buffer, width=width, height=height)
-            
+
             # Main PDF generator
             def generate_pdf():
                 buffer = io.BytesIO()
@@ -1092,6 +1093,7 @@ def main():
                     elements.append(Paragraph(st.session_state["clusters_summary"], styles['Normal']))
                     if "clusters_chart" in st.session_state:
                         elements.append(rgb_image_for_pdf(st.session_state["clusters_chart"]))
+
                     elements.append(Spacer(1, 20))
             
                 # =====================
