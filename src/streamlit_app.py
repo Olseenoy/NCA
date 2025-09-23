@@ -1078,7 +1078,8 @@ def main():
                     file_name="SNCA_Report.pdf",
                     mime="application/pdf"
                 )
-              st.write("✅ Reached PDF export section")  # just to confirm code path
+                
+                st.write("✅ Reached PDF export section")  # just to confirm code path
 
 
 
