@@ -613,14 +613,15 @@ def main():
           
             # --- NLTK & Utilities ---
             
-            
-            # Ensure WordNet is downloaded
+            # Ensure WordNet data is available
             try:
                 nltk.data.find("corpora/wordnet")
             except LookupError:
                 nltk.download("wordnet", quiet=True)
             
+            # Initialize lemmatizer
             lemmatizer = WordNetLemmatizer()
+
             
             # ---------------------------
             # Text normalization & recurring issues
