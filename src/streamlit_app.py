@@ -614,19 +614,19 @@ def main():
             # --- NLTK & Utilities ---
 
             def main():
-                # Ensure WordNet data is available before creating the lemmatizer
+                import nltk
+                from nltk.stem import WordNetLemmatizer
+            
+                # Ensure WordNet data exists
                 try:
                     nltk.data.find("corpora/wordnet")
                 except LookupError:
                     nltk.download("wordnet", quiet=True)
             
-                # Now safe to initialize
                 lemmatizer = WordNetLemmatizer()
-            
-                # Example usage
-                text = "leakages in cans"
-                tokens = [lemmatizer.lemmatize(t) for t in text.lower().split()]
-                print(tokens)
+                
+                # rest of your code...
+
             
             if __name__ == "__main__":
                 main()
