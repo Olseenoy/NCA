@@ -668,33 +668,29 @@ def main():
                                 st.session_state["pareto_summary"] = pareto_summary
             
                                # --- Matplotlib export for PDF ---
-                               
-                                # Dynamically scale width based on number of categories
-                                n_cats = len(tab["Category"])
-                                width = max(10, n_cats * 0.6)   # 0.6 inch per category, at least 10
-                                height = 6
-                                
-                                fig_m, ax1 = plt.subplots(figsize=(width, height))
+                               # --- Matplotlib export for PDF ---
+                                fig_m, ax1 = plt.subplots(figsize=(8, 5))  # bigger figure
                                 
                                 # Bar plot (Pareto counts)
-                                bars = ax1.bar(tab["Category"], tab["Count"], color="skyblue")
-                                ax1.set_ylabel("Count", fontsize=12)
-                                ax1.set_title(f"Pareto Chart - {selected_col}", fontsize=14, weight="bold")
-                                ax1.tick_params(axis='x', rotation=60, labelsize=10)
+                                ax1.bar(tab["Category"], tab["Count"], color="skyblue")
+                                ax1.set_ylabel("Count")
+                                ax1.set_title(f"Pareto Chart - {selected_col}")
+                                ax1.tick_params(axis='x', rotation=45)
+                                
+                                # If too many categories, rotate labels and adjust layout
+                                plt.xticks(rotation=60, ha="right")  
+                                plt.tight_layout()
                                 
                                 # Add cumulative % line (on secondary axis)
                                 ax2 = ax1.twinx()
-                                ax2.plot(tab["Category"], tab["Cumulative %"], color="red", marker="o", linewidth=2)
-                                ax2.set_ylabel("Cumulative %", fontsize=12)
-                                
-                                # Improve layout
-                                plt.xticks(rotation=60, ha="right")
-                                plt.tight_layout()
+                                ax2.plot(tab["Category"], tab["Cumulative %"], color="red", marker="o")
+                                ax2.set_ylabel("Cumulative %")
                                 
                                 # Save export
                                 pareto_chart_path = "pareto.png"
-                                fig_m.savefig(pareto_chart_path, dpi=200, bbox_inches="tight")  # 200 dpi = sharper
+                                fig_m.savefig(pareto_chart_path, dpi=150, bbox_inches="tight")
                                 st.session_state["pareto_chart"] = pareto_chart_path
+
 
 
                         except Exception as e:
