@@ -646,6 +646,7 @@ def main():
                     if st.button('Show Pareto'):
                         st.session_state['show_pareto'] = True
                         st.session_state['pareto_col'] = cat_col
+            
                     if st.session_state.get('show_pareto', False):
                         try:
                             selected_col = st.session_state.get('pareto_col', cat_col)
@@ -653,14 +654,34 @@ def main():
                             if tab.empty:
                                 st.warning(f"No valid data found in column '{selected_col}'.")
                             else:
+                                # --- Plotly for Streamlit UI (interactive) ---
                                 fig = pareto_plot(tab)
                                 st.plotly_chart(fig, use_container_width=True)
+            
+                                # --- Matplotlib Export for PDF ---
+                                import matplotlib.pyplot as plt
+                                fig_m, ax1 = plt.subplots()
+                                ax1.bar(tab["Category"], tab["Count"], color="skyblue")
+                                ax1.set_ylabel("Count")
+                                ax1.set_title(f"Pareto Chart - {selected_col}")
+                                ax1.tick_params(axis='x', rotation=45)
+            
+                                # Add cumulative % line
+                                ax2 = ax1.twinx()
+                                ax2.plot(tab["Category"], tab["Cumulative %"], color="red", marker="o")
+                                ax2.set_ylabel("Cumulative %")
+            
+                                pareto_chart_path = "pareto.png"
+                                fig_m.savefig(pareto_chart_path, dpi=150, bbox_inches="tight")
+                                st.session_state["pareto_chart"] = pareto_chart_path
+            
                         except Exception as e:
                             st.error(f"Pareto failed: {e}")
                 except Exception as e:
                     st.error(f"Pareto setup failed: {e}")
             else:
                 st.warning("No processed data available for Pareto analysis. Please preprocess first.")
+
             
             
             # --- SPC Section ---
