@@ -756,7 +756,7 @@ def main():
                         ),
                         legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
                     )
-
+                    st.plotly_chart(fig, use_container_width=True)
             
                     # --- Save chart for PDF ---
                     pareto_chart_path = "pareto_rgb.png"
