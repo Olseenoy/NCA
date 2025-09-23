@@ -613,38 +613,29 @@ def main():
           
             # --- NLTK & Utilities ---
 
-            def main():
-                import nltk
-                from nltk.stem import WordNetLemmatizer
+            # Make sure NLTK has the WordNet lemmatizer
+            from nltk.stem import WordNetLemmatizer
+            from collections import Counter
+            import re
+            from fuzzywuzzy import process  # pip install fuzzywuzzy[speedup]
             
-                # Ensure WordNet data exists
-                try:
-                    nltk.data.find("corpora/wordnet")
-                except LookupError:
-                    nltk.download("wordnet", quiet=True)
+            nltk.download("wordnet", quiet=True)
+            lemmatizer = WordNetLemmatizer()
             
-                lemmatizer = WordNetLemmatizer()
-                
-                # rest of your code...
-
-            
-            if __name__ == "__main__":
-                main()
-
-            # ---------------------------
-            # Text normalization & recurring issues
-            # ---------------------------
             def normalize_text(text):
                 """
                 Clean, lowercase, remove numbers, normalize spacing/hyphens, and lemmatize words (singular form).
-                Safely handles None/NaN/non-string inputs.
+                Safely handles None, NaN, non-string, or unexpected types.
                 """
                 if text is None:
                     return ""
-                try:
-                    text = str(text)
-                except Exception:
-                    return ""
+                
+                # Ensure it's a string; if not, attempt conversion
+                if not isinstance(text, str):
+                    try:
+                        text = str(text)
+                    except Exception:
+                        return ""
             
                 text = text.lower()
                 text = re.sub(r"\d+", "", text)            # remove numbers
@@ -654,69 +645,49 @@ def main():
                 tokens = text.split()
                 tokens = [lemmatizer.lemmatize(t) for t in tokens]
                 return " ".join(tokens).strip()
-            
-            
+
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
                 """
                 Detect recurring issues in columns related to issues, problems, defects, faults.
-                Normalize, merge similar phrases, capitalize each word, and return top N.
+                Normalize, merge similar phrases, capitalize first letter, and return top N.
                 """
                 issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
             
-                # Find candidate columns
+                # find candidate columns
                 issue_cols = [col for col in df.columns if any(syn in col.lower() for syn in issue_synonyms)]
                 if not issue_cols:
                     return {}
             
-                # Collect all issues
                 all_issues = []
                 for col in issue_cols:
                     all_issues.extend(df[col].dropna().astype(str).tolist())
             
-                # Normalize text
+                # normalize
                 normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
             
-                # Merge similar issues using fuzzy matching
+                # merge similar issues
                 merged_issues = []
                 for issue in normalized:
                     if not merged_issues:
                         merged_issues.append(issue)
                     else:
+                        # find best match among existing merged issues
                         match, score = process.extractOne(issue, merged_issues)
                         if score >= similarity_threshold:
-                            # merge similar issues
+                            # use the existing merged issue
                             merged_issues[merged_issues.index(match)] = match
                         else:
                             merged_issues.append(issue)
             
-                # Count frequency
+                # count frequency
                 counter = Counter(merged_issues)
                 top_issues = dict(counter.most_common(top_n))
             
-                # Capitalize each word for display
-                top_issues_cap = {k.title(): v for k, v in top_issues.items()}
+                # Capitalize first letter for display
+                top_issues_cap = {k.capitalize(): v for k, v in top_issues.items()}
             
                 return top_issues_cap
 
-            
-            # ---------------------------
-            # Streamlit recurring issues table
-            # ---------------------------
-            st.subheader("Recurring Issues")
-            p = st.session_state.get("processed")
-            if isinstance(p, pd.DataFrame) and not p.empty:
-                recurring_issues = find_recurring_issues(p, top_n=10)
-                if recurring_issues:
-                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring_issues.items()]
-                    df_issues = pd.DataFrame(data)
-                    df_issues.index = df_issues.index + 1
-                    df_issues.index.name = "S/N"
-                    st.table(df_issues)
-                    st.session_state["recurring_issues_table"] = df_issues
-                else:
-                    st.info("No recurring issues detected.")
-            else:
-                st.warning("No processed data available for recurring issues analysis.")
             
             # ---------------------------
             # Pareto chart from recurring issues table
