@@ -504,6 +504,7 @@ def main():
                     st.error("Please select at least one text column.")
                 else:
                     try:
+                        # --- Preprocess ---
                         p = preprocess_df_keepall(df, text_cols)
                         st.session_state['processed'] = p
                         st.success('Preprocessing complete')
@@ -512,91 +513,63 @@ def main():
                         st.stop()
             
                     try:
+                        # --- Compute embeddings ---
                         embeddings = embed_texts(p['clean_text'].tolist())
                         st.session_state['embeddings'] = embeddings
                         st.success('Embeddings computed')
                     except Exception as e:
                         st.error(f"Embedding failed: {e}")
-            # --- Only show analysis after preprocessing & embeddings ---
-            if 'processed' in st.session_state and 'embeddings' in st.session_state:
-                p = st.session_state.get('processed')
-                embeddings = st.session_state.get('embeddings')
+                        st.stop()
             
-                # Guard checks
-                valid_p = isinstance(p, pd.DataFrame) and not p.empty
-                valid_embeddings = embeddings is not None and len(embeddings) > 0
-        
-            # --- Clustering ---
-            from PIL import Image as PILImage
-            from reportlab.platypus import Image as RLImage
-            from reportlab.lib import colors
+                    # --- Automatically run clustering ---
+                    valid_p = isinstance(p, pd.DataFrame) and not p.empty
+                    valid_embeddings = embeddings is not None and len(embeddings) > 0
+            
+                    if valid_p and valid_embeddings:
+                        try:
+                            from config import RANDOM_STATE
+                            with st.spinner("Evaluating optimal clusters..."):
+                                best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
+            
+                            metrics_summary = {
+                                "Silhouette Score": best["Silhouette Score"],
+                                "Davies-Bouldin Score": best["Davies-Bouldin Score"],
+                                "interpretation": best["interpretation"],
+                            }
+            
+                            st.session_state['cluster_metrics'] = metrics_summary
+                            st.session_state['cluster_labels'] = best["labels"]
+                            st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
+                            st.session_state['cluster_text'] = (
+                                f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
+                                f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
+                            )
+            
+                            # Display cluster chart and metrics
+                            st.success(st.session_state['cluster_text'])
+                            st.info(st.session_state['cluster_metrics']["interpretation"])
+                            st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
+            
+                            # Save cluster chart as PNG
+                            clusters_chart_path = "clusters_rgb.png"
+                            st.session_state['cluster_fig'].write_image(
+                                clusters_chart_path, format="png", scale=2, engine="kaleido"
+                            )
+                            img = PILImage.open(clusters_chart_path).convert("RGB")
+                            img.save(clusters_chart_path)
+                            st.session_state["clusters_chart"] = clusters_chart_path
+            
+                            # Save cluster summary text
+                            clusters_summary = (
+                                f"Best K={best['Silhouette Score']:.3f}, "
+                                f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}. "
+                                f"Interpretation: {best['interpretation']}"
+                            )
+                            st.session_state["clusters_summary"] = clusters_summary
+            
+                        except Exception as e:
+                            st.error(f"Clustering failed: {e}")
 
-            st.subheader("Clustering & Visualization")
-        
-            if valid_p and valid_embeddings:
-                if st.button('Cluster & Visualize'):
-                    try:
-                        from config import RANDOM_STATE
-                        with st.spinner("Evaluating optimal clusters..."):
-                            best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
-        
-                        metrics_summary = {
-                            "Silhouette Score": best["Silhouette Score"],
-                            "Davies-Bouldin Score": best["Davies-Bouldin Score"],
-                            "interpretation": best["interpretation"],
-                        }
-        
-                        st.session_state['cluster_metrics'] = metrics_summary
-                        st.session_state['cluster_labels'] = best["labels"]
-                        st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
-                        st.session_state['cluster_text'] = (
-                            f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
-                            f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
-                        )
-        
-                    except Exception as e:
-                        st.error(f"Clustering failed: {e}")
-        
-            if 'cluster_fig' in st.session_state:
-                st.success(st.session_state['cluster_text'])
-                st.info(st.session_state['cluster_metrics']["interpretation"])
-                st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
-            else:
-                st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
-           
-
-            # Save clustering summary text
-            if "cluster_metrics" in st.session_state:
-                best = st.session_state['cluster_metrics']
-                clusters_summary = (
-                    f"Best K={best['Silhouette Score']:.3f}, "
-                    f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}. "
-                    f"Interpretation: {best['interpretation']}"
-                )
-                st.session_state["clusters_summary"] = clusters_summary
-            
-            # Save cluster chart as PNG (force RGB so ReportLab keeps colors)
-            if "cluster_fig" in st.session_state:
-                clusters_chart_path = "clusters_rgb.png"
-                try:
-                    # Export from Plotly
-                    st.session_state['cluster_fig'].write_image(
-                        clusters_chart_path,
-                        format="png",
-                        scale=2,
-                        engine="kaleido"
-                    )
-            
-                    # Ensure RGB (remove alpha)
-                    img = PILImage.open(clusters_chart_path).convert("RGB")
-                    img.save(clusters_chart_path)
-            
-                    # Store for PDF use
-                    st.session_state["clusters_chart"] = clusters_chart_path
-            
-                except Exception as e:
-                    st.warning(f"Could not save cluster chart: {e}")
-            
     
           
             # --- NLTK & Utilities ---
