@@ -10,9 +10,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import io
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+import datetime
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
@@ -987,115 +989,99 @@ def main():
             # =========================
             # PDF GENERATOR FUNCTION
             # =========================
-            def generate_pdf(clusters_summary, pareto_path, spc_path, trend_path, rca_summary):
-                buffer = io.BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=A4)
-                styles = getSampleStyleSheet()
-                elements = []
-            
-                # Title
-                elements.append(Paragraph("Smart Non-Conformance Analysis Report", styles['Title']))
-                elements.append(Spacer(1, 12))
-            
-                # Section: Clustering
-                elements.append(Paragraph("Clustering & Visualization", styles['Heading2']))
-                elements.append(Paragraph(clusters_summary, styles['Normal']))
-                elements.append(Spacer(1, 12))
-            
-                # Section: Pareto
-                elements.append(Paragraph("Pareto Analysis", styles['Heading2']))
-                elements.append(Image(pareto_path, width=400, height=250))
-                elements.append(Spacer(1, 12))
-            
-                # Section: SPC
-                elements.append(Paragraph("Statistical Process Control", styles['Heading2']))
-                elements.append(Image(spc_path, width=400, height=250))
-                elements.append(Spacer(1, 12))
-            
-                # Section: Trendline / Time Series
-                elements.append(Paragraph("Trendline & Time Series", styles['Heading2']))
-                elements.append(Image(trend_path, width=400, height=250))
-                elements.append(Spacer(1, 12))
-            
-                # Section: RCA
-                elements.append(Paragraph("Root Cause Analysis", styles['Heading2']))
-                elements.append(Paragraph(rca_summary, styles['Normal']))
-                elements.append(Spacer(1, 12))
-            
-                # Build PDF
-                doc.build(elements)
-                buffer.seek(0)
-                return buffer
-            
-            
+            def generate_report():
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            elements = []
+        
+            # Title Page
+            elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles["Title"]))
+            elements.append(Spacer(1, 24))
+            elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
+            elements.append(PageBreak())
+        
             # =========================
-            # MAIN STREAMLIT APP
+            # Clustering
             # =========================
-            def main():
-                st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
-                st.title("📊 Smart Non-Conformance Analyzer")
-            
-                # -------------------------
-                # (Your real analysis code here)
-                # -------------------------
-            
-                # Example: Clustering results
-                clusters_summary = "3 major clusters identified, covering 78% of total NCs."
-                st.subheader("🔍 Clustering Results")
-                st.write(clusters_summary)
-            
-                # Example: Pareto Chart
-                fig, ax = plt.subplots()
-                ax.bar(["Issue A", "Issue B", "Issue C"], [50, 30, 20])
-                ax.set_title("Pareto Chart")
-                st.pyplot(fig)
-                pareto_path = "pareto.png"
-                fig.savefig(pareto_path)
-            
-                # Example: SPC Chart
-                fig, ax = plt.subplots()
-                ax.plot([1, 2, 3, 4, 5], [10, 12, 9, 11, 13])
-                ax.set_title("SPC Chart")
-                st.pyplot(fig)
-                spc_path = "spc.png"
-                fig.savefig(spc_path)
-            
-                # Example: Trendline
-                fig, ax = plt.subplots()
-                ax.plot([1, 2, 3, 4, 5], [100, 120, 115, 130, 125])
-                ax.set_title("Trendline / Time Series")
-                st.pyplot(fig)
-                trend_path = "trend.png"
-                fig.savefig(trend_path)
-            
-                # Example: RCA Results
-                rca_summary = "Root cause traced to operator handling and machine maintenance gaps."
-                st.subheader("🛠 Root Cause Analysis")
-                st.write(rca_summary)
-            
-                # -------------------------
-                # PDF Export
-                # -------------------------
-                pdf_buffer = generate_pdf(
-                    clusters_summary=clusters_summary,
-                    pareto_path=pareto_path,
-                    spc_path=spc_path,
-                    trend_path=trend_path,
-                    rca_summary=rca_summary
-                )
-            
+            if "clusters_summary" in st.session_state:
+                elements.append(Paragraph("Clustering & Visualization", styles["Heading2"]))
+                elements.append(Paragraph(st.session_state["clusters_summary"], styles["Normal"]))
+                elements.append(Spacer(1, 12))
+                if "clusters_chart" in st.session_state:
+                    elements.append(Image(st.session_state["clusters_chart"], width=400, height=250))
+                elements.append(PageBreak())
+        
+            # =========================
+            # Pareto
+            # =========================
+            if "pareto_summary" in st.session_state:
+                elements.append(Paragraph("Pareto Analysis", styles["Heading2"]))
+                elements.append(Paragraph(st.session_state["pareto_summary"], styles["Normal"]))
+                elements.append(Spacer(1, 12))
+                if "pareto_chart" in st.session_state:
+                    elements.append(Image(st.session_state["pareto_chart"], width=400, height=250))
+                elements.append(PageBreak())
+        
+            # =========================
+            # SPC
+            # =========================
+            if "spc_summary" in st.session_state:
+                elements.append(Paragraph("Statistical Process Control", styles["Heading2"]))
+                elements.append(Paragraph(st.session_state["spc_summary"], styles["Normal"]))
+                elements.append(Spacer(1, 12))
+                if "spc_chart" in st.session_state:
+                    elements.append(Image(st.session_state["spc_chart"], width=400, height=250))
+                elements.append(PageBreak())
+        
+            # =========================
+            # Trendline & Time Series
+            # =========================
+            if "trend_summary" in st.session_state:
+                elements.append(Paragraph("Trendline & Time Series", styles["Heading2"]))
+                elements.append(Paragraph(st.session_state["trend_summary"], styles["Normal"]))
+                elements.append(Spacer(1, 12))
+                if "trend_chart" in st.session_state:
+                    elements.append(Image(st.session_state["trend_chart"], width=400, height=250))
+                elements.append(PageBreak())
+        
+            # =========================
+            # RCA
+            # =========================
+            if "rca_summary" in st.session_state:
+                elements.append(Paragraph("Root Cause Analysis", styles["Heading2"]))
+                elements.append(Paragraph(st.session_state["rca_summary"], styles["Normal"]))
+                elements.append(Spacer(1, 12))
+                if "rca_table" in st.session_state:
+                    df = st.session_state["rca_table"]
+                    data = [df.columns.tolist()] + df.values.tolist()
+                    table = Table(data)
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+                    ]))
+                    elements.append(table)
+        
+            # Build PDF
+            doc.build(elements)
+            buffer.seek(0)
+            return buffer
+
+
+            if st.button("📄 Generate Report"):
+                pdf_buffer = generate_report()
                 st.download_button(
-                    label="📄 Download Analysis Report (PDF)",
+                    label="📥 Download Full Report (PDF)",
                     data=pdf_buffer,
                     file_name="SNCA_Report.pdf",
                     mime="application/pdf"
-                )
-            
-                st.write("✅ Reached PDF export section")
-            
-            
-            if __name__ == "__main__":
-                main()
+            )
+
+
 
 
 
