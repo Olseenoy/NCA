@@ -37,6 +37,6 @@ google-generativeai
 groq  
 langchain-groq
 reportlab
-kaleido
+kaleido==0.2.1
 
 
