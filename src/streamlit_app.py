@@ -636,9 +636,9 @@ def main():
             # ---------------------------
             def normalize_text(text):
                 """
-                Clean, lowercase, remove numbers, and lemmatize words (singular form).
+                Clean, lowercase, remove numbers, normalize spacing/hyphens, and lemmatize words (singular form).
+                Safely handles None/NaN/non-string inputs.
                 """
-                # Safely handle None, NaN, or non-string values
                 if text is None:
                     return ""
                 try:
@@ -647,34 +647,36 @@ def main():
                     return ""
             
                 text = text.lower()
-                text = re.sub(r"\d+", "", text)           # remove numbers
-                text = re.sub(r"[^a-z\s]", "", text)     # remove punctuation
+                text = re.sub(r"\d+", "", text)            # remove numbers
+                text = re.sub(r"[^a-z\s-]", "", text)     # remove punctuation except hyphen
+                text = re.sub(r"[-_]", " ", text)         # replace hyphen/underscore with space
+                text = re.sub(r"\s+", " ", text)          # collapse multiple spaces
                 tokens = text.split()
                 tokens = [lemmatizer.lemmatize(t) for t in tokens]
                 return " ".join(tokens).strip()
-
-
+            
             
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
                 """
                 Detect recurring issues in columns related to issues, problems, defects, faults.
-                Normalize, merge similar phrases, capitalize first letter, and return top N.
+                Normalize, merge similar phrases, capitalize each word, and return top N.
                 """
                 issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
             
-                # find candidate columns
+                # Find candidate columns
                 issue_cols = [col for col in df.columns if any(syn in col.lower() for syn in issue_synonyms)]
                 if not issue_cols:
                     return {}
             
+                # Collect all issues
                 all_issues = []
                 for col in issue_cols:
                     all_issues.extend(df[col].dropna().astype(str).tolist())
             
-                # normalize
+                # Normalize text
                 normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
             
-                # merge similar issues using fuzzy matching
+                # Merge similar issues using fuzzy matching
                 merged_issues = []
                 for issue in normalized:
                     if not merged_issues:
@@ -687,14 +689,15 @@ def main():
                         else:
                             merged_issues.append(issue)
             
-                # count frequency
+                # Count frequency
                 counter = Counter(merged_issues)
                 top_issues = dict(counter.most_common(top_n))
             
-                # Capitalize first letter
-                top_issues_cap = {k.capitalize(): v for k, v in top_issues.items()}
+                # Capitalize each word for display
+                top_issues_cap = {k.title(): v for k, v in top_issues.items()}
             
                 return top_issues_cap
+
             
             # ---------------------------
             # Streamlit recurring issues table
