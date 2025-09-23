@@ -654,12 +654,14 @@ def main():
                             # --- Plotly Pareto Chart ---
                             import plotly.graph_objects as go
                             fig = go.Figure()
+                            
                             fig.add_bar(
                                 x=pareto_df['Category'],
                                 y=pareto_df['Count'],
                                 name='Count',
                                 marker_color='teal'
                             )
+                            
                             fig.add_scatter(
                                 x=pareto_df['Category'],
                                 y=pareto_df['Cumulative %'],
@@ -667,14 +669,23 @@ def main():
                                 yaxis='y2',
                                 marker_color='crimson'
                             )
+                            
                             fig.update_layout(
                                 title=f"Pareto Chart - {selected_col}",
+                                width=1200,        # make the chart wider
+                                height=700,        # make it taller
+                                margin=dict(l=80, r=80, t=100, b=150),  # leave space for axis labels
                                 yaxis=dict(title='Count'),
                                 yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
-                                xaxis_tickangle=-45
+                                xaxis=dict(
+                                    tickangle=-45,
+                                    tickfont=dict(size=10),  # adjust label font size
+                                ),
+                                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
                             )
-            
+                            
                             st.plotly_chart(fig, use_container_width=True)
+
             
                             # --- Save RGB PNG for PDF ---
                             pareto_chart_path = "pareto_rgb.png"
