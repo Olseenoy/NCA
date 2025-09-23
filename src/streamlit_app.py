@@ -1152,7 +1152,7 @@ def main():
 
 
             if st.button("📄 Generate Report"):
-                pdf_buffer = generate_report()
+                pdf_buffer = generate_pdf()
                 st.download_button(
                     label="📥 Download Full Report (PDF)",
                     data=pdf_buffer,
