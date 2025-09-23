@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import io
 import datetime
+from reportlab.platypus import Image as RLImage
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
@@ -63,6 +64,18 @@ from pareto import pareto_table
 from db import init_db, SessionLocal, CAPA
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from fishbone_visualizer import visualize_fishbone
+
+
+
+
+def rgb_image_for_pdf(path, width=400, height=250):
+    """Convert chart image to RGB and return a ReportLab-safe Image."""
+    pil_img = PILImage.open(path).convert("RGB")
+    img_buffer = io.BytesIO()
+    pil_img.save(img_buffer, format="PNG")   # force RGB PNG
+    img_buffer.seek(0)
+    return RLImage(img_buffer, width=width, height=height)
+
 
 # Load .env if present
 load_dotenv()
@@ -1060,90 +1073,81 @@ def main():
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
 
             
-            # =========================
-            # PDF GENERATOR FUNCTION
-            # =========================
-            def generate_report():
+
+            # Helper to fix black & white issue
+            def rgb_image_for_pdf(path, width=400, height=250):
+                """Convert chart image to RGB and return a ReportLab-safe Image."""
+                pil_img = PILImage.open(path).convert("RGB")
+                img_buffer = io.BytesIO()
+                pil_img.save(img_buffer, format="PNG")   # force RGB PNG
+                img_buffer.seek(0)
+                return RLImage(img_buffer, width=width, height=height)
+            
+            # Main PDF generator
+            def generate_pdf():
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4)
                 styles = getSampleStyleSheet()
                 elements = []
             
-                # Title Page
-                elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles["Title"]))
-                elements.append(Spacer(1, 24))
-                elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
-                elements.append(PageBreak())
+                # Title
+                elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles['Title']))
+                elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+                elements.append(Spacer(1, 20))
             
-                # =========================
+                # =====================
                 # Clustering
-                # =========================
+                # =====================
                 if "clusters_summary" in st.session_state:
-                    elements.append(Paragraph("Clustering & Visualization", styles["Heading2"]))
-                    elements.append(Paragraph(st.session_state["clusters_summary"], styles["Normal"]))
-                    elements.append(Spacer(1, 12))
+                    elements.append(Paragraph("Clustering & Visualization", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state["clusters_summary"], styles['Normal']))
                     if "clusters_chart" in st.session_state:
-                        elements.append(Image(st.session_state["clusters_chart"], width=400, height=250))
-                    elements.append(PageBreak())
+                        elements.append(rgb_image_for_pdf(st.session_state["clusters_chart"]))
+                    elements.append(Spacer(1, 20))
             
-                # =========================
+                # =====================
                 # Pareto
-                # =========================
+                # =====================
                 if "pareto_summary" in st.session_state:
-                    elements.append(Paragraph("Pareto Analysis", styles["Heading2"]))
-                    elements.append(Paragraph(st.session_state["pareto_summary"], styles["Normal"]))
-                    elements.append(Spacer(1, 12))
+                    elements.append(Paragraph("Pareto Analysis", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state["pareto_summary"], styles['Normal']))
                     if "pareto_chart" in st.session_state:
-                        elements.append(Image(st.session_state["pareto_chart"], width=400, height=250))
-                    elements.append(PageBreak())
+                        elements.append(rgb_image_for_pdf(st.session_state["pareto_chart"]))
+                    elements.append(Spacer(1, 20))
             
-                # =========================
+                # =====================
                 # SPC
-                # =========================
+                # =====================
                 if "spc_summary" in st.session_state:
-                    elements.append(Paragraph("Statistical Process Control", styles["Heading2"]))
-                    elements.append(Paragraph(st.session_state["spc_summary"], styles["Normal"]))
-                    elements.append(Spacer(1, 12))
+                    elements.append(Paragraph("Statistical Process Control (SPC)", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state["spc_summary"], styles['Normal']))
                     if "spc_chart" in st.session_state:
-                        elements.append(Image(st.session_state["spc_chart"], width=400, height=250))
-                    elements.append(PageBreak())
+                        elements.append(rgb_image_for_pdf(st.session_state["spc_chart"]))
+                    elements.append(Spacer(1, 20))
             
-                # =========================
-                # Trendline & Time Series
-                # =========================
+                # =====================
+                # Trendline / Time Series
+                # =====================
                 if "trend_summary" in st.session_state:
-                    elements.append(Paragraph("Trendline & Time Series", styles["Heading2"]))
-                    elements.append(Paragraph(st.session_state["trend_summary"], styles["Normal"]))
-                    elements.append(Spacer(1, 12))
+                    elements.append(Paragraph("Trendline & Time Series", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state["trend_summary"], styles['Normal']))
                     if "trend_chart" in st.session_state:
-                        elements.append(Image(st.session_state["trend_chart"], width=400, height=250))
-                    elements.append(PageBreak())
+                        elements.append(rgb_image_for_pdf(st.session_state["trend_chart"]))
+                    elements.append(Spacer(1, 20))
             
-                # =========================
-                # RCA
-                # =========================
+                # =====================
+                # Root Cause Analysis (RCA)
+                # =====================
                 if "rca_summary" in st.session_state:
-                    elements.append(Paragraph("Root Cause Analysis", styles["Heading2"]))
-                    elements.append(Paragraph(st.session_state["rca_summary"], styles["Normal"]))
-                    elements.append(Spacer(1, 12))
-                    if "rca_table" in st.session_state:
-                        df = st.session_state["rca_table"]
-                        data = [df.columns.tolist()] + df.values.tolist()
-                        table = Table(data)
-                        table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-                        ]))
-                        elements.append(table)
+                    elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state["rca_summary"], styles['Normal']))
+                    elements.append(Spacer(1, 20))
             
                 # Build PDF
                 doc.build(elements)
                 buffer.seek(0)
                 return buffer
+
 
 
 
