@@ -990,86 +990,87 @@ def main():
             # PDF GENERATOR FUNCTION
             # =========================
             def generate_report():
-            buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4)
-            styles = getSampleStyleSheet()
-            elements = []
-        
-            # Title Page
-            elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles["Title"]))
-            elements.append(Spacer(1, 24))
-            elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
-            elements.append(PageBreak())
-        
-            # =========================
-            # Clustering
-            # =========================
-            if "clusters_summary" in st.session_state:
-                elements.append(Paragraph("Clustering & Visualization", styles["Heading2"]))
-                elements.append(Paragraph(st.session_state["clusters_summary"], styles["Normal"]))
-                elements.append(Spacer(1, 12))
-                if "clusters_chart" in st.session_state:
-                    elements.append(Image(st.session_state["clusters_chart"], width=400, height=250))
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                styles = getSampleStyleSheet()
+                elements = []
+            
+                # Title Page
+                elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles["Title"]))
+                elements.append(Spacer(1, 24))
+                elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
                 elements.append(PageBreak())
-        
-            # =========================
-            # Pareto
-            # =========================
-            if "pareto_summary" in st.session_state:
-                elements.append(Paragraph("Pareto Analysis", styles["Heading2"]))
-                elements.append(Paragraph(st.session_state["pareto_summary"], styles["Normal"]))
-                elements.append(Spacer(1, 12))
-                if "pareto_chart" in st.session_state:
-                    elements.append(Image(st.session_state["pareto_chart"], width=400, height=250))
-                elements.append(PageBreak())
-        
-            # =========================
-            # SPC
-            # =========================
-            if "spc_summary" in st.session_state:
-                elements.append(Paragraph("Statistical Process Control", styles["Heading2"]))
-                elements.append(Paragraph(st.session_state["spc_summary"], styles["Normal"]))
-                elements.append(Spacer(1, 12))
-                if "spc_chart" in st.session_state:
-                    elements.append(Image(st.session_state["spc_chart"], width=400, height=250))
-                elements.append(PageBreak())
-        
-            # =========================
-            # Trendline & Time Series
-            # =========================
-            if "trend_summary" in st.session_state:
-                elements.append(Paragraph("Trendline & Time Series", styles["Heading2"]))
-                elements.append(Paragraph(st.session_state["trend_summary"], styles["Normal"]))
-                elements.append(Spacer(1, 12))
-                if "trend_chart" in st.session_state:
-                    elements.append(Image(st.session_state["trend_chart"], width=400, height=250))
-                elements.append(PageBreak())
-        
-            # =========================
-            # RCA
-            # =========================
-            if "rca_summary" in st.session_state:
-                elements.append(Paragraph("Root Cause Analysis", styles["Heading2"]))
-                elements.append(Paragraph(st.session_state["rca_summary"], styles["Normal"]))
-                elements.append(Spacer(1, 12))
-                if "rca_table" in st.session_state:
-                    df = st.session_state["rca_table"]
-                    data = [df.columns.tolist()] + df.values.tolist()
-                    table = Table(data)
-                    table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-                    ]))
-                    elements.append(table)
-        
-            # Build PDF
-            doc.build(elements)
-            buffer.seek(0)
-            return buffer
+            
+                # =========================
+                # Clustering
+                # =========================
+                if "clusters_summary" in st.session_state:
+                    elements.append(Paragraph("Clustering & Visualization", styles["Heading2"]))
+                    elements.append(Paragraph(st.session_state["clusters_summary"], styles["Normal"]))
+                    elements.append(Spacer(1, 12))
+                    if "clusters_chart" in st.session_state:
+                        elements.append(Image(st.session_state["clusters_chart"], width=400, height=250))
+                    elements.append(PageBreak())
+            
+                # =========================
+                # Pareto
+                # =========================
+                if "pareto_summary" in st.session_state:
+                    elements.append(Paragraph("Pareto Analysis", styles["Heading2"]))
+                    elements.append(Paragraph(st.session_state["pareto_summary"], styles["Normal"]))
+                    elements.append(Spacer(1, 12))
+                    if "pareto_chart" in st.session_state:
+                        elements.append(Image(st.session_state["pareto_chart"], width=400, height=250))
+                    elements.append(PageBreak())
+            
+                # =========================
+                # SPC
+                # =========================
+                if "spc_summary" in st.session_state:
+                    elements.append(Paragraph("Statistical Process Control", styles["Heading2"]))
+                    elements.append(Paragraph(st.session_state["spc_summary"], styles["Normal"]))
+                    elements.append(Spacer(1, 12))
+                    if "spc_chart" in st.session_state:
+                        elements.append(Image(st.session_state["spc_chart"], width=400, height=250))
+                    elements.append(PageBreak())
+            
+                # =========================
+                # Trendline & Time Series
+                # =========================
+                if "trend_summary" in st.session_state:
+                    elements.append(Paragraph("Trendline & Time Series", styles["Heading2"]))
+                    elements.append(Paragraph(st.session_state["trend_summary"], styles["Normal"]))
+                    elements.append(Spacer(1, 12))
+                    if "trend_chart" in st.session_state:
+                        elements.append(Image(st.session_state["trend_chart"], width=400, height=250))
+                    elements.append(PageBreak())
+            
+                # =========================
+                # RCA
+                # =========================
+                if "rca_summary" in st.session_state:
+                    elements.append(Paragraph("Root Cause Analysis", styles["Heading2"]))
+                    elements.append(Paragraph(st.session_state["rca_summary"], styles["Normal"]))
+                    elements.append(Spacer(1, 12))
+                    if "rca_table" in st.session_state:
+                        df = st.session_state["rca_table"]
+                        data = [df.columns.tolist()] + df.values.tolist()
+                        table = Table(data)
+                        table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+                        ]))
+                        elements.append(table)
+            
+                # Build PDF
+                doc.build(elements)
+                buffer.seek(0)
+                return buffer
+
 
 
             if st.button("📄 Generate Report"):
