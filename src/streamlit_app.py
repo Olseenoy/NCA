@@ -1080,7 +1080,9 @@ def main():
                 )
                 
                 st.write("✅ Reached PDF export section")  # just to confirm code path
-
+                
+            if __name__ == "__main__":
+                main()
 
 
 if __name__ == "__main__":
