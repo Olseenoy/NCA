@@ -15,6 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Tabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
+from PIL import Image as PILImage
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
@@ -553,6 +554,8 @@ def main():
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
             else:
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
+           
+
             # Save clustering summary text
             if "cluster_metrics" in st.session_state:
                 best = st.session_state['cluster_metrics']
@@ -563,22 +566,27 @@ def main():
                 )
                 st.session_state["clusters_summary"] = clusters_summary
             
-            # Save cluster chart as PNG
+            # Save cluster chart as PNG (force RGB so ReportLab keeps colors)
             if "cluster_fig" in st.session_state:
-                clusters_chart_path = "clusters.png"
+                clusters_chart_path = "clusters_rgb.png"
                 try:
+                    # Export from Plotly
                     st.session_state['cluster_fig'].write_image(
-                        "clusters.jpg",
-                        format="jpg",
+                        clusters_chart_path,
+                        format="png",
                         scale=2,
                         engine="kaleido"
                     )
-
-
+            
+                    # Ensure RGB (remove alpha)
+                    img = PILImage.open(clusters_chart_path).convert("RGB")
+                    img.save(clusters_chart_path)
+            
+                    # Store for PDF use
                     st.session_state["clusters_chart"] = clusters_chart_path
+            
                 except Exception as e:
-                    st.warning(f"Could not save cluster chart to PNG: {e}")
-
+                    st.warning(f"Could not save cluster chart: {e}")
 
             # --- Global Date Format Selector ---
             st.subheader("🗓️ Date Format Settings")
