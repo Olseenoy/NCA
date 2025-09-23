@@ -696,29 +696,7 @@ def main():
                 return top_issues_cap
 
 
-            # ---------------------------
-            # Get processed data
-            # ---------------------------
-            p = st.session_state.get("processed")
-            raw_text = ""
-            
-            if isinstance(p, pd.DataFrame) and not p.empty:
-                # Detect recurring issues
-                recurring = find_recurring_issues(p, top_n=10)
-            
-                # --- Recurring issues table (comes first) ---
-                if recurring:
-                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
-                    df = pd.DataFrame(data)
-            
-                    # Reset index to start at 1
-                    df.index = df.index + 1
-                    df.index.name = "S/N"
-            
-                    st.markdown("### Recurring Issues")
-                    st.table(df)
-                else:
-                    st.info("No recurring issues detected.")
+         
             # ---------------------------
             # Pareto chart from recurring issues table
             # ---------------------------
@@ -738,7 +716,7 @@ def main():
                     recurring_df.index = recurring_df.index + 1
                     recurring_df.index.name = "S/N"
             
-                    st.markdown("### Recurring Issues Table")
+                    st.markdown(" ")
                     st.table(recurring_df)
             
                     # --- Pareto Table from Recurring Issues ---
