@@ -759,14 +759,30 @@ def main():
                             except Exception:
                                 continue
                         time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
+            
                         if st.button('Show SPC Chart', key='spc_btn'):
                             try:
                                 from visualization import plot_spc_chart
-                                fig_spc = plot_spc_chart(spc_df, spc_col_selected, subgroup_size=subgroup_size, time_col=time_col_selected)
+                                fig_spc = plot_spc_chart(
+                                    spc_df, 
+                                    spc_col_selected, 
+                                    subgroup_size=subgroup_size, 
+                                    time_col=time_col_selected
+                                )
                                 st.session_state['spc_fig'] = fig_spc
                                 st.session_state['spc_col_saved'] = spc_col_selected
+            
+                                # --- Save SPC chart for PDF ---
+                                spc_chart_path = "spc_chart.png"
+                                fig_spc.write_image(spc_chart_path, format="png", scale=2, engine="kaleido")
+                                img = PILImage.open(spc_chart_path).convert("RGB")
+                                img.save(spc_chart_path)
+                                st.session_state["spc_chart"] = spc_chart_path
+            
+                                st.success(f"SPC Chart for: {spc_col_selected} saved for PDF")
                             except Exception as e:
                                 st.error(f"SPC plotting failed: {e}")
+            
                         if 'spc_fig' in st.session_state:
                             st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
                             st.plotly_chart(
@@ -780,6 +796,7 @@ def main():
                     st.error(f"SPC setup failed: {e}")
             else:
                 st.warning("No processed data available for SPC. Please preprocess first.")
+
             
             
             # --- Trend Dashboard ---
