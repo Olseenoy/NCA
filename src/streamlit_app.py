@@ -11,6 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import io
 import datetime
+from nltk.stem import WordNetLemmatizer        
+from fuzzywuzzy import process
 from reportlab.platypus import Image as RLImage
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
@@ -607,107 +609,131 @@ def main():
             st.session_state["date_format"] = format_options[fmt_choice]
             
             
-            # --- Pareto Analysis ---
+    
           
-            # --- Pareto Analysis ---
-            st.subheader("Pareto Analysis")
-            p = st.session_state.get('processed')
+            # --- NLTK & Utilities ---
             
-            def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
-                if column not in df.columns:
-                    return pd.DataFrame()
-                if pd.api.types.is_numeric_dtype(df[column]):
-                    series = df[column].dropna().astype(str)
-                else:
-                    series = df[column].dropna().astype(str).str.strip()
-                series = series[series != ""]
-                if series.empty:
-                    return pd.DataFrame()
-                counts = series.value_counts()
-                total = counts.sum()
-                tab = pd.DataFrame({
-                    "Category": counts.index,
-                    "Count": counts.values,
-                })
-                tab["Percent"] = (tab["Count"] / total * 100).round(2)
-                tab["Cumulative %"] = tab["Percent"].cumsum().round(2)
-                return tab
+            
+            nltk.download("wordnet", quiet=True)
+            lemmatizer = WordNetLemmatizer()
+            
+            def normalize_text(text):
+                """Clean, lowercase, remove numbers, and lemmatize words."""
+                text = str(text).lower()
+                text = re.sub(r"\d+", "", text)
+                text = re.sub(r"[^a-z\s]", "", text)
+                tokens = text.split()
+                tokens = [lemmatizer.lemmatize(t) for t in tokens]
+                return " ".join(tokens).strip()
+            
+            def find_recurring_issues(df, top_n=10, similarity_threshold=80):
+                """Detect recurring issues, merge similar phrases, capitalize first letter."""
+                issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
+            
+                # Find candidate columns
+                issue_cols = [col for col in df.columns if any(syn in col.lower() for syn in issue_synonyms)]
+                if not issue_cols:
+                    return {}
+            
+                all_issues = []
+                for col in issue_cols:
+                    all_issues.extend(df[col].dropna().astype(str).tolist())
+            
+                # Normalize
+                normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
+            
+                # Merge similar issues using fuzzy matching
+                merged_issues = []
+                for issue in normalized:
+                    if not merged_issues:
+                        merged_issues.append(issue)
+                    else:
+                        match, score = process.extractOne(issue, merged_issues)
+                        if score >= similarity_threshold:
+                            # merge into existing issue
+                            merged_issues[merged_issues.index(match)] = match
+                        else:
+                            merged_issues.append(issue)
+            
+                # Count frequency
+                counter = Counter(merged_issues)
+                top_issues = dict(counter.most_common(top_n))
+            
+                # Capitalize first letter for display
+                top_issues_cap = {k.capitalize(): v for k, v in top_issues.items()}
+            
+                return top_issues_cap
+            
+            # ----------------------------
+            # Recurring Issues Table (First)
+            # ----------------------------
+            st.subheader("📋 Recurring Issues")
+            p = st.session_state.get("processed")
+            recurring_issues_table = None
             
             if isinstance(p, pd.DataFrame) and not p.empty:
+                recurring = find_recurring_issues(p, top_n=10)
+                if recurring:
+                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
+                    recurring_issues_table = pd.DataFrame(data)
+                    recurring_issues_table.index = recurring_issues_table.index + 1
+                    recurring_issues_table.index.name = "S/N"
+                    st.table(recurring_issues_table)
+                    st.session_state["recurring_issues_table"] = recurring_issues_table
+                else:
+                    st.info("No recurring issues detected.")
+            else:
+                st.warning("No processed data available for recurring issues.")
+            
+            # ----------------------------
+            # Pareto Analysis (from Recurring Issues)
+            # ----------------------------
+            st.subheader("📊 Pareto Analysis")
+            if recurring_issues_table is not None and not recurring_issues_table.empty:
                 try:
-                    cat_col = st.selectbox(
-                        'Select column for Pareto',
-                        options=p.columns.tolist(),
-                        help="Choose any column from processed data"
+                    fig = go.Figure()
+            
+                    fig.add_bar(
+                        x=recurring_issues_table['Issue'],
+                        y=recurring_issues_table['Occurrences'],
+                        name='Occurrences',
+                        marker_color='teal'
                     )
-                    if st.button('Show Pareto'):
-                        st.session_state['show_pareto'] = True
-                        st.session_state['pareto_col'] = cat_col
             
-                    if st.session_state.get('show_pareto', False):
-                        selected_col = st.session_state.get('pareto_col', cat_col)
-                        pareto_df = pareto_table(p, selected_col)
+                    # Cumulative %
+                    cumulative_percent = recurring_issues_table['Occurrences'].cumsum() / recurring_issues_table['Occurrences'].sum() * 100
+                    fig.add_scatter(
+                        x=recurring_issues_table['Issue'],
+                        y=cumulative_percent,
+                        name='Cumulative %',
+                        yaxis='y2',
+                        marker_color='crimson'
+                    )
             
-                        if pareto_df.empty:
-                            st.warning(f"No valid data found in column '{selected_col}'.")
-                        else:
-                            # --- Plotly Pareto Chart ---
-                            import plotly.graph_objects as go
-                            fig = go.Figure()
-                            
-                            fig.add_bar(
-                                x=pareto_df['Category'],
-                                y=pareto_df['Count'],
-                                name='Count',
-                                marker_color='teal'
-                            )
-                            
-                            fig.add_scatter(
-                                x=pareto_df['Category'],
-                                y=pareto_df['Cumulative %'],
-                                name='Cumulative %',
-                                yaxis='y2',
-                                marker_color='crimson'
-                            )
-                            
-                            fig.update_layout(
-                                title=f"Pareto Chart - {selected_col}",
-                                width=1200,        # make the chart wider
-                                height=700,        # make it taller
-                                margin=dict(l=80, r=80, t=100, b=150),  # leave space for axis labels
-                                yaxis=dict(title='Count'),
-                                yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
-                                xaxis=dict(
-                                    tickangle=-45,
-                                    tickfont=dict(size=10),  # adjust label font size
-                                ),
-                                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
-                            )
-                            
-                            st.plotly_chart(fig, use_container_width=True)
-
+                    fig.update_layout(
+                        title="Pareto Chart - Recurring Issues",
+                        width=1200,
+                        height=700,
+                        margin=dict(l=80, r=80, t=100, b=150),
+                        yaxis=dict(title='Occurrences'),
+                        yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
+                        xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+                        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+                    )
             
-                            # --- Save RGB PNG for PDF ---
-                            pareto_chart_path = "pareto_rgb.png"
-                            fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
+                    st.plotly_chart(fig, use_container_width=True)
             
-                            from PIL import Image as PILImage
-                            pil_img = PILImage.open(pareto_chart_path).convert("RGB")
-                            pil_img.save(pareto_chart_path)
-            
-                            st.session_state["pareto_chart"] = pareto_chart_path
-                            st.session_state["pareto_summary"] = (
-                                f"Top 2 causes contribute to 82% of issues (Pareto Principle confirmed) for '{selected_col}'."
-                            )
+                    # Save RGB PNG for PDF
+                    pareto_chart_path = "pareto_rgb.png"
+                    fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
+                    pil_img = PILImage.open(pareto_chart_path).convert("RGB")
+                    pil_img.save(pareto_chart_path)
+                    st.session_state["pareto_chart"] = pareto_chart_path
             
                 except Exception as e:
-                    st.error(f"Pareto setup failed: {e}")
+                    st.error(f"Pareto plotting failed: {e}")
             else:
-                st.warning("No processed data available for Pareto analysis. Please preprocess first.")
-
-          
-
-
+                st.warning("No recurring issues available to generate Pareto chart.")
 
             
             
