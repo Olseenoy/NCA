@@ -14,7 +14,6 @@ import datetime
 from nltk.stem import WordNetLemmatizer        
 from fuzzywuzzy import process
 from reportlab.platypus import Image as RLImage
-from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
@@ -522,6 +521,7 @@ def main():
                         st.stop()
             
                     # --- Automatically run clustering ---
+                    from PIL import Image as PILImage
                     st.subheader("Clustering & Visualization")
                     valid_p = isinstance(p, pd.DataFrame) and not p.empty
                     valid_embeddings = embeddings is not None and len(embeddings) > 0
