@@ -37,4 +37,6 @@ google-generativeai
 groq  
 langchain-groq
 reportlab
+kaleido
+
 
