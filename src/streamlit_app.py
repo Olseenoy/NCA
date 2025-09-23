@@ -567,7 +567,13 @@ def main():
             if "cluster_fig" in st.session_state:
                 clusters_chart_path = "clusters.png"
                 try:
-                    st.session_state['cluster_fig'].write_image(clusters_chart_path)  # Plotly export
+                    st.session_state['cluster_fig'].write_image(
+                        clusters_chart_path,
+                        format="png",
+                        scale=2,           # higher resolution
+                        engine="kaleido"   # explicitly use kaleido
+                    )
+
                     st.session_state["clusters_chart"] = clusters_chart_path
                 except Exception as e:
                     st.warning(f"Could not save cluster chart to PNG: {e}")
