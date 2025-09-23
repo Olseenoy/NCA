@@ -983,8 +983,7 @@ def main():
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
 
-
-
+            
             # =========================
             # PDF GENERATOR FUNCTION
             # =========================
@@ -1037,40 +1036,53 @@ def main():
                 st.title("📊 Smart Non-Conformance Analyzer")
             
                 # -------------------------
-                # (Your existing analysis code goes here...)
-                # Example placeholders below — replace with your real results
+                # (Your real analysis code here)
                 # -------------------------
             
-                # Example text summaries
+                # Example: Clustering results
                 clusters_summary = "3 major clusters identified, covering 78% of total NCs."
-                rca_summary = "Root cause traced to operator handling and machine maintenance gaps."
+                st.subheader("🔍 Clustering Results")
+                st.write(clusters_summary)
             
-                # Example chart saving (replace with your actual chart generation)
-                # Pareto
+                # Example: Pareto Chart
                 fig, ax = plt.subplots()
                 ax.bar(["Issue A", "Issue B", "Issue C"], [50, 30, 20])
                 ax.set_title("Pareto Chart")
+                st.pyplot(fig)
                 pareto_path = "pareto.png"
                 fig.savefig(pareto_path)
             
-                # SPC
+                # Example: SPC Chart
                 fig, ax = plt.subplots()
                 ax.plot([1, 2, 3, 4, 5], [10, 12, 9, 11, 13])
                 ax.set_title("SPC Chart")
+                st.pyplot(fig)
                 spc_path = "spc.png"
                 fig.savefig(spc_path)
             
-                # Trendline
+                # Example: Trendline
                 fig, ax = plt.subplots()
                 ax.plot([1, 2, 3, 4, 5], [100, 120, 115, 130, 125])
                 ax.set_title("Trendline / Time Series")
+                st.pyplot(fig)
                 trend_path = "trend.png"
                 fig.savefig(trend_path)
             
+                # Example: RCA Results
+                rca_summary = "Root cause traced to operator handling and machine maintenance gaps."
+                st.subheader("🛠 Root Cause Analysis")
+                st.write(rca_summary)
+            
                 # -------------------------
-                # Generate PDF + Download
+                # PDF Export
                 # -------------------------
-                pdf_buffer = generate_pdf(clusters_summary, pareto_path, spc_path, trend_path, rca_summary)
+                pdf_buffer = generate_pdf(
+                    clusters_summary=clusters_summary,
+                    pareto_path=pareto_path,
+                    spc_path=spc_path,
+                    trend_path=trend_path,
+                    rca_summary=rca_summary
+                )
             
                 st.download_button(
                     label="📄 Download Analysis Report (PDF)",
@@ -1078,11 +1090,13 @@ def main():
                     file_name="SNCA_Report.pdf",
                     mime="application/pdf"
                 )
-                
-                st.write("✅ Reached PDF export section")  # just to confirm code path
-                
+            
+                st.write("✅ Reached PDF export section")
+            
+            
             if __name__ == "__main__":
                 main()
+
 
 
 if __name__ == "__main__":
