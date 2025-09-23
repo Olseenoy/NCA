@@ -614,23 +614,36 @@ def main():
             # --- NLTK & Utilities ---
             
             
-            nltk.download("wordnet", quiet=True)
+            # Ensure WordNet is downloaded
+            try:
+                nltk.data.find("corpora/wordnet")
+            except LookupError:
+                nltk.download("wordnet", quiet=True)
+            
             lemmatizer = WordNetLemmatizer()
             
+            # ---------------------------
+            # Text normalization & recurring issues
+            # ---------------------------
             def normalize_text(text):
-                """Clean, lowercase, remove numbers, and lemmatize words."""
+                """
+                Clean, lowercase, remove numbers, and lemmatize words (singular form).
+                """
                 text = str(text).lower()
-                text = re.sub(r"\d+", "", text)
-                text = re.sub(r"[^a-z\s]", "", text)
+                text = re.sub(r"\d+", "", text)          # remove numbers
+                text = re.sub(r"[^a-z\s]", "", text)    # remove punctuation
                 tokens = text.split()
                 tokens = [lemmatizer.lemmatize(t) for t in tokens]
                 return " ".join(tokens).strip()
             
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
-                """Detect recurring issues, merge similar phrases, capitalize first letter."""
+                """
+                Detect recurring issues in columns related to issues, problems, defects, faults.
+                Normalize, merge similar phrases, capitalize first letter, and return top N.
+                """
                 issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
             
-                # Find candidate columns
+                # find candidate columns
                 issue_cols = [col for col in df.columns if any(syn in col.lower() for syn in issue_synonyms)]
                 if not issue_cols:
                     return {}
@@ -639,10 +652,10 @@ def main():
                 for col in issue_cols:
                     all_issues.extend(df[col].dropna().astype(str).tolist())
             
-                # Normalize
+                # normalize
                 normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
             
-                # Merge similar issues using fuzzy matching
+                # merge similar issues using fuzzy matching
                 merged_issues = []
                 for issue in normalized:
                     if not merged_issues:
@@ -650,92 +663,87 @@ def main():
                     else:
                         match, score = process.extractOne(issue, merged_issues)
                         if score >= similarity_threshold:
-                            # merge into existing issue
+                            # merge similar issues
                             merged_issues[merged_issues.index(match)] = match
                         else:
                             merged_issues.append(issue)
             
-                # Count frequency
+                # count frequency
                 counter = Counter(merged_issues)
                 top_issues = dict(counter.most_common(top_n))
             
-                # Capitalize first letter for display
+                # Capitalize first letter
                 top_issues_cap = {k.capitalize(): v for k, v in top_issues.items()}
             
                 return top_issues_cap
             
-            # ----------------------------
-            # Recurring Issues Table (First)
-            # ----------------------------
-            st.subheader("📋 Recurring Issues")
+            # ---------------------------
+            # Streamlit recurring issues table
+            # ---------------------------
+            st.subheader("Recurring Issues")
             p = st.session_state.get("processed")
-            recurring_issues_table = None
-            
             if isinstance(p, pd.DataFrame) and not p.empty:
-                recurring = find_recurring_issues(p, top_n=10)
-                if recurring:
-                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring.items()]
-                    recurring_issues_table = pd.DataFrame(data)
-                    recurring_issues_table.index = recurring_issues_table.index + 1
-                    recurring_issues_table.index.name = "S/N"
-                    st.table(recurring_issues_table)
-                    st.session_state["recurring_issues_table"] = recurring_issues_table
+                recurring_issues = find_recurring_issues(p, top_n=10)
+                if recurring_issues:
+                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring_issues.items()]
+                    df_issues = pd.DataFrame(data)
+                    df_issues.index = df_issues.index + 1
+                    df_issues.index.name = "S/N"
+                    st.table(df_issues)
+                    st.session_state["recurring_issues_table"] = df_issues
                 else:
                     st.info("No recurring issues detected.")
             else:
-                st.warning("No processed data available for recurring issues.")
+                st.warning("No processed data available for recurring issues analysis.")
             
-            # ----------------------------
-            # Pareto Analysis (from Recurring Issues)
-            # ----------------------------
-            st.subheader("📊 Pareto Analysis")
-            if recurring_issues_table is not None and not recurring_issues_table.empty:
-                try:
-                    fig = go.Figure()
+            # ---------------------------
+            # Pareto chart from recurring issues table
+            # ---------------------------
+            st.subheader("Pareto Analysis")
+            if "recurring_issues_table" in st.session_state:
+                pareto_df = st.session_state["recurring_issues_table"].copy()
+                import plotly.graph_objects as go
             
-                    fig.add_bar(
-                        x=recurring_issues_table['Issue'],
-                        y=recurring_issues_table['Occurrences'],
-                        name='Occurrences',
-                        marker_color='teal'
-                    )
+                fig = go.Figure()
+                fig.add_bar(
+                    x=pareto_df['Issue'],
+                    y=pareto_df['Occurrences'],
+                    name='Occurrences',
+                    marker_color='teal'
+                )
+                # Calculate cumulative %
+                cum_pct = pareto_df['Occurrences'].cumsum() / pareto_df['Occurrences'].sum() * 100
+                fig.add_scatter(
+                    x=pareto_df['Issue'],
+                    y=cum_pct,
+                    name='Cumulative %',
+                    yaxis='y2',
+                    marker_color='crimson'
+                )
             
-                    # Cumulative %
-                    cumulative_percent = recurring_issues_table['Occurrences'].cumsum() / recurring_issues_table['Occurrences'].sum() * 100
-                    fig.add_scatter(
-                        x=recurring_issues_table['Issue'],
-                        y=cumulative_percent,
-                        name='Cumulative %',
-                        yaxis='y2',
-                        marker_color='crimson'
-                    )
+                fig.update_layout(
+                    title="Pareto Chart - Recurring Issues",
+                    width=1200,
+                    height=700,
+                    margin=dict(l=80, r=80, t=100, b=150),
+                    yaxis=dict(title='Occurrences'),
+                    yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
+                    xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+                    legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+                )
             
-                    fig.update_layout(
-                        title="Pareto Chart - Recurring Issues",
-                        width=1200,
-                        height=700,
-                        margin=dict(l=80, r=80, t=100, b=150),
-                        yaxis=dict(title='Occurrences'),
-                        yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
-                        xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
-                        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
-                    )
+                st.plotly_chart(fig, use_container_width=True)
             
-                    st.plotly_chart(fig, use_container_width=True)
-            
-                    # Save RGB PNG for PDF
-                    pareto_chart_path = "pareto_rgb.png"
-                    fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
-                    pil_img = PILImage.open(pareto_chart_path).convert("RGB")
-                    pil_img.save(pareto_chart_path)
-                    st.session_state["pareto_chart"] = pareto_chart_path
-            
-                except Exception as e:
-                    st.error(f"Pareto plotting failed: {e}")
+                # Save RGB PNG for PDF
+                pareto_chart_path = "pareto_rgb.png"
+                fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
+                from PIL import Image as PILImage
+                pil_img = PILImage.open(pareto_chart_path).convert("RGB")
+                pil_img.save(pareto_chart_path)
+                st.session_state["pareto_chart"] = pareto_chart_path
             else:
-                st.warning("No recurring issues available to generate Pareto chart.")
+                st.warning("Recurring issues table not available for Pareto analysis.")
 
-            
             
             # --- SPC Section ---
             st.subheader("Statistical Process Control (SPC)")
