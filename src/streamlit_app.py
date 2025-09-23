@@ -522,6 +522,7 @@ def main():
                         st.stop()
             
                     # --- Automatically run clustering ---
+                    st.subheader("Clustering & Visualization")
                     valid_p = isinstance(p, pd.DataFrame) and not p.empty
                     valid_embeddings = embeddings is not None and len(embeddings) > 0
             
