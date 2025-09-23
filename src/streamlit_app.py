@@ -596,23 +596,6 @@ def main():
             
                 except Exception as e:
                     st.warning(f"Could not save cluster chart: {e}")
-
-            # --- Global Date Format Selector ---
-            st.subheader("🗓️ Date Format Settings")
-            
-            format_options = {
-                "Auto-detect": None,
-                "YYYY-MM-DD (2025-09-04)": "%Y-%m-%d",
-                "YYYY-DD-MM (2025-04-09)": "%Y-%d-%m",
-                "DD-MM-YYYY (04-09-2025)": "%d-%m-%Y",
-                "MM-DD-YYYY (09-04-2025)": "%m-%d-%Y",
-                "DD/MM/YYYY (04/09/2025)": "%d/%m/%Y",
-                "MM/DD/YYYY (09/04/2025)": "%m/%d/%Y",
-                "YYYY/MM/DD (2025/09/04)": "%Y/%m/%d",
-            }
-            fmt_choice = st.selectbox("Select date format for all dashboards", options=list(format_options.keys()))
-            st.session_state["date_format"] = format_options[fmt_choice]
-            
             
     
           
