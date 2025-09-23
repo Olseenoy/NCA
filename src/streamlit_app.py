@@ -675,12 +675,14 @@ def main():
                         # find best match among existing merged issues
                         match, score = process.extractOne(norm, list(merged_issues_dict.keys()))
                         if score >= similarity_threshold:
+                            existing_count = merged_issues_dict[match]  # get existing count
                             # pick the longer/original issue as representative
-                            existing_phrase = match
-                            candidate_phrase = orig if len(orig.split()) > len(existing_phrase.split()) else existing_phrase
-                            # update dictionary
-                            merged_issues_dict.pop(existing_phrase)
-                            merged_issues_dict[candidate_phrase] = merged_issues_dict.get(existing_phrase, 0) + 1
+                            candidate_phrase = orig if len(orig.split()) > len(match.split()) else match
+                            # remove old key if different
+                            if candidate_phrase != match:
+                                merged_issues_dict.pop(match)
+                            # update count correctly
+                            merged_issues_dict[candidate_phrase] = existing_count + 1
                         else:
                             merged_issues_dict[norm] = 1
             
@@ -692,6 +694,7 @@ def main():
                 top_issues_cap = {k.capitalize(): v for k, v in top_issues.items()}
             
                 return top_issues_cap
+
 
             # ---------------------------
             # Get processed data
