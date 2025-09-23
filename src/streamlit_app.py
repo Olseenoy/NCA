@@ -553,17 +553,25 @@ def main():
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
             else:
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
-
-            clusters_summary = f"{n_clusters} clusters identified. {top_cluster}% of NCs belong to the largest cluster."
-            st.session_state["clusters_summary"] = clusters_summary
+            # Save clustering summary text
+            if "cluster_metrics" in st.session_state:
+                best = st.session_state['cluster_metrics']
+                clusters_summary = (
+                    f"Best K={best['Silhouette Score']:.3f}, "
+                    f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}. "
+                    f"Interpretation: {best['interpretation']}"
+                )
+                st.session_state["clusters_summary"] = clusters_summary
             
-            # Save cluster chart
-            fig, ax = plt.subplots()
-            ax.scatter(df['x'], df['y'], c=df['cluster'])
-            ax.set_title("Cluster Visualization")
-            clusters_chart_path = "clusters.png"
-            fig.savefig(clusters_chart_path)
-            st.session_state["clusters_chart"] = clusters_chart_path
+            # Save cluster chart as PNG
+            if "cluster_fig" in st.session_state:
+                clusters_chart_path = "clusters.png"
+                try:
+                    st.session_state['cluster_fig'].write_image(clusters_chart_path)  # Plotly export
+                    st.session_state["clusters_chart"] = clusters_chart_path
+                except Exception as e:
+                    st.warning(f"Could not save cluster chart to PNG: {e}")
+
 
             # --- Global Date Format Selector ---
             st.subheader("🗓️ Date Format Settings")
