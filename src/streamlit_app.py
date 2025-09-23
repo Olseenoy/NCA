@@ -66,17 +66,6 @@ from db import init_db, SessionLocal, CAPA
 from fishbone_visualizer import visualize_fishbone
 
 
-
-
-def rgb_image_for_pdf(path, width=400, height=250):
-    """Convert chart image to RGB and return a ReportLab-safe Image."""
-    pil_img = PILImage.open(path).convert("RGB")
-    img_buffer = io.BytesIO()
-    pil_img.save(img_buffer, format="PNG")   # force RGB PNG
-    img_buffer.seek(0)
-    return RLImage(img_buffer, width=width, height=height)
-
-
 # Load .env if present
 load_dotenv()
 
@@ -1092,7 +1081,7 @@ def main():
             
                 # Title
                 elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles['Title']))
-                elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+                elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
                 elements.append(Spacer(1, 20))
             
                 # =====================
