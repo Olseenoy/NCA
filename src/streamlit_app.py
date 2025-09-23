@@ -8,6 +8,11 @@ import sys
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import io
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
@@ -978,7 +983,102 @@ def main():
             else:
                 st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
 
+
+
+            # =========================
+            # PDF GENERATOR FUNCTION
+            # =========================
+            def generate_pdf(clusters_summary, pareto_path, spc_path, trend_path, rca_summary):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                styles = getSampleStyleSheet()
+                elements = []
             
+                # Title
+                elements.append(Paragraph("Smart Non-Conformance Analysis Report", styles['Title']))
+                elements.append(Spacer(1, 12))
+            
+                # Section: Clustering
+                elements.append(Paragraph("Clustering & Visualization", styles['Heading2']))
+                elements.append(Paragraph(clusters_summary, styles['Normal']))
+                elements.append(Spacer(1, 12))
+            
+                # Section: Pareto
+                elements.append(Paragraph("Pareto Analysis", styles['Heading2']))
+                elements.append(Image(pareto_path, width=400, height=250))
+                elements.append(Spacer(1, 12))
+            
+                # Section: SPC
+                elements.append(Paragraph("Statistical Process Control", styles['Heading2']))
+                elements.append(Image(spc_path, width=400, height=250))
+                elements.append(Spacer(1, 12))
+            
+                # Section: Trendline / Time Series
+                elements.append(Paragraph("Trendline & Time Series", styles['Heading2']))
+                elements.append(Image(trend_path, width=400, height=250))
+                elements.append(Spacer(1, 12))
+            
+                # Section: RCA
+                elements.append(Paragraph("Root Cause Analysis", styles['Heading2']))
+                elements.append(Paragraph(rca_summary, styles['Normal']))
+                elements.append(Spacer(1, 12))
+            
+                # Build PDF
+                doc.build(elements)
+                buffer.seek(0)
+                return buffer
+            
+            
+            # =========================
+            # MAIN STREAMLIT APP
+            # =========================
+            def main():
+                st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+                st.title("📊 Smart Non-Conformance Analyzer")
+            
+                # -------------------------
+                # (Your existing analysis code goes here...)
+                # Example placeholders below — replace with your real results
+                # -------------------------
+            
+                # Example text summaries
+                clusters_summary = "3 major clusters identified, covering 78% of total NCs."
+                rca_summary = "Root cause traced to operator handling and machine maintenance gaps."
+            
+                # Example chart saving (replace with your actual chart generation)
+                # Pareto
+                fig, ax = plt.subplots()
+                ax.bar(["Issue A", "Issue B", "Issue C"], [50, 30, 20])
+                ax.set_title("Pareto Chart")
+                pareto_path = "pareto.png"
+                fig.savefig(pareto_path)
+            
+                # SPC
+                fig, ax = plt.subplots()
+                ax.plot([1, 2, 3, 4, 5], [10, 12, 9, 11, 13])
+                ax.set_title("SPC Chart")
+                spc_path = "spc.png"
+                fig.savefig(spc_path)
+            
+                # Trendline
+                fig, ax = plt.subplots()
+                ax.plot([1, 2, 3, 4, 5], [100, 120, 115, 130, 125])
+                ax.set_title("Trendline / Time Series")
+                trend_path = "trend.png"
+                fig.savefig(trend_path)
+            
+                # -------------------------
+                # Generate PDF + Download
+                # -------------------------
+                pdf_buffer = generate_pdf(clusters_summary, pareto_path, spc_path, trend_path, rca_summary)
+            
+                st.download_button(
+                    label="📄 Download Analysis Report (PDF)",
+                    data=pdf_buffer,
+                    file_name="SNCA_Report.pdf",
+                    mime="application/pdf"
+                )
+      
 
 
 if __name__ == "__main__":
