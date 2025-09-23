@@ -526,6 +526,8 @@ def main():
                 valid_embeddings = embeddings is not None and len(embeddings) > 0
         
             # --- Clustering ---
+            from PIL import Image as PILImage
+
             st.subheader("Clustering & Visualization")
         
             if valid_p and valid_embeddings:
