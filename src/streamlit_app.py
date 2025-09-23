@@ -554,7 +554,17 @@ def main():
             else:
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
 
+            clusters_summary = f"{n_clusters} clusters identified. {top_cluster}% of NCs belong to the largest cluster."
+            st.session_state["clusters_summary"] = clusters_summary
             
+            # Save cluster chart
+            fig, ax = plt.subplots()
+            ax.scatter(df['x'], df['y'], c=df['cluster'])
+            ax.set_title("Cluster Visualization")
+            clusters_chart_path = "clusters.png"
+            fig.savefig(clusters_chart_path)
+            st.session_state["clusters_chart"] = clusters_chart_path
+
             # --- Global Date Format Selector ---
             st.subheader("🗓️ Date Format Settings")
             
