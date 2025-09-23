@@ -649,7 +649,8 @@ def main():
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
                 """
                 Detect recurring issues in columns related to issues, problems, defects, faults.
-                Normalize, merge similar phrases, capitalize first letter, and return top N.
+                Normalize, merge similar phrases, pick the most descriptive phrase (longest), 
+                capitalize first letter, and return top N.
                 """
                 issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
             
@@ -660,30 +661,34 @@ def main():
             
                 all_issues = []
                 for col in issue_cols:
-                    all_issues.extend(df[col].dropna().astype(str).tolist())
+                    all_issues.extend(df[col].dropna().tolist())  # keep original type for length comparison
             
                 # normalize
                 normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
             
                 # merge similar issues
-                merged_issues = []
-                for issue in normalized:
-                    if not merged_issues:
-                        merged_issues.append(issue)
+                merged_issues_dict = {}  # key: representative issue, value: count
+                for orig, norm in zip(all_issues, normalized):
+                    if not merged_issues_dict:
+                        merged_issues_dict[norm] = 1
                     else:
                         # find best match among existing merged issues
-                        match, score = process.extractOne(issue, merged_issues)
+                        match, score = process.extractOne(norm, list(merged_issues_dict.keys()))
                         if score >= similarity_threshold:
-                            # use the existing merged issue
-                            merged_issues[merged_issues.index(match)] = match
+                            # pick the longer/original issue as representative
+                            existing_phrase = match
+                            candidate_phrase = orig if len(orig.split()) > len(existing_phrase.split()) else existing_phrase
+                            # update dictionary
+                            merged_issues_dict.pop(existing_phrase)
+                            merged_issues_dict[candidate_phrase] = merged_issues_dict.get(existing_phrase, 0) + 1
                         else:
-                            merged_issues.append(issue)
+                            merged_issues_dict[norm] = 1
             
-                # count frequency
-                counter = Counter(merged_issues)
+                # count frequency and pick top N
+                counter = Counter(merged_issues_dict)
                 top_issues = dict(counter.most_common(top_n))
             
-                # Capitalize first letter for display
+                # Capitalize first letter
                 top_issues_cap = {k.capitalize(): v for k, v in top_issues.items()}
             
                 return top_issues_cap
