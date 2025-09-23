@@ -928,15 +928,28 @@ def main():
             
             def normalize_text(text):
                 """
-                Clean, lowercase, remove numbers, and lemmatize words (singular form).
+                Clean, lowercase, remove numbers, normalize spacing/hyphens, and lemmatize words (singular form).
+                Safely handles None, NaN, non-string, or unexpected types.
                 """
-                text = str(text).lower()
-                text = re.sub(r"\d+", "", text)  # remove numbers
-                text = re.sub(r"[^a-z\s]", "", text)  # remove punctuation
+                if text is None:
+                    return ""
+                
+                # Ensure it's a string; if not, attempt conversion
+                if not isinstance(text, str):
+                    try:
+                        text = str(text)
+                    except Exception:
+                        return ""
+            
+                text = text.lower()
+                text = re.sub(r"\d+", "", text)            # remove numbers
+                text = re.sub(r"[^a-z\s-]", "", text)     # remove punctuation except hyphen
+                text = re.sub(r"[-_]", " ", text)         # replace hyphen/underscore with space
+                text = re.sub(r"\s+", " ", text)          # collapse multiple spaces
                 tokens = text.split()
                 tokens = [lemmatizer.lemmatize(t) for t in tokens]
                 return " ".join(tokens).strip()
-            
+
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
                 """
                 Detect recurring issues in columns related to issues, problems, defects, faults.
