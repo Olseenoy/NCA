@@ -1212,7 +1212,31 @@ def main():
                         elements.append(rgb_image_for_pdf(st.session_state["clusters_chart"]))
 
                     elements.append(Spacer(1, 20))
-            
+
+
+                # =====================
+                # Recurring Issues Table
+                # =====================
+                if "recurring_issues_df" in st.session_state:
+                    elements.append(Paragraph("Top Recurring Issues", styles['Heading2']))
+                    recurring_df = st.session_state["recurring_issues_df"]
+                
+                    # Convert DataFrame to ReportLab Table
+                    from reportlab.platypus import Table, TableStyle
+                    table_data = [recurring_df.columns.tolist()] + recurring_df.reset_index().values.tolist()
+                    tbl = Table(table_data, hAlign='LEFT')
+                    tbl.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+                        ('ALIGN',(0,0),(-1,-1),'CENTER'),
+                        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                        ('GRID', (0,0), (-1,-1), 1, colors.black),
+                    ]))
+                    elements.append(tbl)
+                    elements.append(Spacer(1, 20))
+
+                
                 # =====================
                 # Pareto
                 # =====================
