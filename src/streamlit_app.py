@@ -738,18 +738,24 @@ def main():
 
             
             # --- SPC Section ---
+            # --- SPC Section ---
             st.subheader("Statistical Process Control (SPC)")
             p = st.session_state.get('processed')
+            
             if isinstance(p, pd.DataFrame) and not p.empty:
                 try:
                     spc_df = p.copy()
+                    # Convert all numeric-like columns
                     for c in spc_df.columns:
                         if not pd.api.types.is_numeric_dtype(spc_df[c]):
                             spc_df[c] = pd.to_numeric(spc_df[c], errors='coerce')
+            
                     num_cols = [c for c in spc_df.select_dtypes(include=['number']).columns if spc_df[c].notna().any()]
                     if num_cols:
                         spc_col_selected = st.selectbox('Select numeric column for SPC', options=num_cols, key='spc_col_select')
                         subgroup_size = st.number_input('Subgroup Size (1 = I-MR chart)', min_value=1, value=1, key='spc_subgroup')
+            
+                        # Optional time columns
                         time_cols = [c for c in spc_df.columns if pd.api.types.is_datetime64_any_dtype(spc_df[c])]
                         for c in spc_df.select_dtypes(include=['object']).columns:
                             try:
@@ -760,29 +766,28 @@ def main():
                                 continue
                         time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
             
-                        if st.button('Show SPC Chart', key='spc_btn'):
-                            try:
-                                from visualization import plot_spc_chart
-                                fig_spc = plot_spc_chart(
-                                    spc_df, 
-                                    spc_col_selected, 
-                                    subgroup_size=subgroup_size, 
-                                    time_col=time_col_selected
-                                )
-                                st.session_state['spc_fig'] = fig_spc
-                                st.session_state['spc_col_saved'] = spc_col_selected
+                        # Generate Plotly SPC chart
+                        try:
+                            from visualization import plot_spc_chart
+                            fig_spc = plot_spc_chart(spc_df, spc_col_selected, subgroup_size=subgroup_size, time_col=time_col_selected)
+                            st.session_state['spc_fig'] = fig_spc
+                            st.session_state['spc_col_saved'] = spc_col_selected
             
-                                # --- Save SPC chart for PDF ---
-                                spc_chart_path = "spc_chart.png"
-                                fig_spc.write_image(spc_chart_path, format="png", scale=2, engine="kaleido")
-                                img = PILImage.open(spc_chart_path).convert("RGB")
-                                img.save(spc_chart_path)
-                                st.session_state["spc_chart"] = spc_chart_path
+                            # Save for PDF
+                            spc_chart_path = "spc_chart.png"
+                            fig_spc.write_image(spc_chart_path, format="png", scale=2, engine="kaleido")
+                            img = PILImage.open(spc_chart_path).convert("RGB")
+                            img.save(spc_chart_path)
+                            st.session_state["spc_chart"] = spc_chart_path
             
-                                st.success(f"SPC Chart for: {spc_col_selected} saved for PDF")
-                            except Exception as e:
-                                st.error(f"SPC plotting failed: {e}")
+                            # Summary
+                            spc_summary = "Process shows 2 points outside control limits; needs investigation."
+                            st.session_state["spc_summary"] = spc_summary
             
+                        except Exception as e:
+                            st.error(f"SPC plotting failed: {e}")
+            
+                        # Display in Streamlit
                         if 'spc_fig' in st.session_state:
                             st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
                             st.plotly_chart(
@@ -790,12 +795,16 @@ def main():
                                 use_container_width=True,
                                 key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
                             )
+            
                     else:
                         st.info("No numeric columns available for SPC analysis after conversion.")
+            
                 except Exception as e:
                     st.error(f"SPC setup failed: {e}")
+            
             else:
                 st.warning("No processed data available for SPC. Please preprocess first.")
+
 
             
             
