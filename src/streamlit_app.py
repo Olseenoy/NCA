@@ -608,14 +608,17 @@ def main():
             
             
             # --- Pareto Analysis ---
-           # --- Pareto Analysis ---
+          
             st.subheader("Pareto Analysis")
             p = st.session_state.get('processed')
             
             def pareto_table(df: pd.DataFrame, column: str) -> pd.DataFrame:
                 if column not in df.columns:
                     return pd.DataFrame()
-                series = df[column].dropna().astype(str).str.strip()
+                if pd.api.types.is_numeric_dtype(df[column]):
+                    series = df[column].dropna().astype(str)
+                else:
+                    series = df[column].dropna().astype(str).str.strip()
                 series = series[series != ""]
                 if series.empty:
                     return pd.DataFrame()
@@ -630,45 +633,31 @@ def main():
                 return tab
             
             if isinstance(p, pd.DataFrame) and not p.empty:
-                cat_col = st.selectbox('Select column for Pareto', options=p.columns.tolist())
-                if st.button('Show Pareto'):
-                    st.session_state['show_pareto'] = True
-                    st.session_state['pareto_col'] = cat_col
-            
-                if st.session_state.get('show_pareto', False):
-                    selected_col = st.session_state.get('pareto_col', cat_col)
-                    pareto_df = pareto_table(p, selected_col)
-                    if not pareto_df.empty:
-                        # --- Plot Matplotlib Pareto Chart ---
-                        fig, ax = plt.subplots(figsize=(8,5))
-                        bars = ax.bar(pareto_df['Category'], pareto_df['Count'], color='teal')
-                        ax2 = ax.twinx()
-                        ax2.plot(pareto_df['Category'], pareto_df['Cumulative %'], color='crimson', marker='o', linewidth=2)
-                        ax.set_xlabel('Category')
-                        ax.set_ylabel('Count')
-                        ax2.set_ylabel('Cumulative %')
-                        ax.set_title(f"Pareto Chart - {selected_col}")
-                        ax2.set_ylim(0, 110)
-            
-                        # Rotate x labels for readability
-                        plt.xticks(rotation=45, ha='right')
-            
-                        # --- Save PNG in RGB for PDF ---
-                        pareto_chart_path = "pareto_rgb.png"
-                        fig.savefig(pareto_chart_path, dpi=300, bbox_inches='tight', facecolor='white')
-                        # Force RGB
-                        from PIL import Image as PILImage
-                        pil_img = PILImage.open(pareto_chart_path).convert("RGB")
-                        pil_img.save(pareto_chart_path)
-            
-                        st.image(pareto_chart_path, caption="Pareto Chart", use_column_width=True)
-                        st.session_state["pareto_chart"] = pareto_chart_path
-                    else:
-                        st.warning(f"No valid data found in column '{selected_col}'.")
+                try:
+                    cat_col = st.selectbox(
+                        'Select column for Pareto',
+                        options=p.columns.tolist(),
+                        help="Choose any column from processed data"
+                    )
+                    if st.button('Show Pareto'):
+                        st.session_state['show_pareto'] = True
+                        st.session_state['pareto_col'] = cat_col
+                    if st.session_state.get('show_pareto', False):
+                        try:
+                            selected_col = st.session_state.get('pareto_col', cat_col)
+                            tab = pareto_table(p, selected_col)
+                            if tab.empty:
+                                st.warning(f"No valid data found in column '{selected_col}'.")
+                            else:
+                                fig = pareto_plot(tab)
+                                st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Pareto failed: {e}")
+                except Exception as e:
+                    st.error(f"Pareto setup failed: {e}")
             else:
                 st.warning("No processed data available for Pareto analysis. Please preprocess first.")
-
-
+          
 
 
 
