@@ -553,46 +553,24 @@ def main():
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
             else:
                 st.warning("Processed data or embeddings are not available. Please run Preprocess & Embed first.")
-            # =========================
             # Save clustering summary text
-            # =========================
             if "cluster_metrics" in st.session_state:
                 best = st.session_state['cluster_metrics']
                 clusters_summary = (
-                    f"Silhouette Score={best['Silhouette Score']:.3f}, "
-                    f"Davies-Bouldin Score={best['Davies-Bouldin Score']:.3f}. "
+                    f"Best K={best['Silhouette Score']:.3f}, "
+                    f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}. "
                     f"Interpretation: {best['interpretation']}"
                 )
                 st.session_state["clusters_summary"] = clusters_summary
             
-            # =========================
-            # Save cluster chart as PNG (Matplotlib export instead of Plotly/Kaleido)
-            # =========================
-            if "cluster_labels" in st.session_state and valid_embeddings:
+            # Save cluster chart as PNG
+            if "cluster_fig" in st.session_state:
+                clusters_chart_path = "clusters.png"
                 try:
-                    import matplotlib.pyplot as plt
-                    import numpy as np
-            
-                    labels = np.array(st.session_state['cluster_labels'])
-            
-                    fig, ax = plt.subplots()
-                    scatter = ax.scatter(
-                        embeddings[:, 0],  # first dimension
-                        embeddings[:, 1],  # second dimension
-                        c=labels,
-                        cmap="tab10",
-                        alpha=0.7
-                    )
-                    ax.set_title("Cluster Visualization (Matplotlib Export)")
-                    ax.set_xlabel("Dimension 1")
-                    ax.set_ylabel("Dimension 2")
-            
-                    clusters_chart_path = "clusters.png"
-                    fig.savefig(clusters_chart_path, dpi=150, bbox_inches="tight")
+                    st.session_state['cluster_fig'].write_image(clusters_chart_path)  # Plotly export
                     st.session_state["clusters_chart"] = clusters_chart_path
-            
                 except Exception as e:
-                    st.warning(f"Could not save cluster chart with Matplotlib: {e}")
+                    st.warning(f"Could not save cluster chart to PNG: {e}")
 
 
             # --- Global Date Format Selector ---
