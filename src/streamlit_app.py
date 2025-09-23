@@ -722,50 +722,74 @@ def main():
             # ---------------------------
             # Pareto chart from recurring issues table
             # ---------------------------
-            st.subheader("Pareto Analysis")
-            if "recurring_issues_table" in st.session_state:
-                pareto_df = st.session_state["recurring_issues_table"].copy()
-                import plotly.graph_objects as go
+            # --- Recurring Issues & Pareto ---
+            st.subheader("Recurring Issues & Pareto Analysis")
             
-                fig = go.Figure()
-                fig.add_bar(
-                    x=pareto_df['Issue'],
-                    y=pareto_df['Occurrences'],
-                    name='Occurrences',
-                    marker_color='teal'
-                )
-                # Calculate cumulative %
-                cum_pct = pareto_df['Occurrences'].cumsum() / pareto_df['Occurrences'].sum() * 100
-                fig.add_scatter(
-                    x=pareto_df['Issue'],
-                    y=cum_pct,
-                    name='Cumulative %',
-                    yaxis='y2',
-                    marker_color='crimson'
-                )
+            p = st.session_state.get("processed")
             
-                fig.update_layout(
-                    title="Pareto Chart - Recurring Issues",
-                    width=1200,
-                    height=700,
-                    margin=dict(l=80, r=80, t=100, b=150),
-                    yaxis=dict(title='Occurrences'),
-                    yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
-                    xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
-                    legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
-                )
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                # --- Find recurring issues ---
+                recurring_issues = find_recurring_issues(p, top_n=10)
             
-                st.plotly_chart(fig, use_container_width=True)
+                if recurring_issues:
+                    # Convert to DataFrame for display and plotting
+                    data = [{"Issue": k, "Occurrences": v} for k, v in recurring_issues.items()]
+                    recurring_df = pd.DataFrame(data)
+                    recurring_df.index = recurring_df.index + 1
+                    recurring_df.index.name = "S/N"
             
-                # Save RGB PNG for PDF
-                pareto_chart_path = "pareto_rgb.png"
-                fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
-                from PIL import Image as PILImage
-                pil_img = PILImage.open(pareto_chart_path).convert("RGB")
-                pil_img.save(pareto_chart_path)
-                st.session_state["pareto_chart"] = pareto_chart_path
+                    st.markdown("### Recurring Issues Table")
+                    st.table(recurring_df)
+            
+                    # --- Pareto Table from Recurring Issues ---
+                    pareto_df = recurring_df.copy()
+                    pareto_df["Percent"] = (pareto_df["Occurrences"] / pareto_df["Occurrences"].sum() * 100).round(2)
+                    pareto_df["Cumulative %"] = pareto_df["Percent"].cumsum().round(2)
+            
+                    # --- Plot Pareto using Plotly ---
+                    import plotly.graph_objects as go
+                    fig = go.Figure()
+                    fig.add_bar(
+                        x=pareto_df['Issue'],
+                        y=pareto_df['Occurrences'],
+                        name='Occurrences',
+                        marker_color='teal'
+                    )
+                    fig.add_scatter(
+                        x=pareto_df['Issue'],
+                        y=pareto_df['Cumulative %'],
+                        name='Cumulative %',
+                        yaxis='y2',
+                        marker_color='crimson'
+                    )
+                    fig.update_layout(
+                        title="Pareto Chart of Top Recurring Issues",
+                        width=1200,
+                        height=700,
+                        margin=dict(l=80, r=80, t=100, b=150),
+                        yaxis=dict(title='Occurrences'),
+                        yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
+                        xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+                        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+                    )
+            
+                    st.plotly_chart(fig, use_container_width=True)
+            
+                    # --- Save chart for PDF ---
+                    pareto_chart_path = "pareto_rgb.png"
+                    fig.write_image(pareto_chart_path, format="png", scale=2, engine="kaleido")
+                    from PIL import Image as PILImage
+                    pil_img = PILImage.open(pareto_chart_path).convert("RGB")
+                    pil_img.save(pareto_chart_path)
+                    st.session_state["pareto_chart"] = pareto_chart_path
+                    st.session_state["pareto_summary"] = (
+                        f"Top recurring issues Pareto analysis completed. Top issue: {pareto_df.iloc[0]['Issue']}."
+                    )
+                else:
+                    st.info("No recurring issues detected to plot Pareto.")
             else:
-                st.warning("Recurring issues table not available for Pareto analysis.")
+                st.warning("No processed data available for recurring issues/Pareto analysis.")
+
 
             
             # --- SPC Section ---
