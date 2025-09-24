@@ -949,45 +949,52 @@ def main():
             
                         if st.button("Run Trend Analysis", key="trend_btn"):
                             try:
+                                # --- Parse dates strictly using the global format ---
                                 parsed, diag = parse_dates_strict(
                                     trend_df[date_col],
                                     st.session_state.get("date_format")
                                 )
-            
-                                st.write("📊 Date parsing diagnostics:", diag)
-            
+                        
+                                # Show diagnostics for debugging
+                                st.write("📊 Date parsing diagnostics (Trend):", diag)
+                        
                                 if diag["parsed_count"] == 0:
                                     st.error(
-                                        f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}."
+                                        f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}. "
+                                        f"Check sample failing strings above (failed_examples)."
                                     )
                                 else:
-                                    trend_df["_parsed_date"] = parsed
-            
+                                    # Replace original column with parsed one
+                                    trend_df[date_col] = parsed  
+                        
+                                    # --- Generate Trend Chart ---
                                     fig_trend = plot_trend_dashboard(
                                         trend_df,
-                                        date_col="_parsed_date",
+                                        date_col=date_col,   # now guaranteed fully parsed
                                         value_col=value_col,
                                         date_format=st.session_state.get("date_format")
                                     )
-            
+                        
                                     if fig_trend:
                                         st.plotly_chart(fig_trend, use_container_width=True)
-            
+                        
+                                        # Save chart as PNG for PDF
                                         trend_chart_path = "trend_chart.png"
                                         fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
-            
+                        
                                         img = PILImage.open(trend_chart_path).convert("RGB")
                                         img.save(trend_chart_path)
-            
+                        
                                         st.session_state["trend_chart"] = trend_chart_path
                                         st.session_state["trend_summary"] = (
-                                            f"Trend chart of '{value_col}' over '{date_col}'"
+                                            f"Trend chart of '{value_col}' over '{date_col}' "
                                         )
                                     else:
                                         st.warning("⚠️ Selected columns are invalid for plotting.")
+                        
                             except Exception as e:
                                 st.info(f"⚠️ Unable to render trend plot: {e}")
-            
+
                     # --- TIME-SERIES ANALYSIS ---
                     st.subheader("⏳ Time-Series Trend Analysis")
                     if date_cols and num_cols:
