@@ -37,7 +37,7 @@ google-generativeai
 groq  
 langchain-groq
 reportlab
-kaleido>=1.0.0
+kaleido==0.2.1
 fuzzywuzzy
 plotly[kaleido]
 python-Levenshtein
