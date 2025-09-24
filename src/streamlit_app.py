@@ -907,7 +907,7 @@ def main():
 
             
             # --- Time-Series Trend Analysis ---
-            # --- Time-Series Trend Analysis ---
+           
             st.subheader("⏳ Time-Series Trend Analysis")
             p = st.session_state.get("processed")
             
@@ -921,32 +921,20 @@ def main():
                     agg_options = ["mean", "sum", "max", "min"]
                     agg_choice = st.selectbox("Select aggregation function", options=agg_options)
             
-                    # Create placeholder (prevents multiple charts stacking)
-                    chart_placeholder = st.empty()
-            
                     if st.button("Plot Time-Series Trend", key="time_btn"):
-                        # ✅ Work on a copy to avoid re-parsing issues
-                        df_copy = p.copy()
-            
-                        # ✅ Convert date column using selected format
+                        # Convert date column with optional format
                         if "date_format" in st.session_state and st.session_state["date_format"]:
-                            df_copy[time_col] = pd.to_datetime(
-                                df_copy[time_col].astype(str).str.strip(),
+                            p[time_col] = pd.to_datetime(
+                                p[time_col].astype(str).str.strip(),
                                 format=st.session_state["date_format"],
                                 errors="coerce"
                             )
                         else:
-                            df_copy[time_col] = pd.to_datetime(
-                                df_copy[time_col].astype(str).str.strip(),
-                                errors="coerce"
-                            )
+                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), errors="coerce")
             
-                        # Drop invalid rows
-                        df_copy = df_copy.dropna(subset=[time_col, value_col])
-            
-                        # Generate Plotly chart
+                        # Generate Plotly time-series chart
                         fig_time = plot_time_series_trend(
-                            df_copy,
+                            p,
                             time_col,
                             value_col,
                             freq=freq_options[freq_choice],
@@ -954,8 +942,8 @@ def main():
                         )
             
                         if fig_time:
-                            # ✅ Replace chart instead of stacking
-                            chart_placeholder.plotly_chart(fig_time, use_container_width=True)
+                            # Show in Streamlit
+                            st.plotly_chart(fig_time, use_container_width=True)
             
                             # Save separately for PDF
                             time_chart_path = "time_series_trend.png"
@@ -969,7 +957,7 @@ def main():
                             st.session_state["time_chart"] = time_chart_path
                             st.session_state["time_summary"] = (
                                 f"{freq_choice} trend of '{value_col}' over '{time_col}', "
-                                f"aggregated by {agg_choice}, using format {st.session_state.get('date_format','auto')}"
+                                f"aggregated by {agg_choice}"
                             )
                         else:
                             st.warning("⚠️ Unable to generate time-series chart.")
@@ -977,7 +965,6 @@ def main():
                     st.warning("No valid datetime and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
-
 
             # Make sure NLTK has the WordNet lemmatizer
             from nltk.stem import WordNetLemmatizer
