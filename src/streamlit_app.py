@@ -981,9 +981,7 @@ def main():
                                 st.warning(f"⚠️ Unable to render trend plot: {e}")
                     else:
                         st.info("No valid date and numeric column pair available for trend plotting.")
-
-
-
+            
                     # --- Persistent Display for Trend & Time-Series Charts ---
                     if "trend_fig" in st.session_state and "trend_col" in st.session_state:
                         st.success(f"Trend Chart: {st.session_state.get('trend_col')} over {st.session_state.get('trend_date_col_saved')}")
@@ -1000,18 +998,18 @@ def main():
                         agg_options = ["mean", "sum", "max", "min"]
                         agg_choice = st.selectbox("Select aggregation function", options=agg_options)
             
-                      if st.button("Plot Time-Series Trend", key="time_btn"):
+                        if st.button("Plot Time-Series Trend", key="time_btn"):
                             try:
                                 parsed, diag = parse_dates_strict(
                                     p[time_col],
                                     st.session_state.get("date_format")
                                 )
-                        
+            
                                 # Only proceed if at least 1 row parsed successfully
                                 if diag["parsed_count"] > 0:
                                     # Use a temporary column for plotting to avoid modifying the widget-backed column
                                     p["_parsed_time"] = parsed
-                        
+            
                                     fig_time = plot_time_series_trend(
                                         p,
                                         date_col="_parsed_time",
@@ -1020,12 +1018,12 @@ def main():
                                         agg_func=agg_choice,
                                         date_format=st.session_state.get("date_format")
                                     )
-                        
+            
                                     if fig_time:
                                         st.session_state["time_fig"] = fig_time
                                         st.session_state["time_col"] = value_col
                                         st.session_state["time_date_col_saved"] = time_col
-                        
+            
                                         time_chart_path = "time_series_trend.png"
                                         fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
                                         img = PILImage.open(time_chart_path).convert("RGB")
@@ -1034,15 +1032,9 @@ def main():
                                         st.session_state["time_summary"] = (
                                             f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
                                         )
-                        
-                                # Do not display parsing failure as a UI error
+            
                             except Exception:
                                 pass  # silently ignore parsing errors
-                        
-                
-            
-                            #except Exception as e:
-                                #st.warning(f"⚠️ Error plotting Time-Series: {e}")
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
             
@@ -1051,11 +1043,12 @@ def main():
             
             else:
                 st.warning("No processed data available. Please preprocess first.")
-        
             
+            # --- Persistent display for Time-Series ---
             if "time_fig" in st.session_state and "time_col" in st.session_state:
                 st.success(f"Time-Series Chart: {st.session_state.get('time_col')} over {st.session_state.get('time_date_col_saved')}")
                 st.plotly_chart(st.session_state['time_fig'], use_container_width=True)
+
 
 
             # Make sure NLTK has the WordNet lemmatizer
