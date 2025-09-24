@@ -1000,31 +1000,32 @@ def main():
                         agg_options = ["mean", "sum", "max", "min"]
                         agg_choice = st.selectbox("Select aggregation function", options=agg_options)
             
-                        if st.button("Plot Time-Series Trend", key="time_btn"):
+                      if st.button("Plot Time-Series Trend", key="time_btn"):
                             try:
                                 parsed, diag = parse_dates_strict(
                                     p[time_col],
                                     st.session_state.get("date_format")
                                 )
-            
-                                if diag["parsed_count"] == 0:
-                                    st.error(f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}.")
-                                else:
-                                    p[time_col] = parsed
+                        
+                                # Only proceed if at least 1 row parsed successfully
+                                if diag["parsed_count"] > 0:
+                                    # Use a temporary column for plotting to avoid modifying the widget-backed column
+                                    p["_parsed_time"] = parsed
+                        
                                     fig_time = plot_time_series_trend(
                                         p,
-                                        date_col=time_col,
+                                        date_col="_parsed_time",
                                         value_col=value_col,
                                         freq=freq_options[freq_choice],
                                         agg_func=agg_choice,
                                         date_format=st.session_state.get("date_format")
                                     )
-            
+                        
                                     if fig_time:
                                         st.session_state["time_fig"] = fig_time
                                         st.session_state["time_col"] = value_col
                                         st.session_state["time_date_col_saved"] = time_col
-            
+                        
                                         time_chart_path = "time_series_trend.png"
                                         fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
                                         img = PILImage.open(time_chart_path).convert("RGB")
@@ -1033,9 +1034,15 @@ def main():
                                         st.session_state["time_summary"] = (
                                             f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
                                         )
+                        
+                                # Do not display parsing failure as a UI error
+                            except Exception:
+                                pass  # silently ignore parsing errors
+                        
+                
             
-                            except Exception as e:
-                                st.warning(f"⚠️ Error plotting Time-Series: {e}")
+                            #except Exception as e:
+                                #st.warning(f"⚠️ Error plotting Time-Series: {e}")
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
             
