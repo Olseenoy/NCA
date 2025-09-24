@@ -1191,7 +1191,7 @@ def main():
 
             
             else:
-                st.warning("⚠️ No processed data or recurring issues available. Please preprocess logs first.")
+                st.warning(" ")
 
             
 
