@@ -163,49 +163,46 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
     )
     return fig
 
-import plotly.express as px
 
-import plotly.express as px
+# Central d3 mapping (only define once)
+D3_FORMATS = {
+    "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-04
+    "%Y-%d-%m": "%Y-%d-%m",   # 2025-04-09
+    "%d-%m-%Y": "%d-%m-%Y",   # 04-09-2025
+    "%m-%d-%Y": "%m-%d-%Y",   # 09-04-2025
+    "%d/%m/%Y": "%d/%m/%Y",   # 04/09/2025
+    "%m/%d/%Y": "%m/%d/%Y",   # 09/04/2025
+    "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/04
+}
 
 # --- Trend Dashboard Plot ---
 def plot_trend_dashboard(df, date_col, value_col, date_format=None):
-    fig = px.line(df, x=date_col, y=value_col, title=f"Trend of {value_col} over {date_col}")
+    # Ensure column is datetime
+    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+
+    fig = px.line(df, x=date_col, y=value_col,
+                  title=f"Trend of {value_col} over {date_col}")
 
     if date_format:
-        d3_formats = {
-            "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-04
-            "%Y-%d-%m": "%Y-%d-%m",   # 2025-04-09
-            "%d-%m-%Y": "%d-%m-%Y",   # 04-09-2025
-            "%m-%d-%Y": "%m-%d-%Y",   # 09-04-2025
-            "%d/%m/%Y": "%d/%m/%Y",   # 04/09/2025
-            "%m/%d/%Y": "%m/%d/%Y",   # 09/04/2025
-            "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/04
-        }
-        fig.update_xaxes(tickformat=d3_formats.get(date_format, "%Y-%m-%d"))
+        fig.update_xaxes(tickformat=D3_FORMATS.get(date_format, "%Y-%m-%d"))
     return fig
 
 
 # --- Time-Series Trend Plot ---
 def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean", date_format=None):
+    # Ensure column is datetime
+    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+
+    # Resample
     df_resampled = df.set_index(date_col).resample(freq)[value_col].agg(agg_func).reset_index()
 
     fig = px.line(df_resampled, x=date_col, y=value_col,
                   title=f"{agg_func.capitalize()} {value_col} ({freq})")
 
     if date_format:
-        d3_formats = {
-            "%Y-%m-%d": "%Y-%m-%d",
-            "%Y-%d-%m": "%Y-%d-%m",
-            "%d-%m-%Y": "%d-%m-%Y",
-            "%m-%d-%Y": "%m-%d-%Y",
-            "%d/%m/%Y": "%d/%m/%Y",
-            "%m/%d/%Y": "%m/%d/%Y",
-            "%Y/%m/%d": "%Y/%m/%d",
-        }
-        fig.update_xaxes(tickformat=d3_formats.get(date_format, "%Y-%m-%d"))
+        fig.update_xaxes(tickformat=D3_FORMATS.get(date_format, "%Y-%m-%d"))
     return fig
 
-        
 # snca_rca_module.py
 
 def rule_based_rca_fallback(issue_text, processed_df=None):
