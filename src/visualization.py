@@ -163,51 +163,81 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
     )
     return fig
 
-import plotly.express as px
 import pandas as pd
+import plotly.express as px
 
-# Central d3 mapping
+# d3 format mapping for Plotly tickformat (keeps simple 1:1 mapping)
 D3_FORMATS = {
-    "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-04
-    "%Y-%d-%m": "%Y-%d-%m",   # 2025-04-09
-    "%d-%m-%Y": "%d-%m-%Y",   # 04-09-2025
-    "%m-%d-%Y": "%m-%d-%Y",   # 09-04-2025
-    "%d/%m/%Y": "%d/%m/%Y",   # 04/09/2025
-    "%m/%d/%Y": "%m/%d/%Y",   # 09/04/2025
-    "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/04
+    "%Y-%m-%d": "%Y-%m-%d",
+    "%Y-%d-%m": "%Y-%d-%m",
+    "%d-%m-%Y": "%d-%m-%Y",
+    "%m-%d-%Y": "%m-%d-%Y",
+    "%d/%m/%Y": "%d/%m/%Y",
+    "%m/%d/%Y": "%m/%d/%Y",
+    "%Y/%m/%d": "%Y/%m/%d",
 }
 
-def ensure_datetime(series, fmt=None):
-    """Convert a column to datetime, strictly respecting global format."""
-    if fmt:
-        return pd.to_datetime(series.astype(str).str.strip(), format=fmt, errors="coerce")
+def _clean_date_strings(series):
+    s = series.astype(str).str.strip()
+    # replace common unicode dashes with ASCII hyphen, remove weird invisible chars
+    s = s.str.replace("\u2013", "-", regex=False).str.replace("\u2014", "-", regex=False)
+    # unify slashes to hyphen only if your selected format uses hyphen; we'll keep original separators for parsing
+    s = s.str.replace(r"\u00A0", "", regex=True)  # remove non-breaking spaces
+    return s
+
+def parse_dates_strict(series, date_format):
+    """
+    Strictly parse according to date_format (if provided).
+    Returns a DatetimeIndex-like pd.Series (dtype datetime64[ns]) and diagnostics dict.
+    """
+    s_clean = _clean_date_strings(series)
+    if date_format:
+        parsed = pd.to_datetime(s_clean, format=date_format, errors="coerce")
     else:
-        return pd.to_datetime(series.astype(str).str.strip(), errors="coerce")
+        # auto-detect mode
+        parsed = pd.to_datetime(s_clean, errors="coerce")
+    diagnostics = {
+        "total": len(parsed),
+        "parsed_count": int(parsed.notna().sum()),
+        "na_count": int(parsed.isna().sum()),
+        "sample_raw": s_clean.head(10).tolist(),
+        "sample_parsed": parsed.head(10).astype(str).tolist(),
+        "failed_examples": s_clean[parsed.isna()].head(10).tolist()
+    }
+    return parsed, diagnostics
 
 
-# --- Trend Dashboard Plot ---
 def plot_trend_dashboard(df, date_col, value_col, date_format=None):
-    df[date_col] = ensure_datetime(df[date_col], date_format)
-
-    fig = px.line(df, x=date_col, y=value_col,
-                  title=f"Trend of {value_col} over {date_col}")
-
+    # df is expected to contain a parsed datetime column already (we'll pass _parsed_date)
+    fig = px.line(df, x=date_col, y=value_col, title=f"Trend of {value_col} over {date_col}")
+    # ensure Plotly treats x as date
+    fig.update_xaxes(type="date")
     if date_format:
         fig.update_xaxes(tickformat=D3_FORMATS.get(date_format, "%Y-%m-%d"))
+    fig.update_layout(xaxis_title=date_col, yaxis_title=value_col)
     return fig
 
 
-# --- Time-Series Trend Plot ---
 def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean", date_format=None):
-    df[date_col] = ensure_datetime(df[date_col], date_format)
-
-    df_resampled = df.set_index(date_col).resample(freq)[value_col].agg(agg_func).reset_index()
-
-    fig = px.line(df_resampled, x=date_col, y=value_col,
-                  title=f"{agg_func.capitalize()} {value_col} ({freq})")
-
+    # df[date_col] must be datetime and not-null rows will be used
+    # Drop NA datetimes then set index and resample
+    tmp = df[[date_col, value_col]].copy()
+    tmp = tmp.dropna(subset=[date_col])
+    if tmp.empty:
+        return None
+    tmp = tmp.sort_values(by=date_col)
+    tmp = tmp.set_index(date_col)
+    # resample + agg
+    try:
+        resampled = tmp[value_col].resample(freq).agg(agg_func).reset_index()
+    except Exception as e:
+        # if resample fails, return None so caller can show a message
+        raise RuntimeError(f"resample failed: {e}")
+    fig = px.line(resampled, x=date_col, y=value_col, title=f"{agg_func.capitalize()} {value_col} ({freq})")
+    fig.update_xaxes(type="date")
     if date_format:
         fig.update_xaxes(tickformat=D3_FORMATS.get(date_format, "%Y-%m-%d"))
+    fig.update_layout(xaxis_title=date_col, yaxis_title=value_col)
     return fig
 
 
