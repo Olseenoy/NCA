@@ -1128,15 +1128,19 @@ def main():
 
             
             # --- RCA Results ---
+            # --- RCA Results ---
             result = st.session_state.get("rca_result", {})
             if result:
                 col1, col2 = st.columns([1, 1])
+            
+                rca_pdf_content = []  # initialize PDF content
             
                 with col1:
                     st.markdown("### RCA - Details")
             
                     if result.get("error"):
                         st.error(result.get("error"))
+                        rca_pdf_content.append(f"Error: {result.get('error')}")
             
                     # Show WHY Analysis
                     why = result.get("why_analysis") or result.get("five_whys")
@@ -1145,13 +1149,16 @@ def main():
                         if isinstance(why, list):
                             for i, w in enumerate(why, start=1):
                                 st.write(f"{i}. {w}")
+                                rca_pdf_content.append(f"{i}. {w}")
                         else:
                             st.write(why)
+                            rca_pdf_content.append(str(why))
             
                     # Show Root Cause
                     if result.get("root_cause"):
                         st.markdown("**Root Cause:**")
                         st.write(result["root_cause"])
+                        rca_pdf_content.append(f"Root Cause: {result['root_cause']}")
             
                     # Show CAPA
                     capa = result.get("capa")
@@ -1159,24 +1166,27 @@ def main():
                         st.markdown("**CAPA Recommendations:**")
                         if isinstance(capa, list):
                             for c in capa:
-                                st.write(
+                                line = (
                                     f"- **{c.get('type', '')}**: {c.get('action', '')} "
                                     f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
                                 )
+                                st.write(line)
+                                rca_pdf_content.append(line)
                         else:
                             st.write(capa)
+                            rca_pdf_content.append(str(capa))
             
-                    # 🚑 Fallback: show raw response if no structured fields exist
+                    # Fallback: raw response
                     if not any([why, result.get("root_cause"), capa]):
-                        if result.get("parsed", {}).get("raw_text"):
+                        raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
+                        if raw_text:
                             st.markdown("**AI RCA Report:**")
-                            st.markdown(result["parsed"]["raw_text"])
-                        elif result.get("response"):
-                            st.markdown("**AI RCA Report:**")
-                            st.markdown(result["response"])
+                            st.markdown(raw_text)
+                            rca_pdf_content.append(raw_text)
+            
+                # Store RCA output for PDF
+                st.session_state["rca_pdf_content"] = rca_pdf_content
 
-                    # Store RCA output for PDF
-                    st.session_state["rca_pdf_content"] = rca_pdf_content
             
                 with col2:
                     st.markdown("### Fishbone Diagram")
