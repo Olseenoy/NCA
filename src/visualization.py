@@ -163,8 +163,10 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
     )
     return fig
 
+import plotly.express as px
+import pandas as pd
 
-# Central d3 mapping (only define once)
+# Central d3 mapping
 D3_FORMATS = {
     "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-04
     "%Y-%d-%m": "%Y-%d-%m",   # 2025-04-09
@@ -175,10 +177,17 @@ D3_FORMATS = {
     "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/04
 }
 
+def ensure_datetime(series, fmt=None):
+    """Convert a column to datetime, strictly respecting global format."""
+    if fmt:
+        return pd.to_datetime(series.astype(str).str.strip(), format=fmt, errors="coerce")
+    else:
+        return pd.to_datetime(series.astype(str).str.strip(), errors="coerce")
+
+
 # --- Trend Dashboard Plot ---
 def plot_trend_dashboard(df, date_col, value_col, date_format=None):
-    # Ensure column is datetime
-    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+    df[date_col] = ensure_datetime(df[date_col], date_format)
 
     fig = px.line(df, x=date_col, y=value_col,
                   title=f"Trend of {value_col} over {date_col}")
@@ -190,10 +199,8 @@ def plot_trend_dashboard(df, date_col, value_col, date_format=None):
 
 # --- Time-Series Trend Plot ---
 def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean", date_format=None):
-    # Ensure column is datetime
-    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+    df[date_col] = ensure_datetime(df[date_col], date_format)
 
-    # Resample
     df_resampled = df.set_index(date_col).resample(freq)[value_col].agg(agg_func).reset_index()
 
     fig = px.line(df_resampled, x=date_col, y=value_col,
@@ -202,6 +209,7 @@ def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean", d
     if date_format:
         fig.update_xaxes(tickformat=D3_FORMATS.get(date_format, "%Y-%m-%d"))
     return fig
+
 
 # snca_rca_module.py
 
