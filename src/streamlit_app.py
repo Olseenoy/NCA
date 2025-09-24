@@ -981,6 +981,13 @@ def main():
                                 st.warning(f"⚠️ Unable to render trend plot: {e}")
                     else:
                         st.info("No valid date and numeric column pair available for trend plotting.")
+
+
+
+                    # --- Persistent Display for Trend & Time-Series Charts ---
+                    if "trend_fig" in st.session_state and "trend_col" in st.session_state:
+                        st.success(f"Trend Chart: {st.session_state.get('trend_col')} over {st.session_state.get('trend_date_col_saved')}")
+                        st.plotly_chart(st.session_state['trend_fig'], use_container_width=True)
             
                     # --- Time-Series Analysis Button ---
                     st.subheader("⏳ Time-Series Trend Analysis")
@@ -1037,11 +1044,7 @@ def main():
             
             else:
                 st.warning("No processed data available. Please preprocess first.")
-            
-            # --- Persistent Display for Trend & Time-Series Charts ---
-            if "trend_fig" in st.session_state and "trend_col" in st.session_state:
-                st.success(f"Trend Chart: {st.session_state.get('trend_col')} over {st.session_state.get('trend_date_col_saved')}")
-                st.plotly_chart(st.session_state['trend_fig'], use_container_width=True)
+        
             
             if "time_fig" in st.session_state and "time_col" in st.session_state:
                 st.success(f"Time-Series Chart: {st.session_state.get('time_col')} over {st.session_state.get('time_date_col_saved')}")
