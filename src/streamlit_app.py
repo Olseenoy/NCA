@@ -1129,6 +1129,11 @@ def main():
             
             # --- RCA Results ---
             # --- RCA Results ---
+            from reportlab.platypus import Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            
+            styles = getSampleStyleSheet()
+
             result = st.session_state.get("rca_result", {})
             if result:
                 col1, col2 = st.columns([1, 1])
