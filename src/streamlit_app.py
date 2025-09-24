@@ -945,7 +945,7 @@ def main():
                                     trend_df[date_col],
                                     st.session_state.get("date_format")
                                 )
-                                st.write("📊 Date parsing diagnostics (Trend):", diag)
+                                # st.write("📊 Date parsing diagnostics (Trend):", diag)
             
                                 # Generate Trend Chart
                                 fig_trend = plot_trend_dashboard(
@@ -996,7 +996,7 @@ def main():
                                     p[time_col],
                                     st.session_state.get("date_format")
                                 )
-                                st.write("⏳ Date parsing diagnostics:", diag)
+                                # st.write("⏳ Date parsing diagnostics:", diag)
             
                                 if diag["parsed_count"] == 0:
                                     st.error(f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}.")
