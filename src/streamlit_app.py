@@ -921,51 +921,58 @@ def main():
                     agg_choice = st.selectbox("Select aggregation function", options=agg_options)
             
                     if st.button("Plot Time-Series Trend", key="time_btn"):
-                        # Convert date column with optional format
-                        if "date_format" in st.session_state and st.session_state["date_format"]:
-                            p[time_col] = pd.to_datetime(
-                                p[time_col].astype(str).str.strip(),
-                                format=st.session_state["date_format"],
-                                errors="coerce"
+                        try:
+                            # ✅ Always work on a copy to avoid corrupting session data
+                            df_copy = p.copy()
+            
+                            # Convert date column with optional format
+                            if "date_format" in st.session_state and st.session_state["date_format"]:
+                                df_copy[time_col] = pd.to_datetime(
+                                    df_copy[time_col].astype(str).str.strip(),
+                                    format=st.session_state["date_format"],
+                                    errors="coerce"
+                                )
+                            else:
+                                df_copy[time_col] = pd.to_datetime(
+                                    df_copy[time_col].astype(str).str.strip(),
+                                    errors="coerce"
+                                )
+            
+                            # Generate Plotly time-series chart
+                            fig_time = plot_time_series_trend(
+                                df_copy,
+                                time_col,
+                                value_col,
+                                freq=freq_options[freq_choice],
+                                agg_func=agg_choice
                             )
-                        else:
-                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), errors="coerce")
             
-                        # Generate Plotly time-series chart
-                        fig_time = plot_time_series_trend(
-                            p,
-                            time_col,
-                            value_col,
-                            freq=freq_options[freq_choice],
-                            agg_func=agg_choice
-                        )
+                            if fig_time:
+                                # Show in Streamlit
+                                st.plotly_chart(fig_time, use_container_width=True)
             
-                        if fig_time:
-                            # Show in Streamlit
-                            st.plotly_chart(fig_time, use_container_width=True)
+                                # Save separately for PDF
+                                time_chart_path = "time_series_trend.png"
+                                fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
             
-                            # Save separately for PDF
-                            time_chart_path = "time_series_trend.png"
-                            fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+                                # Convert to RGB
+                                img = PILImage.open(time_chart_path).convert("RGB")
+                                img.save(time_chart_path)
             
-                            # Convert to RGB
-                            img = PILImage.open(time_chart_path).convert("RGB")
-                            img.save(time_chart_path)
-            
-                            # Save to session_state for PDF
-                            st.session_state["time_chart"] = time_chart_path
-                            st.session_state["time_summary"] = (
-                                f"{freq_choice} trend of '{value_col}' over '{time_col}', "
-                                f"aggregated by {agg_choice}"
-                            )
-                        else:
-                            st.warning("⚠️ Unable to generate time-series chart.")
+                                # Save to session_state for PDF
+                                st.session_state["time_chart"] = time_chart_path
+                                st.session_state["time_summary"] = (
+                                    f"{freq_choice} trend of '{value_col}' over '{time_col}', "
+                                    f"aggregated by {agg_choice}"
+                                )
+                            else:
+                                st.warning("⚠️ Unable to generate time-series chart.")
+                        except Exception as e:
+                            st.error(f"⚠️ Time-series analysis failed: {e}")
                 else:
                     st.warning("No valid datetime and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
-
-
 
             # Make sure NLTK has the WordNet lemmatizer
             from nltk.stem import WordNetLemmatizer
