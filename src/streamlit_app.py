@@ -547,9 +547,11 @@ def main():
                             )
             
                             # Display cluster chart and metrics
-                            st.success(st.session_state['cluster_text'])
-                            st.info(st.session_state['cluster_metrics']["interpretation"])
-                            st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
+                            if "cluster_text" in st.session_state and "cluster_metrics" in st.session_state and "cluster_fig" in st.session_state:
+                                st.success(st.session_state['cluster_text'])
+                                st.info(st.session_state['cluster_metrics']["interpretation"])
+                                st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
+
             
                             # Save cluster chart as PNG
                             clusters_chart_path = "clusters_rgb.png"
