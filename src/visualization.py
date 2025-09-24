@@ -166,39 +166,10 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
 def plot_trend_dashboard(df, date_col, value_col):
     if date_col not in df.columns or value_col not in df.columns:
         return None
-
-    # Parse dates
-    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+    df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
     df = df.dropna(subset=[date_col, value_col])
     df = df.sort_values(date_col)
-
-    # Create line chart
-    fig = px.line(df, x=date_col, y=value_col, title="Trend Dashboard", markers=True)
-
-    # Force x-axis tick format if global date_format is set
-    if "date_format" in st.session_state and st.session_state["date_format"]:
-        fmt_map = {
-            "%Y-%m-%d": "%Y-%m-%d",
-            "%Y-%d-%m": "%Y-%d-%m",
-            "%d-%m-%Y": "%d-%m-%Y",
-            "%m-%d-%Y": "%m-%d-%Y",
-            "%d/%m/%Y": "%d/%m/%Y",
-            "%m/%d/%Y": "%m/%d/%Y",
-            "%Y/%m/%d": "%Y/%m/%d",
-        }
-        d3_fmt = fmt_map.get(st.session_state["date_format"])
-        if d3_fmt:
-            fig.update_xaxes(
-                tickformat=d3_fmt,
-                ticklabelmode="period"
-            )
-
-    fig.update_layout(
-        xaxis_title=str(date_col),
-        yaxis_title=str(value_col),
-        template="plotly_white"
-    )
-
+    fig = px.line(df, x=date_col, y=value_col, title="Trend Dashboard")
     return fig
 
 
