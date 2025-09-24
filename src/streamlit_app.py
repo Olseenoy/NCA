@@ -777,7 +777,7 @@ def main():
                                 continue
                         time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
             
-                        # --- Button appears after optional time column selection ---
+                        # --- Run SPC Analysis Button ---
                         if st.button("Run SPC Analysis"):
                             try:
                                 from visualization import plot_spc_chart
@@ -796,14 +796,6 @@ def main():
                                 spc_summary = "Process shows 2 points outside control limits; needs investigation."
                                 st.session_state["spc_summary"] = spc_summary
             
-                                # Display chart
-                                st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
-                                st.plotly_chart(
-                                    st.session_state['spc_fig'],
-                                    use_container_width=True,
-                                    key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
-                                )
-            
                             except Exception as e:
                                 st.error(f"SPC plotting failed: {e}")
             
@@ -812,6 +804,16 @@ def main():
             
             else:
                 st.warning("No processed data available for SPC. Please preprocess first.")
+            
+            # --- Persistent SPC Display ---
+            if "spc_fig" in st.session_state and "spc_col_saved" in st.session_state:
+                st.success(f"SPC Chart for: {st.session_state.get('spc_col_saved', '')}")
+                st.plotly_chart(
+                    st.session_state['spc_fig'],
+                    use_container_width=True,
+                    key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
+                )
+            
 
 
 
