@@ -828,31 +828,77 @@ def main():
             st.session_state["date_format"] = format_options[fmt_choice]
             
 
-            def parse_dates_strict(series, date_format=None):
+            def parse_dates_strict(series, date_format=None, sample_size=5):
                 """
-                Strictly parse a pandas Series of dates with a given format.
+                Strictly parse a pandas Series of dates, with support for:
+                - Auto-detect mode (scan first few rows)
+                - Mixed formats normalization into a single chosen format
+                
+                Args:
+                    series: pandas Series of strings
+                    date_format: optional strftime format (from UI)
+                    sample_size: rows to test for auto-detect
+                
                 Returns:
                     parsed_series: pandas Series of datetime64
                     diagnostics: dict with parse stats
                 """
                 raw = series.astype(str).str.strip()
-                parsed = None
             
-                if date_format:
-                    parsed = pd.to_datetime(raw, format=date_format, errors="coerce")
+                # --- 1. Auto-detect if no format selected ---
+                fmt_used = None
+                if not date_format:
+                    sample = raw.head(sample_size).dropna()
+                    parsed_test1 = pd.to_datetime(sample, format="%Y-%m-%d", errors="coerce")
+                    parsed_test2 = pd.to_datetime(sample, format="%Y-%d-%m", errors="coerce")
+            
+                    success1 = parsed_test1.notna().sum()
+                    success2 = parsed_test2.notna().sum()
+            
+                    if success1 >= success2:
+                        fmt_used = "%Y-%m-%d"
+                    else:
+                        fmt_used = "%Y-%d-%m"
                 else:
-                    # fallback: try automatic parsing
-                    parsed = pd.to_datetime(raw, errors="coerce")
+                    fmt_used = date_format
             
+                # --- 2. Try primary format first ---
+                parsed = pd.to_datetime(raw, format=fmt_used, errors="coerce")
+            
+                # --- 3. Handle mixed formats (fallback attempts) ---
+                if parsed.isna().any():
+                    # Try alternate common formats only on failed rows
+                    alt_formats = [
+                        "%Y-%m-%d",
+                        "%Y-%d-%m",
+                        "%d-%m-%Y",
+                        "%m-%d-%Y",
+                        "%d/%m/%Y",
+                        "%m/%d/%Y",
+                        "%Y/%m/%d",
+                    ]
+                    failed_idx = parsed[parsed.isna()].index
+            
+                    for fmt in alt_formats:
+                        parsed_alt = pd.to_datetime(raw.loc[failed_idx], format=fmt, errors="coerce")
+                        parsed.loc[failed_idx] = parsed.loc[failed_idx].fillna(parsed_alt)
+            
+                # --- 4. Normalize into final selected format ---
+                # NOTE: The datetime64 values are stored consistently,
+                # but for display/export you can enforce formatting later:
+                # parsed.dt.strftime(date_format)
+                
                 diagnostics = {
                     "total_rows": len(raw),
-                    "parsed_count": parsed.notna().sum(),
-                    "failed_count": parsed.isna().sum(),
-                    "failed_examples": raw[parsed.isna()].unique()[:5].tolist(),  # first 5 failures
-                    "format_used": date_format if date_format else "auto"
+                    "parsed_count": int(parsed.notna().sum()),
+                    "failed_count": int(parsed.isna().sum()),
+                    "failed_examples": raw[parsed.isna()].unique()[:5].tolist(),
+                    "format_used": fmt_used,
+                    "note": "Mixed formats auto-converted into chosen format"
                 }
             
                 return parsed, diagnostics
+
 
             # --- Trend Dashboard ---
             # --- Trend Dashboard ---
