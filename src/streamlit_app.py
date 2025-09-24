@@ -835,71 +835,72 @@ def main():
             p = st.session_state.get("processed")
             
             if isinstance(p, pd.DataFrame) and not p.empty:
-                try:
-                    trend_df = p.copy()
+                if st.button("Run Trend Analysis", key="trend_btn"):
+                    try:
+                        trend_df = p.copy()
             
-                    # Convert numeric columns
-                    for c in trend_df.columns:
-                        if trend_df[c].dtype == "object":
-                            trend_df[c] = pd.to_numeric(
-                                trend_df[c].astype(str).str.replace(",", "").str.strip(),
-                                errors="ignore"
-                            )
-            
-                    # Detect numeric columns
-                    num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
-            
-                    # Detect date columns
-                    date_cols = []
-                    for c in trend_df.columns:
-                        if pd.api.types.is_datetime64_any_dtype(trend_df[c]):
-                            date_cols.append(c)
-                        else:
-                            try:
-                                converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors="coerce")
-                                if converted.notna().any():
-                                    trend_df[c] = converted
-                                    date_cols.append(c)
-                            except Exception:
-                                continue
-            
-                    # Only proceed if we have valid numeric and date columns
-                    if date_cols and num_cols:
-                        date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
-                        value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
-            
-                        try:
-                            # --- Generate Trend Chart ---
-                            fig_trend = plot_trend_dashboard(trend_df, date_col=date_col, value_col=value_col)
-                            if fig_trend:
-                                # Show in Streamlit
-                                st.plotly_chart(fig_trend, use_container_width=True)
-            
-                                # Save chart as PNG for PDF
-                                trend_chart_path = "trend_chart.png"
-                                fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
-            
-                                # Convert to RGB (no alpha channel for ReportLab)
-                                img = PILImage.open(trend_chart_path).convert("RGB")
-                                img.save(trend_chart_path)
-            
-                                # Save to session_state for PDF
-                                st.session_state["trend_chart"] = trend_chart_path
-                                st.session_state["trend_summary"] = (
-                                    f"Trend chart of '{value_col}' over '{date_col}'."
+                        # Convert numeric columns
+                        for c in trend_df.columns:
+                            if trend_df[c].dtype == "object":
+                                trend_df[c] = pd.to_numeric(
+                                    trend_df[c].astype(str).str.replace(",", "").str.strip(),
+                                    errors="ignore"
                                 )
-                            else:
-                                st.warning("⚠️ Selected columns are invalid for plotting.")
-                        except Exception as e:
-                            st.info(f"⚠️ Unable to render trend plot: {e}")
-                    else:
-                        st.info("No valid date and numeric column pair available for trend plotting.")
             
-                except Exception as e:
-                    st.info(f"⚠️ Trend Dashboard could not be built: {e}")
+                        # Detect numeric columns
+                        num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
+            
+                        # Detect date columns
+                        date_cols = []
+                        for c in trend_df.columns:
+                            if pd.api.types.is_datetime64_any_dtype(trend_df[c]):
+                                date_cols.append(c)
+                            else:
+                                try:
+                                    converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors="coerce")
+                                    if converted.notna().any():
+                                        trend_df[c] = converted
+                                        date_cols.append(c)
+                                except Exception:
+                                    continue
+            
+                        # Only proceed if we have valid numeric and date columns
+                        if date_cols and num_cols:
+                            date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
+                            value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
+            
+                            try:
+                                # --- Generate Trend Chart ---
+                                fig_trend = plot_trend_dashboard(trend_df, date_col=date_col, value_col=value_col)
+                                if fig_trend:
+                                    # Show in Streamlit
+                                    st.plotly_chart(fig_trend, use_container_width=True)
+            
+                                    # Save chart as PNG for PDF
+                                    trend_chart_path = "trend_chart.png"
+                                    fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
+            
+                                    # Convert to RGB (no alpha channel for ReportLab)
+                                    img = PILImage.open(trend_chart_path).convert("RGB")
+                                    img.save(trend_chart_path)
+            
+                                    # Save to session_state for PDF
+                                    st.session_state["trend_chart"] = trend_chart_path
+                                    st.session_state["trend_summary"] = (
+                                        f"Trend chart of '{value_col}' over '{date_col}'."
+                                    )
+                                else:
+                                    st.warning("⚠️ Selected columns are invalid for plotting.")
+                            except Exception as e:
+                                st.info(f"⚠️ Unable to render trend plot: {e}")
+                        else:
+                            st.info("No valid date and numeric column pair available for trend plotting.")
+            
+                    except Exception as e:
+                        st.info(f"⚠️ Trend Dashboard could not be built: {e}")
             else:
                 st.info("No processed data available for Trend Dashboard. Please preprocess first.")
-            
+
             
             # --- Time-Series Trend Analysis ---
             st.subheader("⏳ Time-Series Trend Analysis")
