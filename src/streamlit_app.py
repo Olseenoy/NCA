@@ -874,7 +874,13 @@ def main():
                         if st.button("Run Trend Analysis", key="trend_btn"):
                             try:
                                 # --- Generate Trend Chart ---
-                                fig_trend = plot_trend_dashboard(trend_df, date_col=date_col, value_col=value_col)
+                                fig_trend = plot_trend_dashboard(
+                                    trend_df,
+                                    date_col=date_col,
+                                    value_col=value_col,
+                                    date_format=st.session_state.get("date_format")
+                                )
+
                                 if fig_trend:
                                     # Show in Streamlit
                                     st.plotly_chart(fig_trend, use_container_width=True)
@@ -938,7 +944,10 @@ def main():
                             time_col,
                             value_col,
                             freq=freq_options[freq_choice],
-                            agg_func=agg_choice
+                            agg_func=agg_choice,
+                            date_format=st.session_state.get("date_format")
+
+
                         )
             
                         if fig_time:
