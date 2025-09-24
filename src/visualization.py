@@ -163,8 +163,32 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
     )
     return fig
 
-import pandas as pd
-import plotly.express as px
+def parse_dates_strict(series, date_format=None):
+    """
+    Strictly parse a pandas Series of dates with a given format.
+    Returns:
+        parsed_series: pandas Series of datetime64
+        diagnostics: dict with parse stats
+    """
+    raw = series.astype(str).str.strip()
+    parsed = None
+
+    if date_format:
+        parsed = pd.to_datetime(raw, format=date_format, errors="coerce")
+    else:
+        # fallback: try automatic parsing
+        parsed = pd.to_datetime(raw, errors="coerce")
+
+    diagnostics = {
+        "total_rows": len(raw),
+        "parsed_count": parsed.notna().sum(),
+        "failed_count": parsed.isna().sum(),
+        "failed_examples": raw[parsed.isna()].unique()[:5].tolist(),  # first 5 failures
+        "format_used": date_format if date_format else "auto"
+    }
+
+    return parsed, diagnostics
+
 
 # d3 format mapping for Plotly tickformat (keeps simple 1:1 mapping)
 D3_FORMATS = {
