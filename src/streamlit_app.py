@@ -956,7 +956,7 @@ def main():
                             st.session_state["time_chart"] = time_chart_path
                             st.session_state["time_summary"] = (
                                 f"{freq_choice} trend of '{value_col}' over '{time_col}', "
-                                f"aggregated by {agg_choice}. Weekly trend shows gradual improvement after corrective action."
+                                f"aggregated by {agg_choice}"
                             )
                         else:
                             st.warning("⚠️ Unable to generate time-series chart.")
