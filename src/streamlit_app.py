@@ -891,7 +891,7 @@ def main():
                                     st.session_state["trend_chart"] = trend_chart_path
                                     st.session_state["trend_summary"] = (
                                         f"Trend chart of '{value_col}' over '{date_col}' "
-                                        f"(parsed with format {st.session_state.get('date_format', 'auto-detect')})."
+                                        f"(parsed with format {st.session_state.get('date_format')})."
                                     )
                                 else:
                                     st.warning("⚠️ Selected columns are invalid for plotting.")
