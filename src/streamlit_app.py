@@ -828,49 +828,72 @@ def main():
             st.session_state["date_format"] = format_options[fmt_choice]
             
             
-            def parse_dates_strict(series, chosen_format):
+            def parse_dates_strict(series, date_format=None, sample_size=5):
+                """
+                Strictly parse a pandas Series of dates, with support for:
+                - Auto-detect mode (scan first few rows)
+                - Mixed formats normalization into a single chosen format
                 
+                Args:
+                    series: pandas Series of strings
+                    date_format: optional strftime format (from UI)
+                    sample_size: rows to test for auto-detect
+                
+                Returns:
+                    parsed_series: pandas Series of datetime64
+                    diagnostics: dict with parse stats
+                """
+                raw = series.astype(str).str.strip()
             
-                # Common fallback formats
-                fallback_formats = ["%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y"]
+                # --- 1. Auto-detect if no format selected ---
+                fmt_used = None
+                if not date_format:
+                    sample = raw.head(sample_size).dropna()
+                    parsed_test1 = pd.to_datetime(sample, format="%Y-%m-%d", errors="coerce")
+                    parsed_test2 = pd.to_datetime(sample, format="%Y-%d-%m", errors="coerce")
             
-                parsed = pd.Series([pd.NaT] * len(series), index=series.index)
-                parsed_count = 0
-                failed_examples = []
+                    success1 = parsed_test1.notna().sum()
+                    success2 = parsed_test2.notna().sum()
             
-                # --- Try chosen format first ---
-                try:
-                    parsed = pd.to_datetime(series, format=chosen_format, errors="coerce")
-                except Exception:
-                    pass
+                    if success1 >= success2:
+                        fmt_used = "%Y-%m-%d"
+                    else:
+                        fmt_used = "%Y-%d-%m"
+                else:
+                    fmt_used = date_format
             
-                # --- Handle remaining NaT with fallback formats ---
-                for fmt in fallback_formats:
-                    mask = parsed.isna()
-                    if mask.sum() == 0:
-                        break  # all parsed already
+                # --- 2. Try primary format first ---
+                parsed = pd.to_datetime(raw, format=fmt_used, errors="coerce")
             
-                    try:
-                        parsed.loc[mask] = pd.to_datetime(series[mask], format=fmt, errors="coerce")
-                    except Exception:
-                        continue
+                # --- 3. Handle mixed formats (fallback attempts) ---
+                if parsed.isna().any():
+                    # Try alternate common formats only on failed rows
+                    alt_formats = [
+                        "%Y-%m-%d",
+                        "%Y-%d-%m",
+                        "%d-%m-%Y",
+                        "%m-%d-%Y",
+                        "%d/%m/%Y",
+                        "%m/%d/%Y",
+                        "%Y/%m/%d",
+                    ]
+                    failed_idx = parsed[parsed.isna()].index
             
-                # Count parsing success/fail
-                parsed_count = parsed.notna().sum()
-                failed_count = parsed.isna().sum()
-                failed_examples = parsed[parsed.isna()].astype(str).unique().tolist()[:5]
+                    for fmt in alt_formats:
+                        parsed_alt = pd.to_datetime(raw.loc[failed_idx], format=fmt, errors="coerce")
+                        parsed.loc[failed_idx] = parsed.loc[failed_idx].fillna(parsed_alt)
             
-                # --- Force convert everything into chosen format as string ---
-                parsed = pd.to_datetime(parsed, errors="coerce")
-                parsed = parsed.dt.strftime(chosen_format)  # unify format
-                parsed = pd.to_datetime(parsed, format=chosen_format, errors="coerce")
-            
+                # --- 4. Normalize into final selected format ---
+                # NOTE: The datetime64 values are stored consistently,
+                # but for display/export you can enforce formatting later:
+                # parsed.dt.strftime(date_format)
+                
                 diagnostics = {
-                    "total_rows": len(series),
-                    "parsed_count": int(parsed_count),
-                    "failed_count": int(failed_count),
-                    "failed_examples": failed_examples,
-                    "format_used": chosen_format,
+                    "total_rows": len(raw),
+                    "parsed_count": int(parsed.notna().sum()),
+                    "failed_count": int(parsed.isna().sum()),
+                    "failed_examples": raw[parsed.isna()].unique()[:5].tolist(),
+                    "format_used": fmt_used,
                     "note": "Mixed formats auto-converted into chosen format"
                 }
             
