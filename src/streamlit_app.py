@@ -829,7 +829,6 @@ def main():
             
             
             # --- Trend Dashboard ---
-            # --- Trend Dashboard ---
             st.subheader("📈 Trend Dashboard")
             p = st.session_state.get("processed")
             
@@ -846,10 +845,7 @@ def main():
                             )
             
                     # Detect numeric columns
-                    num_cols = [
-                        c for c in trend_df.select_dtypes(include=['number']).columns
-                        if trend_df[c].notna().any()
-                    ]
+                    num_cols = [c for c in trend_df.select_dtypes(include=['number']).columns if trend_df[c].notna().any()]
             
                     # Detect date columns using global date format
                     date_cols = []
@@ -879,22 +875,6 @@ def main():
                             try:
                                 # --- Generate Trend Chart ---
                                 fig_trend = plot_trend_dashboard(trend_df, date_col=date_col, value_col=value_col)
-            
-                                # 🔹 Force date format on x-axis if user selected one
-                                if "date_format" in st.session_state and st.session_state["date_format"]:
-                                    d3_format_map = {
-                                        "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-04
-                                        "%Y-%d-%m": "%Y-%d-%m",   # 2025-04-09
-                                        "%d-%m-%Y": "%d-%m-%Y",   # 04-09-2025
-                                        "%m-%d-%Y": "%m-%d-%Y",   # 09-04-2025
-                                        "%d/%m/%Y": "%d/%m/%Y",   # 04/09/2025
-                                        "%m/%d/%Y": "%m/%d/%Y",   # 09/04/2025
-                                        "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/04
-                                    }
-                                    d3_fmt = d3_format_map.get(st.session_state["date_format"])
-                                    if d3_fmt:
-                                        fig_trend.update_xaxes(tickformat=d3_fmt)
-            
                                 if fig_trend:
                                     # Show in Streamlit
                                     st.plotly_chart(fig_trend, use_container_width=True)
@@ -911,7 +891,6 @@ def main():
                                     st.session_state["trend_chart"] = trend_chart_path
                                     st.session_state["trend_summary"] = (
                                         f"Trend chart of '{value_col}' over '{date_col}' "
-                                        f"(formatted as {st.session_state.get('date_format', 'auto-detect')})."
                                     )
                                 else:
                                     st.warning("⚠️ Selected columns are invalid for plotting.")
