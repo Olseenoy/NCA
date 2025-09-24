@@ -1128,73 +1128,84 @@ def main():
 
             
             # --- RCA Results ---
-            from reportlab.platypus import Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet
-            
             # --- RCA Results ---
             result = st.session_state.get("rca_result", {})
             if result:
                 col1, col2 = st.columns([1, 1])
             
-                # Initialize PDF content
-                rca_pdf_content = []
-                styles = getSampleStyleSheet()
-                styleN = styles['Normal']
-                styleH3 = styles['Heading3']
+                # Initialize PDF content lists
+                rca_pdf_content = []      # for PDF (Paragraph objects)
+                rca_pdf_text_content = [] # for HTML/text joining
             
                 with col1:
                     st.markdown("### RCA - Details")
             
+                    # --- Error Handling ---
                     if result.get("error"):
                         st.error(result.get("error"))
-                        rca_pdf_content.append(Paragraph(f"Error: {result.get('error')}", styleN))
+                        rca_pdf_content.append(Paragraph(f"Error: {result.get('error')}", styles['Normal']))
+                        rca_pdf_text_content.append(f"Error: {result.get('error')}")
             
-                    # Show WHY Analysis
+                    # --- 5-Whys Analysis ---
                     why = result.get("why_analysis") or result.get("five_whys")
                     if why:
                         st.markdown("**5-Whys Analysis:**")
-                        rca_pdf_content.append(Paragraph("5-Whys Analysis:", styleH3))
+                        rca_pdf_content.append(Paragraph("5-Whys Analysis:", styles['Heading3']))
+                        rca_pdf_text_content.append("5-Whys Analysis:")
+            
                         if isinstance(why, list):
                             for i, w in enumerate(why, start=1):
                                 st.write(f"{i}. {w}")
-                                rca_pdf_content.append(Paragraph(f"{i}. {w}", styleN))
+                                rca_pdf_content.append(Paragraph(f"{i}. {w}", styles['Normal']))
+                                rca_pdf_text_content.append(f"{i}. {w}")
                         else:
                             st.write(why)
-                            rca_pdf_content.append(Paragraph(str(why), styleN))
+                            rca_pdf_content.append(Paragraph(str(why), styles['Normal']))
+                            rca_pdf_text_content.append(str(why))
             
-                    # Show Root Cause
+                    # --- Root Cause ---
                     if result.get("root_cause"):
                         st.markdown("**Root Cause:**")
                         st.write(result["root_cause"])
-                        rca_pdf_content.append(Paragraph(f"Root Cause: {result['root_cause']}", styleN))
+                        rca_pdf_content.append(Paragraph("Root Cause:", styles['Heading3']))
+                        rca_pdf_content.append(Paragraph(result["root_cause"], styles['Normal']))
+                        rca_pdf_text_content.append(f"Root Cause: {result['root_cause']}")
             
-                    # Show CAPA
+                    # --- CAPA Recommendations ---
                     capa = result.get("capa")
                     if capa:
                         st.markdown("**CAPA Recommendations:**")
-                        rca_pdf_content.append(Paragraph("Corrective and Preventive Actions (CAPA):", styleH3))
+                        rca_pdf_content.append(Paragraph("Corrective and Preventive Actions (CAPA):", styles['Heading3']))
+                        rca_pdf_text_content.append("Corrective and Preventive Actions (CAPA):")
+            
                         if isinstance(capa, list):
                             for c in capa:
                                 line = (
-                                    f"- **{c.get('type', '')}**: {c.get('action', '')} "
+                                    f"- {c.get('type', '')}: {c.get('action', '')} "
                                     f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
                                 )
                                 st.write(line)
-                                rca_pdf_content.append(Paragraph(line, styleN))
+                                rca_pdf_content.append(Paragraph(line, styles['Normal']))
+                                rca_pdf_text_content.append(line)
                         else:
                             st.write(capa)
-                            rca_pdf_content.append(Paragraph(str(capa), styleN))
+                            rca_pdf_content.append(Paragraph(str(capa), styles['Normal']))
+                            rca_pdf_text_content.append(str(capa))
             
-                    # Fallback: raw response
+                    # --- Fallback: Raw AI Report ---
                     if not any([why, result.get("root_cause"), capa]):
                         raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
                         if raw_text:
                             st.markdown("**AI RCA Report:**")
                             st.markdown(raw_text)
-                            rca_pdf_content.append(Paragraph(raw_text, styleN))
+                            rca_pdf_content.append(Paragraph("AI RCA Report:", styles['Heading3']))
+                            rca_pdf_content.append(Paragraph(raw_text, styles['Normal']))
+                            rca_pdf_text_content.append(raw_text)
             
-                # Store RCA output for PDF
+                # Store both PDF and text versions in session_state
                 st.session_state["rca_pdf_content"] = rca_pdf_content
+                st.session_state["rca_pdf_text"] = rca_pdf_text_content
+
 
 
             
@@ -1310,15 +1321,16 @@ def main():
                     elements.append(rgb_image_for_pdf(st.session_state["time_chart"]))
                     elements.append(Spacer(1, 20))
 
+              
                 # =====================
                 # Root Cause Analysis (RCA)
                 # =====================
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
-                    # Join all lines into a single string with line breaks
-                    rca_text = "<br/>".join(st.session_state["rca_pdf_content"])
-                    elements.append(Paragraph(rca_text, styles['Normal']))
+                    for para in st.session_state["rca_pdf_content"]:
+                        elements.append(para)
                     elements.append(Spacer(1, 20))
+
 
             
                 # Build PDF
