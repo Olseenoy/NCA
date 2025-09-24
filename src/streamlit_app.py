@@ -830,15 +830,15 @@ def main():
             
             
             # --- Trend Dashboard ---
-            # --- Trend & Time-Series Analysis ---
-            st.subheader("📈 Trend & Time-Series Analysis")
+            # --- Trend Dashboard ---
+            st.subheader("📈 Trend Dashboard")
             p = st.session_state.get("processed")
             
             if isinstance(p, pd.DataFrame) and not p.empty:
                 try:
                     trend_df = p.copy()
             
-                    # Convert numeric-like columns
+                    # Convert numeric columns
                     for c in trend_df.columns:
                         if trend_df[c].dtype == "object":
                             trend_df[c] = pd.to_numeric(
@@ -863,77 +863,102 @@ def main():
                             except Exception:
                                 continue
             
+                    # Only proceed if we have valid numeric and date columns
                     if date_cols and num_cols:
-                        # Common selectors
                         date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
                         value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
             
-                        # ---- Option 1: Simple Trendline ----
                         try:
+                            # --- Generate Trend Chart ---
                             fig_trend = plot_trend_dashboard(trend_df, date_col=date_col, value_col=value_col)
                             if fig_trend:
+                                # Show in Streamlit
                                 st.plotly_chart(fig_trend, use_container_width=True)
             
-                                # Save for PDF
+                                # Save chart as PNG for PDF
                                 trend_chart_path = "trend_chart.png"
                                 fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
+            
+                                # Convert to RGB (no alpha channel for ReportLab)
                                 img = PILImage.open(trend_chart_path).convert("RGB")
                                 img.save(trend_chart_path)
             
+                                # Save to session_state for PDF
                                 st.session_state["trend_chart"] = trend_chart_path
-                                st.session_state["trend_summary"] = f"Trend chart of '{value_col}' over '{date_col}'."
-                        except Exception as e:
-                            st.info(f"⚠️ Unable to render trend plot: {e}")
-            
-                        # ---- Option 2: Time-Series (with aggregation) ----
-                        st.markdown("### ⏳ Optional Aggregated Time-Series")
-                        freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
-                        freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
-                        agg_options = ["mean", "sum", "max", "min"]
-                        agg_choice = st.selectbox("Select aggregation function", options=agg_options)
-            
-                        if st.button("Plot Time-Series Trend", key="time_btn"):
-                            # Convert date with optional format
-                            if "date_format" in st.session_state and st.session_state["date_format"]:
-                                p[date_col] = pd.to_datetime(
-                                    p[date_col].astype(str).str.strip(),
-                                    format=st.session_state["date_format"],
-                                    errors="coerce"
+                                st.session_state["trend_summary"] = (
+                                    f"Trend chart of '{value_col}' over '{date_col}'."
                                 )
                             else:
-                                p[date_col] = pd.to_datetime(p[date_col].astype(str).str.strip(), errors="coerce")
-            
-                            fig_time = plot_time_series_trend(
-                                p,
-                                date_col,
-                                value_col,
-                                freq=freq_options[freq_choice],
-                                agg_func=agg_choice
-                            )
-            
-                            if fig_time:
-                                st.plotly_chart(fig_time, use_container_width=True)
-            
-                                # Save for PDF (overwrite trend_chart)
-                                time_chart_path = "time_series_trend.png"
-                                fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
-                                img = PILImage.open(time_chart_path).convert("RGB")
-                                img.save(time_chart_path)
-            
-                                st.session_state["trend_chart"] = time_chart_path
-                                st.session_state["trend_summary"] = (
-                                    f"{freq_choice} trend of '{value_col}' over '{date_col}', "
-                                    f"aggregated by {agg_choice}. Weekly trend shows gradual improvement after corrective action."
-                                )
+                                st.warning("⚠️ Selected columns are invalid for plotting.")
+                        except Exception as e:
+                            st.info(f"⚠️ Unable to render trend plot: {e}")
                     else:
-                        st.info("No valid date and numeric column pair available for trend/time-series plotting.")
+                        st.info("No valid date and numeric column pair available for trend plotting.")
             
                 except Exception as e:
-                    st.info(f"⚠️ Trend/Time-Series Analysis could not be built: {e}")
+                    st.info(f"⚠️ Trend Dashboard could not be built: {e}")
             else:
-                st.info("No processed data available for Trend/Time-Series analysis. Please preprocess first.")
-
-
+                st.info("No processed data available for Trend Dashboard. Please preprocess first.")
+            
+            
+            # --- Time-Series Trend Analysis ---
+            st.subheader("⏳ Time-Series Trend Analysis")
+            p = st.session_state.get("processed")
+            
+            if isinstance(p, pd.DataFrame) and not p.empty:
+                if date_cols and num_cols:
+                    time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
+                    value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
+            
+                    freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
+                    freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
+                    agg_options = ["mean", "sum", "max", "min"]
+                    agg_choice = st.selectbox("Select aggregation function", options=agg_options)
+            
+                    if st.button("Plot Time-Series Trend", key="time_btn"):
+                        # Convert date column with optional format
+                        if "date_format" in st.session_state and st.session_state["date_format"]:
+                            p[time_col] = pd.to_datetime(
+                                p[time_col].astype(str).str.strip(),
+                                format=st.session_state["date_format"],
+                                errors="coerce"
+                            )
+                        else:
+                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), errors="coerce")
+            
+                        # Generate Plotly time-series chart
+                        fig_time = plot_time_series_trend(
+                            p,
+                            time_col,
+                            value_col,
+                            freq=freq_options[freq_choice],
+                            agg_func=agg_choice
+                        )
+            
+                        if fig_time:
+                            # Show in Streamlit
+                            st.plotly_chart(fig_time, use_container_width=True)
+            
+                            # Save separately for PDF
+                            time_chart_path = "time_series_trend.png"
+                            fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+            
+                            # Convert to RGB
+                            img = PILImage.open(time_chart_path).convert("RGB")
+                            img.save(time_chart_path)
+            
+                            # Save to session_state for PDF
+                            st.session_state["time_chart"] = time_chart_path
+                            st.session_state["time_summary"] = (
+                                f"{freq_choice} trend of '{value_col}' over '{time_col}', "
+                                f"aggregated by {agg_choice}. Weekly trend shows gradual improvement after corrective action."
+                            )
+                        else:
+                            st.warning("⚠️ Unable to generate time-series chart.")
+                else:
+                    st.warning("No valid datetime and numeric column pair for time-series analysis.")
+            else:
+                st.warning("No processed data available. Please preprocess first.")
 
 
             # Make sure NLTK has the WordNet lemmatizer
@@ -1263,14 +1288,20 @@ def main():
                     elements.append(Spacer(1, 20))
             
                 # =====================
-                # Trendline / Time Series
+                # Trendline & Time-Series
                 # =====================
-                if "trend_summary" in st.session_state:
-                    elements.append(Paragraph("Trendline & Time Series", styles['Heading2']))
-                    elements.append(Paragraph(st.session_state["trend_summary"], styles['Normal']))
-                    if "trend_chart" in st.session_state:
-                        elements.append(rgb_image_for_pdf(st.session_state["trend_chart"]))
+                if "trend_chart" in st.session_state:
+                    elements.append(Paragraph("Trendline Chart", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state.get("trend_summary", ""), styles['Normal']))
+                    elements.append(rgb_image_for_pdf(st.session_state["trend_chart"]))
                     elements.append(Spacer(1, 20))
+                
+                if "time_chart" in st.session_state:
+                    elements.append(Paragraph("Time-Series Chart", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state.get("time_summary", ""), styles['Normal']))
+                    elements.append(rgb_image_for_pdf(st.session_state["time_chart"]))
+                    elements.append(Spacer(1, 20))
+
 
             
                 # =====================
