@@ -37,6 +37,7 @@ google-generativeai
 groq  
 langchain-groq
 reportlab
-kaleido==0.2.1
+kaleido>=1.0.0
 fuzzywuzzy
+plotly[kaleido]
 
