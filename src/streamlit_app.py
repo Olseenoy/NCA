@@ -1305,6 +1305,7 @@ def main():
                     if "trend_chart" in st.session_state:
                         elements.append(rgb_image_for_pdf(st.session_state["trend_chart"]))
                     elements.append(Spacer(1, 20))
+
             
                 # =====================
                 # Root Cause Analysis (RCA)
