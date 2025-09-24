@@ -909,6 +909,7 @@ def main():
 
 
             # --- Trend Dashboard ---
+            # --- Trend Dashboard ---
             st.subheader("📈 Trend Dashboard")
             p = st.session_state.get("processed")
             
@@ -941,6 +942,7 @@ def main():
                         except Exception:
                             continue
             
+                    # --- Trend Analysis Button ---
                     if date_cols and num_cols:
                         date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
                         value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
@@ -952,8 +954,6 @@ def main():
                                     trend_df[date_col],
                                     st.session_state.get("date_format")
                                 )
-                                # st.write("📊 Date parsing diagnostics (Trend):", diag)
-            
                                 # Generate Trend Chart
                                 fig_trend = plot_trend_dashboard(
                                     trend_df,
@@ -963,31 +963,27 @@ def main():
                                 )
             
                                 if fig_trend:
-                                    st.plotly_chart(fig_trend, use_container_width=True)
+                                    # Save to session_state
+                                    st.session_state["trend_fig"] = fig_trend
+                                    st.session_state["trend_col"] = value_col
+                                    st.session_state["trend_date_col_saved"] = date_col
             
-                                    # Save chart as PNG for PDF
                                     trend_chart_path = "trend_chart.png"
                                     fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
-            
                                     img = PILImage.open(trend_chart_path).convert("RGB")
                                     img.save(trend_chart_path)
-            
                                     st.session_state["trend_chart"] = trend_chart_path
                                     st.session_state["trend_summary"] = (
                                         f"Trend chart of '{value_col}' over '{date_col}'"
                                     )
-                                else:
-                                    st.warning("⚠️ Selected columns are invalid for plotting.")
             
                             except Exception as e:
                                 st.warning(f"⚠️ Unable to render trend plot: {e}")
-            
                     else:
                         st.info("No valid date and numeric column pair available for trend plotting.")
             
-                    # --- Time-Series Analysis ---
+                    # --- Time-Series Analysis Button ---
                     st.subheader("⏳ Time-Series Trend Analysis")
-            
                     if date_cols and num_cols:
                         time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
                         value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
@@ -1003,13 +999,11 @@ def main():
                                     p[time_col],
                                     st.session_state.get("date_format")
                                 )
-                                # st.write("⏳ Date parsing diagnostics:", diag)
             
                                 if diag["parsed_count"] == 0:
                                     st.error(f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}.")
                                 else:
                                     p[time_col] = parsed
-            
                                     fig_time = plot_time_series_trend(
                                         p,
                                         date_col=time_col,
@@ -1020,24 +1014,21 @@ def main():
                                     )
             
                                     if fig_time:
-                                        st.plotly_chart(fig_time, use_container_width=True)
+                                        st.session_state["time_fig"] = fig_time
+                                        st.session_state["time_col"] = value_col
+                                        st.session_state["time_date_col_saved"] = time_col
             
                                         time_chart_path = "time_series_trend.png"
                                         fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
-            
                                         img = PILImage.open(time_chart_path).convert("RGB")
                                         img.save(time_chart_path)
-            
                                         st.session_state["time_chart"] = time_chart_path
                                         st.session_state["time_summary"] = (
                                             f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
                                         )
-                                    else:
-                                        st.warning("⚠️ Unable to generate time-series chart.")
             
                             except Exception as e:
                                 st.warning(f"⚠️ Error plotting Time-Series: {e}")
-            
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
             
@@ -1046,9 +1037,15 @@ def main():
             
             else:
                 st.warning("No processed data available. Please preprocess first.")
-
-
-
+            
+            # --- Persistent Display for Trend & Time-Series Charts ---
+            if "trend_fig" in st.session_state and "trend_col" in st.session_state:
+                st.success(f"Trend Chart: {st.session_state.get('trend_col')} over {st.session_state.get('trend_date_col_saved')}")
+                st.plotly_chart(st.session_state['trend_fig'], use_container_width=True)
+            
+            if "time_fig" in st.session_state and "time_col" in st.session_state:
+                st.success(f"Time-Series Chart: {st.session_state.get('time_col')} over {st.session_state.get('time_date_col_saved')}")
+                st.plotly_chart(st.session_state['time_fig'], use_container_width=True)
 
 
             # Make sure NLTK has the WordNet lemmatizer
