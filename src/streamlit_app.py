@@ -851,16 +851,8 @@ def main():
                     date_cols = []
                     for c in trend_df.columns:
                         try:
-                            if "date_format" in st.session_state and st.session_state["date_format"]:
-                                converted = pd.to_datetime(
-                                    trend_df[c].astype(str).str.strip(),
-                                    format=st.session_state["date_format"],
-                                    errors="coerce"
-                                )
-                            else:
-                                converted = pd.to_datetime(trend_df[c].astype(str).str.strip(), errors="coerce")
-            
-                            if converted.notna().any():
+                            converted, diag = parse_dates_strict(trend_df[c], st.session_state.get("date_format"))
+                            if diag["parsed_count"] > 0:
                                 trend_df[c] = converted
                                 date_cols.append(c)
                         except Exception:
@@ -873,47 +865,62 @@ def main():
             
                         if st.button("Run Trend Analysis", key="trend_btn"):
                             try:
-                                # --- Generate Trend Chart ---
-                                fig_trend = plot_trend_dashboard(
-                                    trend_df,
-                                    date_col=date_col,
-                                    value_col=value_col,
-                                    date_format=st.session_state.get("date_format")
+                                # --- Parse dates strictly using the global format ---
+                                parsed, diag = parse_dates_strict(
+                                    trend_df[date_col],
+                                    st.session_state.get("date_format")
                                 )
-
-                                if fig_trend:
-                                    # Show in Streamlit
-                                    st.plotly_chart(fig_trend, use_container_width=True)
             
-                                    # Save chart as PNG for PDF
-                                    trend_chart_path = "trend_chart.png"
-                                    fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
+                                # Show diagnostics for debugging
+                                st.write("📊 Date parsing diagnostics:", diag)
             
-                                    # Convert to RGB (no alpha channel for ReportLab)
-                                    img = PILImage.open(trend_chart_path).convert("RGB")
-                                    img.save(trend_chart_path)
-            
-                                    # Save to session_state for PDF
-                                    st.session_state["trend_chart"] = trend_chart_path
-                                    st.session_state["trend_summary"] = (
-                                        f"Trend chart of '{value_col}' over '{date_col}' "
+                                if diag["parsed_count"] == 0:
+                                    st.error(
+                                        f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}. "
+                                        f"Check sample failing strings above (failed_examples)."
                                     )
                                 else:
-                                    st.warning("⚠️ Selected columns are invalid for plotting.")
+                                    # Add parsed dates into a temporary column
+                                    trend_df["_parsed_date"] = parsed
+            
+                                    # --- Generate Trend Chart ---
+                                    fig_trend = plot_trend_dashboard(
+                                        trend_df,
+                                        date_col="_parsed_date",   # use parsed column
+                                        value_col=value_col,
+                                        date_format=st.session_state.get("date_format")
+                                    )
+            
+                                    if fig_trend:
+                                        # Show in Streamlit
+                                        st.plotly_chart(fig_trend, use_container_width=True)
+            
+                                        # Save chart as PNG for PDF
+                                        trend_chart_path = "trend_chart.png"
+                                        fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
+            
+                                        # Convert to RGB (no alpha channel for ReportLab)
+                                        img = PILImage.open(trend_chart_path).convert("RGB")
+                                        img.save(trend_chart_path)
+            
+                                        # Save to session_state for PDF
+                                        st.session_state["trend_chart"] = trend_chart_path
+                                        st.session_state["trend_summary"] = (
+                                            f"Trend chart of '{value_col}' over '{date_col}' "
+                                        )
+                                    else:
+                                        st.warning("⚠️ Selected columns are invalid for plotting.")
+            
                             except Exception as e:
                                 st.info(f"⚠️ Unable to render trend plot: {e}")
-                    else:
-                        st.info("No valid date and numeric column pair available for trend plotting.")
             
                 except Exception as e:
                     st.info(f"⚠️ Trend Dashboard could not be built: {e}")
             else:
                 st.info("No processed data available for Trend Dashboard. Please preprocess first.")
-
-
+            
             
             # --- Time-Series Trend Analysis ---
-           
             st.subheader("⏳ Time-Series Trend Analysis")
             p = st.session_state.get("processed")
             
@@ -928,52 +935,62 @@ def main():
                     agg_choice = st.selectbox("Select aggregation function", options=agg_options)
             
                     if st.button("Plot Time-Series Trend", key="time_btn"):
-                        # Convert date column with optional format
-                        if "date_format" in st.session_state and st.session_state["date_format"]:
-                            p[time_col] = pd.to_datetime(
-                                p[time_col].astype(str).str.strip(),
-                                format=st.session_state["date_format"],
-                                errors="coerce"
+                        try:
+                            # --- Parse dates strictly using the global format ---
+                            parsed, diag = parse_dates_strict(
+                                p[time_col],
+                                st.session_state.get("date_format")
                             )
-                        else:
-                            p[time_col] = pd.to_datetime(p[time_col].astype(str).str.strip(), errors="coerce")
             
-                        # Generate Plotly time-series chart
-                        fig_time = plot_time_series_trend(
-                            p,
-                            time_col,
-                            value_col,
-                            freq=freq_options[freq_choice],
-                            agg_func=agg_choice,
-                            date_format=st.session_state.get("date_format")
-
-
-                        )
+                            # Show diagnostics
+                            st.write("⏳ Date parsing diagnostics:", diag)
             
-                        if fig_time:
-                            # Show in Streamlit
-                            st.plotly_chart(fig_time, use_container_width=True)
+                            if diag["parsed_count"] == 0:
+                                st.error(
+                                    f"Parsing failed: 0 rows parsed using format {st.session_state.get('date_format')}. "
+                                    f"Check sample failing strings above (failed_examples)."
+                                )
+                            else:
+                                # Add parsed dates into a temporary column
+                                p["_parsed_time"] = parsed
             
-                            # Save separately for PDF
-                            time_chart_path = "time_series_trend.png"
-                            fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+                                # --- Generate Plotly time-series chart ---
+                                fig_time = plot_time_series_trend(
+                                    p,
+                                    date_col="_parsed_time",  # use parsed column
+                                    value_col=value_col,
+                                    freq=freq_options[freq_choice],
+                                    agg_func=agg_choice,
+                                    date_format=st.session_state.get("date_format")
+                                )
             
-                            # Convert to RGB
-                            img = PILImage.open(time_chart_path).convert("RGB")
-                            img.save(time_chart_path)
+                                if fig_time:
+                                    # Show in Streamlit
+                                    st.plotly_chart(fig_time, use_container_width=True)
             
-                            # Save to session_state for PDF
-                            st.session_state["time_chart"] = time_chart_path
-                            st.session_state["time_summary"] = (
-                                f"{freq_choice} trend of '{value_col}' over '{time_col}', "
-                                f"aggregated by {agg_choice}"
-                            )
-                        else:
-                            st.warning("⚠️ Unable to generate time-series chart.")
+                                    # Save separately for PDF
+                                    time_chart_path = "time_series_trend.png"
+                                    fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+            
+                                    # Convert to RGB
+                                    img = PILImage.open(time_chart_path).convert("RGB")
+                                    img.save(time_chart_path)
+            
+                                    # Save to session_state for PDF
+                                    st.session_state["time_chart"] = time_chart_path
+                                    st.session_state["time_summary"] = (
+                                        f"{freq_choice} trend of '{value_col}' over '{time_col}', "
+                                        f"aggregated by {agg_choice}"
+                                    )
+                                else:
+                                    st.warning("⚠️ Unable to generate time-series chart.")
+                        except Exception as e:
+                            st.error(f"⚠️ Unable to render time-series plot: {e}")
                 else:
                     st.warning("No valid datetime and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
+
 
             # Make sure NLTK has the WordNet lemmatizer
             from nltk.stem import WordNetLemmatizer
