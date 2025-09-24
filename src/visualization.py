@@ -165,13 +165,13 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
 
 import plotly.express as px
 
+import plotly.express as px
+
 # --- Trend Dashboard Plot ---
-def plot_trend_dashboard(df, date_col, value_col):
+def plot_trend_dashboard(df, date_col, value_col, date_format=None):
     fig = px.line(df, x=date_col, y=value_col, title=f"Trend of {value_col} over {date_col}")
 
-    # Apply user-selected date format for x-axis
-    fmt = st.session_state.get("date_format")
-    if fmt:
+    if date_format:
         d3_formats = {
             "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-04
             "%Y-%d-%m": "%Y-%d-%m",   # 2025-04-09
@@ -181,21 +181,18 @@ def plot_trend_dashboard(df, date_col, value_col):
             "%m/%d/%Y": "%m/%d/%Y",   # 09/04/2025
             "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/04
         }
-        fig.update_xaxes(tickformat=d3_formats.get(fmt, "%Y-%m-%d"))
+        fig.update_xaxes(tickformat=d3_formats.get(date_format, "%Y-%m-%d"))
     return fig
 
 
 # --- Time-Series Trend Plot ---
-def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean"):
-    # Resample data
+def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean", date_format=None):
     df_resampled = df.set_index(date_col).resample(freq)[value_col].agg(agg_func).reset_index()
 
     fig = px.line(df_resampled, x=date_col, y=value_col,
                   title=f"{agg_func.capitalize()} {value_col} ({freq})")
 
-    # Apply user-selected date format for x-axis
-    fmt = st.session_state.get("date_format")
-    if fmt:
+    if date_format:
         d3_formats = {
             "%Y-%m-%d": "%Y-%m-%d",
             "%Y-%d-%m": "%Y-%d-%m",
@@ -205,7 +202,7 @@ def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean"):
             "%m/%d/%Y": "%m/%d/%Y",
             "%Y/%m/%d": "%Y/%m/%d",
         }
-        fig.update_xaxes(tickformat=d3_formats.get(fmt, "%Y-%m-%d"))
+        fig.update_xaxes(tickformat=d3_formats.get(date_format, "%Y-%m-%d"))
     return fig
 
         
