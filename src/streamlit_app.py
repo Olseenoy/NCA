@@ -907,6 +907,7 @@ def main():
 
             
             # --- Time-Series Trend Analysis ---
+            # --- Time-Series Trend Analysis ---
             st.subheader("⏳ Time-Series Trend Analysis")
             p = st.session_state.get("processed")
             
@@ -922,10 +923,10 @@ def main():
             
                     if st.button("Plot Time-Series Trend", key="time_btn"):
                         try:
-                            # ✅ Always work on a copy to avoid corrupting session data
+                            # ✅ Always work on a copy
                             df_copy = p.copy()
             
-                            # Convert date column with optional format
+                            # ✅ Always reconvert from string with the selected format
                             if "date_format" in st.session_state and st.session_state["date_format"]:
                                 df_copy[time_col] = pd.to_datetime(
                                     df_copy[time_col].astype(str).str.strip(),
@@ -937,6 +938,9 @@ def main():
                                     df_copy[time_col].astype(str).str.strip(),
                                     errors="coerce"
                                 )
+            
+                            # Drop rows with invalid dates
+                            df_copy = df_copy.dropna(subset=[time_col, value_col])
             
                             # Generate Plotly time-series chart
                             fig_time = plot_time_series_trend(
@@ -963,7 +967,7 @@ def main():
                                 st.session_state["time_chart"] = time_chart_path
                                 st.session_state["time_summary"] = (
                                     f"{freq_choice} trend of '{value_col}' over '{time_col}', "
-                                    f"aggregated by {agg_choice}"
+                                    f"aggregated by {agg_choice}, using format {st.session_state.get('date_format','auto')}"
                                 )
                             else:
                                 st.warning("⚠️ Unable to generate time-series chart.")
