@@ -546,13 +546,6 @@ def main():
                                 f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
                             )
             
-                            # Display cluster chart and metrics
-                            if "cluster_text" in st.session_state and "cluster_metrics" in st.session_state and "cluster_fig" in st.session_state:
-                                st.success(st.session_state['cluster_text'])
-                                st.info(st.session_state['cluster_metrics']["interpretation"])
-                                st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
-
-            
                             # Save cluster chart as PNG
                             clusters_chart_path = "clusters_rgb.png"
                             st.session_state['cluster_fig'].write_image(
@@ -564,7 +557,7 @@ def main():
             
                             # Save cluster summary text
                             clusters_summary = (
-                                f"Best K={best['Silhouette Score']:.3f}, "
+                                f"Best K={best['k']}, Silhouette={best['Silhouette Score']:.3f}, "
                                 f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}. "
                                 f"Interpretation: {best['interpretation']}"
                             )
@@ -572,6 +565,16 @@ def main():
             
                         except Exception as e:
                             st.error(f"Clustering failed: {e}")
+            
+            # --- Persistent display of clusters ---
+            if "cluster_text" in st.session_state and \
+               "cluster_metrics" in st.session_state and \
+               "cluster_fig" in st.session_state:
+                
+                st.subheader("Clustering & Visualization")
+                st.success(st.session_state['cluster_text'])
+                st.info(st.session_state['cluster_metrics']["interpretation"])
+                st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
 
     
           
