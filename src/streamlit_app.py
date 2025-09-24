@@ -1174,6 +1174,9 @@ def main():
                         elif result.get("response"):
                             st.markdown("**AI RCA Report:**")
                             st.markdown(result["response"])
+
+                    # Store RCA output for PDF
+                    st.session_state["rca_pdf_content"] = rca_pdf_content
             
                 with col2:
                     st.markdown("### Fishbone Diagram")
@@ -1287,15 +1290,16 @@ def main():
                     elements.append(rgb_image_for_pdf(st.session_state["time_chart"]))
                     elements.append(Spacer(1, 20))
 
-
-            
                 # =====================
                 # Root Cause Analysis (RCA)
                 # =====================
-                if "rca_summary" in st.session_state:
+                if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
-                    elements.append(Paragraph(st.session_state["rca_summary"], styles['Normal']))
+                    # Join all lines into a single string with line breaks
+                    rca_text = "<br/>".join(st.session_state["rca_pdf_content"])
+                    elements.append(Paragraph(rca_text, styles['Normal']))
                     elements.append(Spacer(1, 20))
+
             
                 # Build PDF
                 doc.build(elements)
