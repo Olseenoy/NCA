@@ -921,62 +921,63 @@ def main():
                     agg_options = ["mean", "sum", "max", "min"]
                     agg_choice = st.selectbox("Select aggregation function", options=agg_options)
             
+                    # Create placeholder (prevents multiple charts stacking)
+                    chart_placeholder = st.empty()
+            
                     if st.button("Plot Time-Series Trend", key="time_btn"):
-                        try:
-                            # ✅ Always work on a copy
-                            df_copy = p.copy()
+                        # ✅ Work on a copy to avoid re-parsing issues
+                        df_copy = p.copy()
             
-                            # ✅ Always reconvert from string with the selected format
-                            if "date_format" in st.session_state and st.session_state["date_format"]:
-                                df_copy[time_col] = pd.to_datetime(
-                                    df_copy[time_col].astype(str).str.strip(),
-                                    format=st.session_state["date_format"],
-                                    errors="coerce"
-                                )
-                            else:
-                                df_copy[time_col] = pd.to_datetime(
-                                    df_copy[time_col].astype(str).str.strip(),
-                                    errors="coerce"
-                                )
-            
-                            # Drop rows with invalid dates
-                            df_copy = df_copy.dropna(subset=[time_col, value_col])
-            
-                            # Generate Plotly time-series chart
-                            fig_time = plot_time_series_trend(
-                                df_copy,
-                                time_col,
-                                value_col,
-                                freq=freq_options[freq_choice],
-                                agg_func=agg_choice
+                        # ✅ Convert date column using selected format
+                        if "date_format" in st.session_state and st.session_state["date_format"]:
+                            df_copy[time_col] = pd.to_datetime(
+                                df_copy[time_col].astype(str).str.strip(),
+                                format=st.session_state["date_format"],
+                                errors="coerce"
+                            )
+                        else:
+                            df_copy[time_col] = pd.to_datetime(
+                                df_copy[time_col].astype(str).str.strip(),
+                                errors="coerce"
                             )
             
-                            if fig_time:
-                                # Show in Streamlit
-                                st.plotly_chart(fig_time, use_container_width=True)
+                        # Drop invalid rows
+                        df_copy = df_copy.dropna(subset=[time_col, value_col])
             
-                                # Save separately for PDF
-                                time_chart_path = "time_series_trend.png"
-                                fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+                        # Generate Plotly chart
+                        fig_time = plot_time_series_trend(
+                            df_copy,
+                            time_col,
+                            value_col,
+                            freq=freq_options[freq_choice],
+                            agg_func=agg_choice
+                        )
             
-                                # Convert to RGB
-                                img = PILImage.open(time_chart_path).convert("RGB")
-                                img.save(time_chart_path)
+                        if fig_time:
+                            # ✅ Replace chart instead of stacking
+                            chart_placeholder.plotly_chart(fig_time, use_container_width=True)
             
-                                # Save to session_state for PDF
-                                st.session_state["time_chart"] = time_chart_path
-                                st.session_state["time_summary"] = (
-                                    f"{freq_choice} trend of '{value_col}' over '{time_col}', "
-                                    f"aggregated by {agg_choice}, using format {st.session_state.get('date_format','auto')}"
-                                )
-                            else:
-                                st.warning("⚠️ Unable to generate time-series chart.")
-                        except Exception as e:
-                            st.error(f"⚠️ Time-series analysis failed: {e}")
+                            # Save separately for PDF
+                            time_chart_path = "time_series_trend.png"
+                            fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+            
+                            # Convert to RGB
+                            img = PILImage.open(time_chart_path).convert("RGB")
+                            img.save(time_chart_path)
+            
+                            # Save to session_state for PDF
+                            st.session_state["time_chart"] = time_chart_path
+                            st.session_state["time_summary"] = (
+                                f"{freq_choice} trend of '{value_col}' over '{time_col}', "
+                                f"aggregated by {agg_choice}, using format {st.session_state.get('date_format','auto')}"
+                            )
+                        else:
+                            st.warning("⚠️ Unable to generate time-series chart.")
                 else:
                     st.warning("No valid datetime and numeric column pair for time-series analysis.")
             else:
                 st.warning("No processed data available. Please preprocess first.")
+
 
             # Make sure NLTK has the WordNet lemmatizer
             from nltk.stem import WordNetLemmatizer
