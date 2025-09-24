@@ -40,4 +40,4 @@ reportlab
 kaleido>=1.0.0
 fuzzywuzzy
 plotly[kaleido]
-
+python-Levenshtein
