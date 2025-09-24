@@ -1022,17 +1022,19 @@ def main():
                                         st.session_state["time_summary"] = (
                                             f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
                                         )
+                     
                                     else:
                                         st.warning("⚠️ Unable to generate time-series chart.")
-            
-                    else:
-                        st.warning("No valid datetime and numeric column pair for time-series analysis.")
-            
-                except Exception as e:
-                    st.warning(f"⚠️ Error in Trend/Time-Series section: {e}")
-            
-            else:
-                st.warning("No processed data available. Please preprocess first.")
+                                except Exception as e:
+                                    st.warning(f"⚠️ Error plotting Time-Series: {e}")
+                        else:
+                            st.warning("No valid datetime and numeric column pair for time-series analysis.")
+                
+                    except Exception as e:
+                        st.warning(f"⚠️ Error in Trend/Time-Series section: {e}")
+                
+                else:
+                    st.warning("No processed data available. Please preprocess first.")
 
 
 
