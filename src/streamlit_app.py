@@ -827,7 +827,33 @@ def main():
             fmt_choice = st.selectbox("Select date format for all dashboards", options=list(format_options.keys()))
             st.session_state["date_format"] = format_options[fmt_choice]
             
+
+            def parse_dates_strict(series, date_format=None):
+                """
+                Strictly parse a pandas Series of dates with a given format.
+                Returns:
+                    parsed_series: pandas Series of datetime64
+                    diagnostics: dict with parse stats
+                """
+                raw = series.astype(str).str.strip()
+                parsed = None
             
+                if date_format:
+                    parsed = pd.to_datetime(raw, format=date_format, errors="coerce")
+                else:
+                    # fallback: try automatic parsing
+                    parsed = pd.to_datetime(raw, errors="coerce")
+            
+                diagnostics = {
+                    "total_rows": len(raw),
+                    "parsed_count": parsed.notna().sum(),
+                    "failed_count": parsed.isna().sum(),
+                    "failed_examples": raw[parsed.isna()].unique()[:5].tolist(),  # first 5 failures
+                    "format_used": date_format if date_format else "auto"
+                }
+            
+                return parsed, diagnostics
+
             # --- Trend Dashboard ---
             # --- Trend Dashboard ---
             st.subheader("📈 Trend Dashboard")
