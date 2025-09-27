@@ -1354,6 +1354,7 @@ def main():
             
                     # --- Fallback: Raw AI Report ---
                     # --- Fallback: Raw AI Report ---
+                    # --- Fallback: Raw AI Report ---
                     if not any([why, result.get("root_cause"), capa]):
                         raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
                         if raw_text:
@@ -1366,16 +1367,16 @@ def main():
                             st.session_state["rca_pdf_text"] = raw_text
                     
                             # Categorize for fishbone (if AI didn’t provide structured fishbone)
-                            categories = categorize_root_causes(raw_text)
-                            st.session_state["fishbone_categories"] = categories
-                    
-                    
+                            st.session_state["fishbone_categories"] = (
+                                result.get("fishbone") or categorize_root_causes(raw_text)
+                            )
+
+       
                     # --- Fishbone Visualization Section ---
                     with col2:
                         st.markdown("### Fishbone Diagram")
                     
-                        # Prefer AI-provided fishbone, fallback to categorized root causes
-                        fishbone_data = result.get("fishbone") or st.session_state.get("fishbone_categories", {})
+                        fishbone_data = st.session_state.get("fishbone_categories", {})
                     
                         if not fishbone_data:
                             st.info("No fishbone data available.")
@@ -1383,17 +1384,14 @@ def main():
                             try:
                                 fig = visualize_fishbone_plotly(fishbone_data)
                                 st.plotly_chart(fig, use_container_width=True)
+                    
+                                # Save figure for PDF later
+                                fig.write_image("fishbone.png")  
+                                st.session_state["fishbone_image"] = "fishbone.png"
+                    
                             except Exception as e:
                                 st.error(f"Fishbone visualization failed: {e}")
-                                st.json(fishbone_data)
-                    
-                            # Optional: Show text categories under the chart
-                            if "fishbone_categories" in st.session_state:
-                                st.subheader("Fishbone Categories")
-                                for cat, items in st.session_state["fishbone_categories"].items():
-                                    st.markdown(f"**{cat}:**")
-                                    for i in items:
-                                        st.markdown(f"- {i}")
+
 
 
 
@@ -1514,12 +1512,12 @@ def main():
                 # =====================
                 # Fish BONE (RCA)
                 # =====================
-                if "fishbone_categories" in st.session_state:
-                    elements.append(Paragraph("Fishbone Diagram Categories", styles['Heading2']))
-                    for cat, items in st.session_state["fishbone_categories"].items():
-                        elements.append(Paragraph(f"<b>{cat}</b>", styles['Normal']))
-                        for i in items:
-                            elements.append(Paragraph(f"- {i}", styles['Normal']))
+
+                if "fishbone_image" in st.session_state:
+                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
+                    elements.append(Image(st.session_state["fishbone_image"], width=400, height=250))
+                    elements.append(Spacer(1, 20))
+
 
 
 
