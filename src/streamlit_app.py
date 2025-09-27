@@ -32,34 +32,83 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 
 
-FISHBONE_CATEGORIES = {
-    "Machine": ["machine", "equipment", "maintenance", "wear", "seal"],
-    "Methods": ["procedure", "installation", "process", "operation"],
-    "Materials": ["material", "seal quality", "product", "component"],
-    "Manpower": ["operator", "training", "human", "error"],
-    "Environment": ["temperature", "pressure", "humidity", "environment"],
-    "Measurement": ["control", "inspection", "monitoring", "testing"]
-}
+# --------------------------
+# Fishbone Helpers
+# --------------------------
+import re
+import plotly.graph_objects as go
 
-def categorize_root_causes(ai_text):
-    categories = defaultdict(list)
-    lines = [l.strip() for l in ai_text.split("\n") if l.strip()]
+def extract_main_points(raw_text: str):
+    """
+    Extracts short clean causes from AI RCA report text.
+    Example: "Machine Maintenance: Lack of regular maintenance..." → "Machine Maintenance"
+    """
+    points = []
+    for line in raw_text.splitlines():
+        if re.match(r"^\s*[\d\-\•]+", line):  # lines starting with 1., -, • etc.
+            line = re.sub(r"^\s*[\d\-\•]+\s*", "", line)  # remove numbering/bullets
+            if ":" in line:
+                points.append(line.split(":")[0].strip())
+            else:
+                points.append(line.strip())
+    return [p for p in points if p]
 
-    for line in lines:
-        clean_line = re.sub(r"^(\*|\-|\•|\d+[\.\)])\s*", "", line).strip()
-        if not clean_line:
-            continue
-
-        assigned = False
-        for cat, keywords in FISHBONE_CATEGORIES.items():
-            if any(kw.lower() in clean_line.lower() for kw in keywords):
-                categories[cat].append(clean_line)
-                assigned = True
-                break
-        if not assigned:
-            categories["Uncategorized"].append(clean_line)
-
+def categorize_6m(points):
+    """
+    Categorize extracted causes into 6M buckets.
+    This is a naive mapping — you can refine keywords later.
+    """
+    categories = {"Man": [], "Machine": [], "Method": [], "Material": [], "Measurement": [], "Environment": []}
+    for p in points:
+        text = p.lower()
+        if "operator" in text or "human" in text or "training" in text:
+            categories["Man"].append(p)
+        elif "machine" in text or "equipment" in text or "maintenance" in text:
+            categories["Machine"].append(p)
+        elif "process" in text or "method" in text or "procedure" in text or "installation" in text:
+            categories["Method"].append(p)
+        elif "material" in text or "seal" in text or "quality" in text:
+            categories["Material"].append(p)
+        elif "measure" in text or "pressure" in text or "temperature" in text:
+            categories["Measurement"].append(p)
+        elif "environment" in text or "design" in text or "layout" in text:
+            categories["Environment"].append(p)
+        else:
+            categories["Method"].append(p)  # fallback
     return categories
+
+def visualize_fishbone_plotly(data):
+    """
+    Creates a fishbone diagram using Plotly.
+    """
+    fig = go.Figure()
+
+    # Spine
+    fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3))
+
+    # Categories
+    y_offsets = [0.3, 0.5, 0.7, -0.3, -0.5, -0.7]
+    cats = list(data.keys())
+    for i, cat in enumerate(cats):
+        y = y_offsets[i]
+        fig.add_shape(type="line", x0=0.5, y0=0, x1=0.9, y1=y, line=dict(color="blue", width=2))
+        fig.add_trace(go.Scatter(
+            x=[0.92], y=[y],
+            text=[f"<b>{cat}</b><br>" + "<br>".join(data[cat]) if data[cat] else f"<b>{cat}</b><br>(none)"],
+            mode="text",
+            textposition="middle left"
+        ))
+
+    fig.update_layout(
+        title="Fishbone Diagram (Ishikawa)",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        plot_bgcolor="white",
+        margin=dict(l=20, r=20, t=40, b=20),
+        height=500
+    )
+    return fig
+
 
 
 # --- Markdown → PDF flowable converter ---
@@ -1354,7 +1403,7 @@ def main():
             
                     # --- Fallback: Raw AI Report ---
                     # --- Fallback: Raw AI Report ---
-                    # --- Fallback: Raw AI Report ---
+                    raw_text = None
                     if not any([why, result.get("root_cause"), capa]):
                         raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
                         if raw_text:
@@ -1370,28 +1419,25 @@ def main():
                             st.session_state["fishbone_categories"] = (
                                 result.get("fishbone") or categorize_root_causes(raw_text)
                             )
-
-       
+                    
                     # --- Fishbone Visualization Section ---
-                    with col2:
-                        st.markdown("### Fishbone Diagram")
+                    if raw_text:
+                        # Extract & categorize
+                        points = extract_main_points(raw_text)
+                        fishbone_data = categorize_6m(points)
                     
-                        fishbone_data = st.session_state.get("fishbone_categories", {})
+                        # Save for UI + PDF
+                        st.session_state["fishbone_data"] = fishbone_data
                     
-                        if not fishbone_data:
-                            st.info("No fishbone data available.")
-                        else:
-                            try:
-                                fig = visualize_fishbone_plotly(fishbone_data)
-                                st.plotly_chart(fig, use_container_width=True)
+                        # Show in UI
+                        st.subheader("Fishbone Diagram")
+                        fig = visualize_fishbone_plotly(fishbone_data)
+                        st.plotly_chart(fig, use_container_width=True)
                     
-                                # Save figure for PDF later
-                                fig.write_image("fishbone.png")  
-                                st.session_state["fishbone_image"] = "fishbone.png"
-                    
-                            except Exception as e:
-                                st.error(f"Fishbone visualization failed: {e}")
-
+                        # Save as image for PDF
+                        fig_path = "/tmp/fishbone.png"
+                        fig.write_image(fig_path)
+                        st.session_state["fishbone_img"] = fig_path
 
 
 
@@ -1508,15 +1554,16 @@ def main():
                     for para in st.session_state["rca_pdf_content"]:
                         elements.append(para)
                     elements.append(Spacer(1, 20))
-        
-                # =====================
-                # Fish BONE (RCA)
-                # =====================
 
-                if "fishbone_image" in st.session_state:
+
+                # =====================
+                # Fishbone Diagram
+                # =====================
+                if "fishbone_img" in st.session_state:
                     elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
-                    elements.append(Image(st.session_state["fishbone_image"], width=400, height=250))
+                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
                     elements.append(Spacer(1, 20))
+
 
 
 
