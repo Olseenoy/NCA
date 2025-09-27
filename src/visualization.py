@@ -163,62 +163,37 @@ def plot_spc_chart(df: pd.DataFrame, column: str, subgroup_size: int = 1, time_c
     )
     return fig
 
-def parse_dates_strict(series, date_format=None):
-    """
-    Strictly parse a pandas Series of dates with a given format.
-    Returns:
-        parsed_series: pandas Series of datetime64
-        diagnostics: dict with parse stats
-    """
-    raw = series.astype(str).str.strip()
-    parsed = None
-
-    if date_format:
-        parsed = pd.to_datetime(raw, format=date_format, errors="coerce")
-    else:
-        # fallback: try automatic parsing
-        parsed = pd.to_datetime(raw, errors="coerce")
-
-    diagnostics = {
-        "total_rows": len(raw),
-        "parsed_count": parsed.notna().sum(),
-        "failed_count": parsed.isna().sum(),
-        "failed_examples": raw[parsed.isna()].unique()[:5].tolist(),  # first 5 failures
-        "format_used": date_format if date_format else "auto"
-    }
-
-    return parsed, diagnostics
-
-
-# d3 format mapping for Plotly tickformat (keeps simple 1:1 mapping)
+# d3 format mapping for Plotly tickformat (keeps simple 1:1 mapping where possible)
 D3_FORMATS = {
-    "%Y-%m-%d": "%Y-%m-%d",
-    "%Y-%d-%m": "%Y-%d-%m",
-    "%d-%m-%Y": "%d-%m-%Y",
-    "%m-%d-%Y": "%m-%d-%Y",
-    "%d/%m/%Y": "%d/%m/%Y",
-    "%m/%d/%Y": "%m/%d/%Y",
-    "%Y/%m/%d": "%Y/%m/%d",
+    "%Y-%m-%d": "%Y-%m-%d",   # 2025-09-27
+    "%d-%m-%Y": "%d-%m-%Y",   # 27-09-2025
+    "%m-%d-%Y": "%m-%d-%Y",   # 09-27-2025
+    "%d/%m/%Y": "%d/%m/%Y",   # 27/09/2025
+    "%m/%d/%Y": "%m/%d/%Y",   # 09/27/2025
+    "%Y/%m/%d": "%Y/%m/%d",   # 2025/09/27
+    "%b %Y": "%b %Y",         # Sep 2025
+    "%d %b %Y": "%d %b %Y",   # 27 Sep 2025
+    "%b %d, %Y": "%b %d, %Y", # Sep 27, 2025
+    "%H:%M": "%H:%M",         # 14:05
+    "%H:%M:%S": "%H:%M:%S",   # 14:05:33
 }
 
 def _clean_date_strings(series):
     s = series.astype(str).str.strip()
     # replace common unicode dashes with ASCII hyphen, remove weird invisible chars
     s = s.str.replace("\u2013", "-", regex=False).str.replace("\u2014", "-", regex=False)
-    # unify slashes to hyphen only if your selected format uses hyphen; we'll keep original separators for parsing
     s = s.str.replace(r"\u00A0", "", regex=True)  # remove non-breaking spaces
     return s
 
-def parse_dates_strict(series, date_format):
+def parse_dates_strict(series, date_format=None):
     """
     Strictly parse according to date_format (if provided).
-    Returns a DatetimeIndex-like pd.Series (dtype datetime64[ns]) and diagnostics dict.
+    Returns a datetime64[ns] Series and diagnostics dict.
     """
     s_clean = _clean_date_strings(series)
     if date_format:
         parsed = pd.to_datetime(s_clean, format=date_format, errors="coerce")
     else:
-        # auto-detect mode
         parsed = pd.to_datetime(s_clean, errors="coerce")
     diagnostics = {
         "total": len(parsed),
@@ -230,16 +205,15 @@ def parse_dates_strict(series, date_format):
     }
     return parsed, diagnostics
 
-
 def plot_trend_dashboard(df, date_col, value_col, date_format=None):
-    # df is expected to contain a parsed datetime column already (we'll pass _parsed_date)
     fig = px.line(df, x=date_col, y=value_col, title=f"Trend of {value_col} over {date_col}")
-    # ensure Plotly treats x as date
     fig.update_xaxes(type="date")
     if date_format:
-        fig.update_xaxes(tickformat=D3_FORMATS.get(date_format, "%Y-%m-%d"))
+        tick_fmt = D3_FORMATS.get(date_format, "%Y-%m-%d")
+        fig.update_xaxes(tickformat=tick_fmt)
     fig.update_layout(xaxis_title=date_col, yaxis_title=value_col)
     return fig
+
 
 
 def plot_time_series_trend(df, date_col, value_col, freq="D", agg_func="mean", date_format=None):
