@@ -1380,107 +1380,103 @@ def main():
             from reportlab.lib.styles import getSampleStyleSheet
             
             styles = getSampleStyleSheet()
-
+            
             result = st.session_state.get("rca_result", {})
             if result:
-                col1, col2 = st.columns([1, 1])
             
                 # Initialize PDF content lists
                 rca_pdf_content = []      # for PDF (Paragraph objects)
                 rca_pdf_text_content = [] # for HTML/text joining
             
-                with col1:
-                    st.markdown("### RCA - Details")
+                # --- RCA - Details ---
+                st.markdown("### RCA - Details")
             
-                    # --- Error Handling ---
-                    if result.get("error"):
-                        st.error(result.get("error"))
-                        rca_pdf_content.append(Paragraph(f"Error: {result.get('error')}", styles['Normal']))
-                        rca_pdf_text_content.append(f"Error: {result.get('error')}")
+                # --- Error Handling ---
+                if result.get("error"):
+                    st.error(result.get("error"))
+                    rca_pdf_content.append(Paragraph(f"Error: {result.get('error')}", styles['Normal']))
+                    rca_pdf_text_content.append(f"Error: {result.get('error')}")
             
-                    # --- 5-Whys Analysis ---
-                    why = result.get("why_analysis") or result.get("five_whys")
-                    if why:
-                        st.markdown("**5-Whys Analysis:**")
-                        rca_pdf_content.append(Paragraph("5-Whys Analysis:", styles['Heading3']))
-                        rca_pdf_text_content.append("5-Whys Analysis:")
+                # --- 5-Whys Analysis ---
+                why = result.get("why_analysis") or result.get("five_whys")
+                if why:
+                    st.markdown("**5-Whys Analysis:**")
+                    rca_pdf_content.append(Paragraph("5-Whys Analysis:", styles['Heading3']))
+                    rca_pdf_text_content.append("5-Whys Analysis:")
             
-                        if isinstance(why, list):
-                            for i, w in enumerate(why, start=1):
-                                st.write(f"{i}. {w}")
-                                rca_pdf_content.append(Paragraph(f"{i}. {w}", styles['Normal']))
-                                rca_pdf_text_content.append(f"{i}. {w}")
-                        else:
-                            st.write(why)
-                            rca_pdf_content.append(Paragraph(str(why), styles['Normal']))
-                            rca_pdf_text_content.append(str(why))
+                    if isinstance(why, list):
+                        for i, w in enumerate(why, start=1):
+                            st.write(f"{i}. {w}")
+                            rca_pdf_content.append(Paragraph(f"{i}. {w}", styles['Normal']))
+                            rca_pdf_text_content.append(f"{i}. {w}")
+                    else:
+                        st.write(why)
+                        rca_pdf_content.append(Paragraph(str(why), styles['Normal']))
+                        rca_pdf_text_content.append(str(why))
             
-                    # --- Root Cause ---
-                    if result.get("root_cause"):
-                        st.markdown("**Root Cause:**")
-                        st.write(result["root_cause"])
-                        rca_pdf_content.append(Paragraph("Root Cause:", styles['Heading3']))
-                        rca_pdf_content.append(Paragraph(result["root_cause"], styles['Normal']))
-                        rca_pdf_text_content.append(f"Root Cause: {result['root_cause']}")
+                # --- Root Cause ---
+                if result.get("root_cause"):
+                    st.markdown("**Root Cause:**")
+                    st.write(result["root_cause"])
+                    rca_pdf_content.append(Paragraph("Root Cause:", styles['Heading3']))
+                    rca_pdf_content.append(Paragraph(result["root_cause"], styles['Normal']))
+                    rca_pdf_text_content.append(f"Root Cause: {result['root_cause']}")
             
-                    # --- CAPA Recommendations ---
-                    capa = result.get("capa")
-                    if capa:
-                        st.markdown("**CAPA Recommendations:**")
-                        rca_pdf_content.append(Paragraph("Corrective and Preventive Actions (CAPA):", styles['Heading3']))
-                        rca_pdf_text_content.append("Corrective and Preventive Actions (CAPA):")
+                # --- CAPA Recommendations ---
+                capa = result.get("capa")
+                if capa:
+                    st.markdown("**CAPA Recommendations:**")
+                    rca_pdf_content.append(Paragraph("Corrective and Preventive Actions (CAPA):", styles['Heading3']))
+                    rca_pdf_text_content.append("Corrective and Preventive Actions (CAPA):")
             
-                        if isinstance(capa, list):
-                            for c in capa:
-                                line = (
-                                    f"- {c.get('type', '')}: {c.get('action', '')} "
-                                    f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
-                                )
-                                st.write(line)
-                                rca_pdf_content.append(Paragraph(line, styles['Normal']))
-                                rca_pdf_text_content.append(line)
-                        else:
-                            st.write(capa)
-                            rca_pdf_content.append(Paragraph(str(capa), styles['Normal']))
-                            rca_pdf_text_content.append(str(capa))
+                    if isinstance(capa, list):
+                        for c in capa:
+                            line = (
+                                f"- {c.get('type', '')}: {c.get('action', '')} "
+                                f"(Owner: {c.get('owner', 'Unassigned')}, Due: {c.get('due_in_days', '?')} days)"
+                            )
+                            st.write(line)
+                            rca_pdf_content.append(Paragraph(line, styles['Normal']))
+                            rca_pdf_text_content.append(line)
+                    else:
+                        st.write(capa)
+                        rca_pdf_content.append(Paragraph(str(capa), styles['Normal']))
+                        rca_pdf_text_content.append(str(capa))
             
-                    # --- Fallback: Raw AI Report ---
-                    # --- Fallback: Raw AI Report ---
-                    raw_text = None
-                    if not any([why, result.get("root_cause"), capa]):
-                        raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
-                        if raw_text:
-                            st.markdown("**AI RCA Report:**")
-                            st.markdown(raw_text)
-                    
-                            # Convert AI markdown into structured flowables (headings, lists, tables)
-                            converted_content = convert_markdown_to_pdf_content(raw_text, styles)
-                            st.session_state["rca_pdf_content"] = converted_content
-                            st.session_state["rca_pdf_text"] = raw_text
-                    
-                            # Categorize for fishbone (if AI didn’t provide structured fishbone)
-                            st.session_state["fishbone_categories"] = result.get("fishbone") or {}
-
-                    
-                    # --- Fishbone Visualization Section ---
+                # --- Fallback: Raw AI Report ---
+                raw_text = None
+                if not any([why, result.get("root_cause"), capa]):
+                    raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
                     if raw_text:
-                        # Extract short points
-                        points = extract_main_points(raw_text)
-                        fishbone_data = categorize_6m(points)
-                    
-                        # Save for UI + PDF
-                        st.session_state["fishbone_data"] = fishbone_data
-                    
-                        # Show in UI
-                        st.subheader("Fishbone Diagram")
-                        fig = visualize_fishbone_plotly(fishbone_data)
-                        st.plotly_chart(fig, use_container_width=True)
-                    
-                        # Save as image for PDF
-                        fig_path = "/tmp/fishbone.png"
-                        fig.write_image(fig_path)
-                        st.session_state["fishbone_img"] = fig_path
-
+                        st.markdown("**AI RCA Report:**")
+                        st.markdown(raw_text)
+            
+                        # Convert AI markdown into structured flowables (headings, lists, tables)
+                        converted_content = convert_markdown_to_pdf_content(raw_text, styles)
+                        st.session_state["rca_pdf_content"] = converted_content
+                        st.session_state["rca_pdf_text"] = raw_text
+            
+                        # Categorize for fishbone (if AI didn’t provide structured fishbone)
+                        st.session_state["fishbone_categories"] = result.get("fishbone") or {}
+            
+                # --- Fishbone Visualization Section ---
+                if raw_text:
+                    # Extract short points
+                    points = extract_main_points(raw_text)
+                    fishbone_data = categorize_6m(points)
+            
+                    # Save for UI + PDF
+                    st.session_state["fishbone_data"] = fishbone_data
+            
+                    # Show in UI
+                    st.markdown("### Fishbone Diagram")
+                    fig = visualize_fishbone_plotly(fishbone_data)
+                    st.plotly_chart(fig, use_container_width=True)
+            
+                    # Save as image for PDF
+                    fig_path = "/tmp/fishbone.png"
+                    fig.write_image(fig_path)
+                    st.session_state["fishbone_img"] = fig_path
 
 
 
