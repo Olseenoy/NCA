@@ -33,113 +33,53 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 
-def convert_markdown_to_pdf_content(md_text, styles=None):
-    """
-    Convert AI RCA markdown/text into structured ReportLab flowables.
-    Handles headings, bullet lists, numbered lists, timeline tables, and action plan tables.
-    """
-    if styles is None:
-        styles = getSampleStyleSheet()
+from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
+from reportlab.lib.styles import getSampleStyleSheet
 
+def convert_markdown_to_pdf_content(raw_text, styles):
     flowables = []
-    lines = md_text.splitlines()
-    in_list = False
-    list_items = []
-    in_timeline = False
-    timeline_data = [["Event", "Time"]]
-    in_actionplan = False
-    actionplan_data = [["Action Item", "Deadline"]]
+    lines = raw_text.splitlines()
+
+    bullet_buffer = []
 
     for line in lines:
         line = line.strip()
         if not line:
-            if in_list:
-                flowables.append(ListFlowable(list_items, bulletType='bullet'))
-                list_items = []
-                in_list = False
+            # End of bullet section → flush buffer
+            if bullet_buffer:
+                flowables.append(
+                    ListFlowable(
+                        [ListItem(Paragraph(item, styles["Normal"])) for item in bullet_buffer],
+                        bulletType='bullet'
+                    )
+                )
+                bullet_buffer = []
+                flowables.append(Spacer(1, 10))
             continue
 
-        # Section headings
-        if line.endswith(":") and not line.startswith("-") and not line[0].isdigit():
-            section = line.replace("**", "").strip()
-            flowables.append(Paragraph(section, styles['Heading3']))
+        # Headings
+        if line.startswith("**") and line.endswith("**"):
+            flowables.append(Paragraph(f"<b>{line.strip('**')}</b>", styles["Heading2"]))
+            flowables.append(Spacer(1, 6))
+        # Bullets (• or numbered)
+        elif line.startswith("•") or line[0].isdigit():
+            bullet_buffer.append(line.lstrip("• ").strip())
+        # Normal paragraph
+        else:
+            flowables.append(Paragraph(line.replace("**", "<b>").replace("**", "</b>"), styles["Normal"]))
+            flowables.append(Spacer(1, 6))
 
-            # Detect special blocks
-            if "Timeline" in section:
-                in_timeline = True
-                timeline_data = [["Event", "Time"]]
-                continue
-            elif "Action Plan" in section:
-                in_actionplan = True
-                actionplan_data = [["Action Item", "Deadline"]]
-                continue
-            else:
-                in_timeline = False
-                in_actionplan = False
-            continue
-
-        # Timeline entries (like "Leak 1: 12:30 pm")
-        if in_timeline and ":" in line:
-            parts = line.split(":", 1)
-            timeline_data.append([parts[0].strip(), parts[1].strip()])
-            continue
-
-        # Action Plan entries (like "Repair or replace seals ... within 24h")
-        if in_actionplan:
-            if ":" in line:
-                actionplan_data.append([line.split(":", 1)[0].strip(), line.split(":", 1)[1].strip()])
-            else:
-                actionplan_data.append([line, ""])
-            continue
-
-        # Numbered lists
-        if line[0].isdigit() and (line[1:3] == ". " or line[1] == "."):
-            in_list = True
-            list_items.append(ListItem(Paragraph(line, styles['Normal'])))
-            continue
-
-        # Bulleted lists
-        if line.startswith("- ") or line.startswith("• "):
-            in_list = True
-            list_items.append(ListItem(Paragraph(line[2:], styles['Normal'])))
-            continue
-
-        # Normal text
-        flowables.append(Paragraph(line, styles['Normal']))
-
-    # Flush last open list
-    if in_list:
-        flowables.append(ListFlowable(list_items, bulletType='bullet'))
-
-    # Add timeline table if detected
-    if len(timeline_data) > 1:
-        table = Table(timeline_data, hAlign="LEFT", colWidths=[200, 150])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ]))
-        flowables.append(Spacer(1, 12))
-        flowables.append(table)
-
-    # Add action plan table if detected
-    if len(actionplan_data) > 1:
-        table = Table(actionplan_data, hAlign="LEFT", colWidths=[300, 150])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-        ]))
-        flowables.append(Spacer(1, 12))
-        flowables.append(table)
+    # Flush any remaining bullets
+    if bullet_buffer:
+        flowables.append(
+            ListFlowable(
+                [ListItem(Paragraph(item, styles["Normal"])) for item in bullet_buffer],
+                bulletType='bullet'
+            )
+        )
 
     return flowables
+
 
 
 
