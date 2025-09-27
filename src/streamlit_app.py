@@ -109,8 +109,10 @@ def convert_markdown_to_pdf_content(raw_text, styles):
 
         # Numbered / bulleted list
         elif line.startswith("•") or line[0].isdigit() or line.startswith("-"):
-            clean_line = line.lstrip("•- ").strip()  # remove bullet dots/hyphens
+            # Remove bullets AND numbers like "1.", "2." at the start
+            clean_line = re.sub(r"^[\d\.\-\•\s]+", "", line).strip()
             bullet_buffer.append(md_to_html(clean_line))
+
 
         # Normal paragraph
         else:
