@@ -36,16 +36,22 @@ from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
 from reportlab.lib.styles import getSampleStyleSheet
 
+from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
 def convert_markdown_to_pdf_content(raw_text, styles):
     flowables = []
     lines = raw_text.splitlines()
 
     bullet_buffer = []
+    in_action_plan = False
+    action_rows = []
 
     for line in lines:
         line = line.strip()
         if not line:
-            # End of bullet section → flush buffer
+            # Flush bullets if any
             if bullet_buffer:
                 flowables.append(
                     ListFlowable(
@@ -57,11 +63,27 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                 flowables.append(Spacer(1, 10))
             continue
 
-        # Headings
+        # Detect Action Plan heading
+        if line.lower().startswith("**action plan"):
+            in_action_plan = True
+            flowables.append(Paragraph("<b>Action Plan</b>", styles["Heading2"]))
+            flowables.append(Spacer(1, 6))
+            # Add table header
+            action_rows = [["Action", "Owner", "Timeline", "Status"]]
+            continue
+
+        # If in Action Plan → capture as row
+        if in_action_plan and (line.startswith("•") or line[0].isdigit()):
+            action = line.lstrip("•0123456789. ").strip()
+            # Default empty columns for now
+            action_rows.append([action, "", "", "Pending"])
+            continue
+
+        # Normal Headings
         if line.startswith("**") and line.endswith("**"):
             flowables.append(Paragraph(f"<b>{line.strip('**')}</b>", styles["Heading2"]))
             flowables.append(Spacer(1, 6))
-        # Bullets (• or numbered)
+        # Bullets
         elif line.startswith("•") or line[0].isdigit():
             bullet_buffer.append(line.lstrip("• ").strip())
         # Normal paragraph
@@ -69,7 +91,7 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             flowables.append(Paragraph(line.replace("**", "<b>").replace("**", "</b>"), styles["Normal"]))
             flowables.append(Spacer(1, 6))
 
-    # Flush any remaining bullets
+    # Flush bullets
     if bullet_buffer:
         flowables.append(
             ListFlowable(
@@ -78,7 +100,21 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             )
         )
 
+    # Flush Action Plan table if detected
+    if action_rows:
+        table = Table(action_rows, colWidths=[250, 80, 80, 60])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+            ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ]))
+        flowables.append(table)
+        flowables.append(Spacer(1, 12))
+
     return flowables
+
 
 
 
