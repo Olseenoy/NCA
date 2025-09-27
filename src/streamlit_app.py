@@ -1023,18 +1023,20 @@ def main():
                                         st.session_state["time_fig"] = fig_time
                                         st.session_state["time_col"] = value_col
                                         st.session_state["time_date_col_saved"] = time_col
-            
+                                    
                                         time_chart_path = "time_series_trend.png"
-                                        fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
-                                        img = PILImage.open(time_chart_path).convert("RGB")
-                                        img.save(time_chart_path)
-                                        st.session_state["time_chart"] = time_chart_path
-                                        st.session_state["time_summary"] = (
-                                            f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
-                                        )
-            
-                            except Exception:
-                                pass  # silently ignore parsing errors
+                                        try:
+                                            fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
+                                            img = PILImage.open(time_chart_path).convert("RGB")
+                                            img.save(time_chart_path)
+                                            st.session_state["time_chart"] = time_chart_path
+                                            st.session_state["time_summary"] = (
+                                                f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
+                                            )
+                                    except Exception as e:
+                                            st.warning(f"⚠️ Could not save chart image: {e}")
+                                            st.session_state["time_chart"] = None
+
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
             
