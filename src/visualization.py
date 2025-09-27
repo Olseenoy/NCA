@@ -206,13 +206,27 @@ def parse_dates_strict(series, date_format=None):
     return parsed, diagnostics
 
 def plot_trend_dashboard(df, date_col, value_col, date_format=None):
-    fig = px.line(df, x=date_col, y=value_col, title=f"Trend of {value_col} over {date_col}")
-    fig.update_xaxes(type="date")
+    df_plot = df.copy()
+
+    # If a date_format is provided, add a formatted string version for plotting axis labels
     if date_format:
-        tick_fmt = D3_FORMATS.get(date_format, "%Y-%m-%d")
-        fig.update_xaxes(tickformat=tick_fmt)
+        try:
+            df_plot["_formatted_date"] = df_plot[date_col].dt.strftime(date_format)
+            x_col = "_formatted_date"
+        except Exception:
+            x_col = date_col  # fallback to raw datetime
+    else:
+        x_col = date_col
+
+    fig = px.line(df_plot, x=x_col, y=value_col,
+                  title=f"Trend of {value_col} over {date_col}")
+
+    # Ensure x-axis is treated correctly
+    fig.update_xaxes(type="category" if date_format else "date")
+
     fig.update_layout(xaxis_title=date_col, yaxis_title=value_col)
     return fig
+
 
 
 
