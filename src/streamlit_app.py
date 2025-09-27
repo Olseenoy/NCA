@@ -1465,7 +1465,7 @@ def main():
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
                     for para in st.session_state["rca_pdf_content"]:
-                    elements.append(para)
+                        elements.append(para)
                     elements.append(Spacer(1, 20))
         
 
