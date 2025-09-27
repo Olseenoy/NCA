@@ -14,7 +14,7 @@ import datetime
 from nltk.stem import WordNetLemmatizer        
 from fuzzywuzzy import process
 from reportlab.platypus import Image as RLImage
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak, ListFlowable, ListItem
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -28,6 +28,57 @@ from collections import Counter
 from rca_engine import ai_rca_with_fallback
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
+# --- Markdown → PDF flowable converter ---
+
+def convert_markdown_to_pdf_content(md_text, styles=None):
+    """
+    Convert AI RCA markdown/text into structured ReportLab flowables.
+    Handles headings (**bold**), lists (1., -, •), and paragraphs.
+    """
+    if styles is None:
+        styles = getSampleStyleSheet()
+
+    flowables = []
+    lines = md_text.splitlines()
+    in_list = False
+    list_items = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            if in_list:
+                flowables.append(ListFlowable(list_items, bulletType='bullet'))
+                list_items = []
+                in_list = False
+            flowables.append(Spacer(1, 6))
+            continue
+
+        # Headings / bold
+        if line.startswith("**") and line.endswith("**"):
+            text = line.strip("*")
+            flowables.append(Paragraph(text, styles['Heading3']))
+            continue
+
+        # Numbered list
+        if line[0].isdigit() and (line[1:3] == ". " or line[1] == "."):
+            in_list = True
+            list_items.append(ListItem(Paragraph(line, styles['Normal'])))
+            continue
+
+        # Bulleted list
+        if line.startswith("- ") or line.startswith("• "):
+            in_list = True
+            list_items.append(ListItem(Paragraph(line[2:], styles['Normal'])))
+            continue
+
+        # Normal paragraph
+        flowables.append(Paragraph(line, styles['Normal']))
+
+    # flush open list
+    if in_list:
+        flowables.append(ListFlowable(list_items, bulletType='bullet'))
+
+    return flowables
 
 
 
@@ -1254,68 +1305,6 @@ def main():
                 return RLImage(img_buffer, width=width, height=height)
 
             # Main PDF generator
-            from markdown2 import markdown
-            from bs4 import BeautifulSoup
-            from reportlab.platypus import Paragraph, ListFlowable, ListItem
-            from reportlab.lib.styles import getSampleStyleSheet
-            
-            styles = getSampleStyleSheet()
-            
-            from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
-            from reportlab.lib.styles import getSampleStyleSheet
-            
-            def convert_markdown_to_pdf_content(md_text, styles=None):
-                """
-                Convert AI RCA markdown/text into structured ReportLab flowables.
-                Handles headings (**bold**), lists (1., -, •), and paragraphs.
-                """
-                if styles is None:
-                    styles = getSampleStyleSheet()
-            
-                flowables = []
-                lines = md_text.splitlines()
-                in_list = False
-                list_items = []
-            
-                for line in lines:
-                    line = line.strip()
-                    if not line:
-                        # close list if we were inside one
-                        if in_list:
-                            flowables.append(ListFlowable(list_items, bulletType='bullet'))
-                            list_items = []
-                            in_list = False
-                        flowables.append(Spacer(1, 6))
-                        continue
-            
-                    # --- Bold / headings ---
-                    if line.startswith("**") and line.endswith("**"):
-                        text = line.strip("*")
-                        flowables.append(Paragraph(text, styles['Heading3']))
-                        continue
-            
-                    # --- Numbered list ---
-                    if line[0].isdigit() and (line[1:3] == ". " or line[1] == "."):
-                        in_list = True
-                        list_items.append(ListItem(Paragraph(line, styles['Normal'])))
-                        continue
-            
-                    # --- Bulleted list ---
-                    if line.startswith("- ") or line.startswith("• "):
-                        in_list = True
-                        list_items.append(ListItem(Paragraph(line[2:], styles['Normal'])))
-                        continue
-            
-                    # --- Regular text ---
-                    flowables.append(Paragraph(line, styles['Normal']))
-            
-                # flush list at the end
-                if in_list:
-                    flowables.append(ListFlowable(list_items, bulletType='bullet'))
-            
-                return flowables
-
-
             def generate_pdf():
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4)
