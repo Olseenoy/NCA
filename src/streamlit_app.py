@@ -917,7 +917,7 @@ def main():
                 try:
                     trend_df = p.copy()
             
-                    # Convert numeric columns
+                    # Convert numeric columns safely
                     for c in trend_df.columns:
                         if trend_df[c].dtype == "object":
                             trend_df[c] = pd.to_numeric(
@@ -927,7 +927,7 @@ def main():
             
                     # Detect numeric columns
                     num_cols = [
-                        c for c in trend_df.select_dtypes(include=['number']).columns
+                        c for c in trend_df.select_dtypes(include=["number"]).columns
                         if trend_df[c].notna().any()
                     ]
             
@@ -937,24 +937,23 @@ def main():
                         try:
                             parsed, diag = parse_dates_strict(trend_df[c], st.session_state.get("date_format"))
                             if parsed.notna().any():
-                                trend_df[c] = parsed  # overwrite original column
+                                trend_df[c] = parsed  # overwrite with parsed dates
                                 date_cols.append(c)
                         except Exception:
                             continue
             
-                    # --- Trend Analysis Button ---
+                    # --- Trend Analysis ---
                     if date_cols and num_cols:
                         date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
                         value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
             
                         if st.button("Run Trend Analysis", key="trend_btn"):
                             try:
-                                # Parse date column strictly
                                 trend_df[date_col], diag = parse_dates_strict(
                                     trend_df[date_col],
                                     st.session_state.get("date_format")
                                 )
-                                # Generate Trend Chart
+            
                                 fig_trend = plot_trend_dashboard(
                                     trend_df,
                                     date_col=date_col,
@@ -963,31 +962,36 @@ def main():
                                 )
             
                                 if fig_trend:
-                                    # Save to session_state
                                     st.session_state["trend_fig"] = fig_trend
                                     st.session_state["trend_col"] = value_col
                                     st.session_state["trend_date_col_saved"] = date_col
             
                                     trend_chart_path = "trend_chart.png"
-                                    fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
-                                    img = PILImage.open(trend_chart_path).convert("RGB")
-                                    img.save(trend_chart_path)
-                                    st.session_state["trend_chart"] = trend_chart_path
-                                    st.session_state["trend_summary"] = (
-                                        f"Trend chart of '{value_col}' over '{date_col}'"
-                                    )
+                                    try:
+                                        fig_trend.write_image(trend_chart_path, format="png", scale=2, engine="kaleido")
+                                        PILImage.open(trend_chart_path).convert("RGB").save(trend_chart_path)
+                                        st.session_state["trend_chart"] = trend_chart_path
+                                        st.session_state["trend_summary"] = (
+                                            f"Trend chart of '{value_col}' over '{date_col}'"
+                                        )
+                                    except Exception as e:
+                                        st.warning(f"⚠️ Could not save trend chart image: {e}")
+                                        st.session_state["trend_chart"] = None
             
                             except Exception as e:
                                 st.warning(f"⚠️ Unable to render trend plot: {e}")
                     else:
                         st.info("No valid date and numeric column pair available for trend plotting.")
             
-                    # --- Persistent Display for Trend & Time-Series Charts ---
+                    # --- Persistent Display ---
                     if "trend_fig" in st.session_state and "trend_col" in st.session_state:
-                        st.success(f"Trend Chart: {st.session_state.get('trend_col')} over {st.session_state.get('trend_date_col_saved')}")
-                        st.plotly_chart(st.session_state['trend_fig'], use_container_width=True)
+                        st.success(
+                            f"Trend Chart: {st.session_state.get('trend_col')} "
+                            f"over {st.session_state.get('trend_date_col_saved')}"
+                        )
+                        st.plotly_chart(st.session_state["trend_fig"], use_container_width=True)
             
-                    # --- Time-Series Analysis Button ---
+                    # --- Time-Series Analysis ---
                     st.subheader("⏳ Time-Series Trend Analysis")
                     if date_cols and num_cols:
                         time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
@@ -1005,13 +1009,12 @@ def main():
                                     st.session_state.get("date_format")
                                 )
             
-                                # Only proceed if at least 1 row parsed successfully
                                 if diag["parsed_count"] > 0:
-                                    # Use a temporary column for plotting to avoid modifying the widget-backed column
-                                    p["_parsed_time"] = parsed
+                                    ts_df = p.copy()
+                                    ts_df["_parsed_time"] = parsed
             
                                     fig_time = plot_time_series_trend(
-                                        p,
+                                        ts_df,
                                         date_col="_parsed_time",
                                         value_col=value_col,
                                         freq=freq_options[freq_choice],
@@ -1023,28 +1026,28 @@ def main():
                                         st.session_state["time_fig"] = fig_time
                                         st.session_state["time_col"] = value_col
                                         st.session_state["time_date_col_saved"] = time_col
-                                    
+            
                                         time_chart_path = "time_series_trend.png"
                                         try:
                                             fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
-                                            img = PILImage.open(time_chart_path).convert("RGB")
-                                            img.save(time_chart_path)
+                                            PILImage.open(time_chart_path).convert("RGB").save(time_chart_path)
                                             st.session_state["time_chart"] = time_chart_path
                                             st.session_state["time_summary"] = (
                                                 f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
                                             )
                                         except Exception as e:
-                                            st.warning(f"⚠️ Could not save chart image: {e}")
+                                            st.warning(f"⚠️ Could not save time-series chart image: {e}")
                                             st.session_state["time_chart"] = None
-
+                            except Exception as e:
+                                st.warning(f"⚠️ Error generating time-series: {e}")
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
             
                 except Exception as e:
                     st.warning(f"⚠️ Error in Trend/Time-Series section: {e}")
-            
             else:
                 st.warning("No processed data available. Please preprocess first.")
+
             
             # --- Persistent display for Time-Series ---
             if "time_fig" in st.session_state and "time_col" in st.session_state:
