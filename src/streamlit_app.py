@@ -22,11 +22,45 @@ from PIL import Image as PILImage
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
-from collections import Counter            
+from collections import Counter   
+from collections import defaultdict
 # Local imports (same src/ folder)
 # from rca_engine import process_uploaded_docs, extract_recurring_issues, ai_rca_with_fallback
 from rca_engine import ai_rca_with_fallback
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
+
+
+
+
+FISHBONE_CATEGORIES = {
+    "Machine": ["machine", "equipment", "maintenance", "wear", "seal"],
+    "Methods": ["procedure", "installation", "process", "operation"],
+    "Materials": ["material", "seal quality", "product", "component"],
+    "Manpower": ["operator", "training", "human", "error"],
+    "Environment": ["temperature", "pressure", "humidity", "environment"],
+    "Measurement": ["control", "inspection", "monitoring", "testing"]
+}
+
+def categorize_root_causes(ai_text):
+    categories = defaultdict(list)
+    lines = [l.strip() for l in ai_text.split("\n") if l.strip()]
+
+    for line in lines:
+        clean_line = re.sub(r"^(\*|\-|\•|\d+[\.\)])\s*", "", line).strip()
+        if not clean_line:
+            continue
+
+        assigned = False
+        for cat, keywords in FISHBONE_CATEGORIES.items():
+            if any(kw.lower() in clean_line.lower() for kw in keywords):
+                categories[cat].append(clean_line)
+                assigned = True
+                break
+        if not assigned:
+            categories["Uncategorized"].append(clean_line)
+
+    return categories
+
 
 # --- Markdown → PDF flowable converter ---
 
@@ -1325,35 +1359,43 @@ def main():
                         if raw_text:
                             st.markdown("**AI RCA Report:**")
                             st.markdown(raw_text)
-                        
+                    
                             # Convert AI markdown into structured flowables (headings, lists, tables)
                             converted_content = convert_markdown_to_pdf_content(raw_text, styles)
-                        
                             st.session_state["rca_pdf_content"] = converted_content
                             st.session_state["rca_pdf_text"] = raw_text
+                    
+                            # Categorize for fishbone (if AI didn’t provide structured fishbone)
+                            categories = categorize_root_causes(raw_text)
+                            st.session_state["fishbone_categories"] = categories
+                    
+                    
+                    # --- Fishbone Visualization Section ---
+                    with col2:
+                        st.markdown("### Fishbone Diagram")
+                    
+                        # Prefer AI-provided fishbone, fallback to categorized root causes
+                        fishbone_data = result.get("fishbone") or st.session_state.get("fishbone_categories", {})
+                    
+                        if not fishbone_data:
+                            st.info("No fishbone data available.")
+                        else:
+                            try:
+                                fig = visualize_fishbone_plotly(fishbone_data)
+                                st.plotly_chart(fig, use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Fishbone visualization failed: {e}")
+                                st.json(fishbone_data)
+                    
+                            # Optional: Show text categories under the chart
+                            if "fishbone_categories" in st.session_state:
+                                st.subheader("Fishbone Categories")
+                                for cat, items in st.session_state["fishbone_categories"].items():
+                                    st.markdown(f"**{cat}:**")
+                                    for i in items:
+                                        st.markdown(f"- {i}")
 
 
-
-
-
-            
-                with col2:
-                    st.markdown("### Fishbone Diagram")
-            
-                    fishbone_data = result.get("fishbone") or {}
-                    if not fishbone_data:
-                        st.info("No fishbone data available.")
-                    else:
-                        try:
-                            fig = visualize_fishbone_plotly(fishbone_data)
-                            st.plotly_chart(fig, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Fishbone visualization failed: {e}")
-                            st.json(fishbone_data)
-
-            
-            else:
-                st.warning(" ")
 
             
 
@@ -1469,6 +1511,15 @@ def main():
                         elements.append(para)
                     elements.append(Spacer(1, 20))
         
+                # =====================
+                # Fish BONE (RCA)
+                # =====================
+                if "fishbone_categories" in st.session_state:
+                    elements.append(Paragraph("Fishbone Diagram Categories", styles['Heading2']))
+                    for cat, items in st.session_state["fishbone_categories"].items():
+                        elements.append(Paragraph(f"<b>{cat}</b>", styles['Normal']))
+                        for i in items:
+                            elements.append(Paragraph(f"- {i}", styles['Normal']))
 
 
 
