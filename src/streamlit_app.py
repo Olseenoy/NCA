@@ -30,10 +30,13 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 # --- Markdown → PDF flowable converter ---
 
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+
 def convert_markdown_to_pdf_content(md_text, styles=None):
     """
     Convert AI RCA markdown/text into structured ReportLab flowables.
-    Handles headings (**bold**), lists (1., -, •), and paragraphs.
+    Handles headings, bullet lists, numbered lists, timeline tables, and action plan tables.
     """
     if styles is None:
         styles = getSampleStyleSheet()
@@ -42,6 +45,10 @@ def convert_markdown_to_pdf_content(md_text, styles=None):
     lines = md_text.splitlines()
     in_list = False
     list_items = []
+    in_timeline = False
+    timeline_data = [["Event", "Time"]]
+    in_actionplan = False
+    actionplan_data = [["Action Item", "Deadline"]]
 
     for line in lines:
         line = line.strip()
@@ -50,35 +57,90 @@ def convert_markdown_to_pdf_content(md_text, styles=None):
                 flowables.append(ListFlowable(list_items, bulletType='bullet'))
                 list_items = []
                 in_list = False
-            flowables.append(Spacer(1, 6))
             continue
 
-        # Headings / bold
-        if line.startswith("**") and line.endswith("**"):
-            text = line.strip("*")
-            flowables.append(Paragraph(text, styles['Heading3']))
+        # Section headings
+        if line.endswith(":") and not line.startswith("-") and not line[0].isdigit():
+            section = line.replace("**", "").strip()
+            flowables.append(Paragraph(section, styles['Heading3']))
+
+            # Detect special blocks
+            if "Timeline" in section:
+                in_timeline = True
+                timeline_data = [["Event", "Time"]]
+                continue
+            elif "Action Plan" in section:
+                in_actionplan = True
+                actionplan_data = [["Action Item", "Deadline"]]
+                continue
+            else:
+                in_timeline = False
+                in_actionplan = False
             continue
 
-        # Numbered list
+        # Timeline entries (like "Leak 1: 12:30 pm")
+        if in_timeline and ":" in line:
+            parts = line.split(":", 1)
+            timeline_data.append([parts[0].strip(), parts[1].strip()])
+            continue
+
+        # Action Plan entries (like "Repair or replace seals ... within 24h")
+        if in_actionplan:
+            if ":" in line:
+                actionplan_data.append([line.split(":", 1)[0].strip(), line.split(":", 1)[1].strip()])
+            else:
+                actionplan_data.append([line, ""])
+            continue
+
+        # Numbered lists
         if line[0].isdigit() and (line[1:3] == ". " or line[1] == "."):
             in_list = True
             list_items.append(ListItem(Paragraph(line, styles['Normal'])))
             continue
 
-        # Bulleted list
+        # Bulleted lists
         if line.startswith("- ") or line.startswith("• "):
             in_list = True
             list_items.append(ListItem(Paragraph(line[2:], styles['Normal'])))
             continue
 
-        # Normal paragraph
+        # Normal text
         flowables.append(Paragraph(line, styles['Normal']))
 
-    # flush open list
+    # Flush last open list
     if in_list:
         flowables.append(ListFlowable(list_items, bulletType='bullet'))
 
+    # Add timeline table if detected
+    if len(timeline_data) > 1:
+        table = Table(timeline_data, hAlign="LEFT", colWidths=[200, 150])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ]))
+        flowables.append(Spacer(1, 12))
+        flowables.append(table)
+
+    # Add action plan table if detected
+    if len(actionplan_data) > 1:
+        table = Table(actionplan_data, hAlign="LEFT", colWidths=[300, 150])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+        ]))
+        flowables.append(Spacer(1, 12))
+        flowables.append(table)
+
     return flowables
+
 
 
 
@@ -1261,15 +1323,15 @@ def main():
                         raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
                         if raw_text:
                             st.markdown("**AI RCA Report:**")
-                            st.markdown(raw_text)  # Streamlit keeps original markdown
-                    
-                            # Convert markdown → PDF flowables
+                            st.markdown(raw_text)
+                        
+                            # Convert AI markdown into structured flowables (headings, lists, tables)
                             converted_content = convert_markdown_to_pdf_content(raw_text, styles)
-                    
-                            rca_pdf_content.append(Paragraph("AI RCA Report:", styles['Heading3']))
-                            rca_pdf_content.extend(converted_content)  # add formatted blocks
-                    
-                            rca_pdf_text_content.append(raw_text)
+                        
+                            st.session_state["rca_pdf_content"] = converted_content
+                            st.session_state["rca_pdf_text"] = raw_text
+
+
 
 
 
@@ -1402,11 +1464,10 @@ def main():
                 # =====================
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
-                    
-                    # Directly extend with the prepared flowables
-                    elements.extend(st.session_state["rca_pdf_content"])
-                    
+                    for para in st.session_state["rca_pdf_content"]:
+                    elements.append(para)
                     elements.append(Spacer(1, 20))
+        
 
 
 
