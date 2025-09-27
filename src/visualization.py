@@ -291,40 +291,64 @@ def rule_based_rca_fallback(issue_text, processed_df=None):
         "fishbone": fishbone,
     }
 
-def visualize_fishbone_plotly(data):
+def visualize_fishbone_plotly(categories):
     """
-    Creates a fishbone diagram using Plotly.
+    Draw a proper fishbone diagram with 6M branches.
     """
     fig = go.Figure()
 
-    # Spine
-    fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3))
+    # Draw the main spine
+    fig.add_trace(go.Scatter(
+        x=[0, 10], y=[0, 0],
+        mode="lines", line=dict(color="black", width=3),
+        showlegend=False
+    ))
 
-    # Categories
-    y_offsets = [0.3, 0.5, 0.7, -0.3, -0.5, -0.7]
-    cats = list(data.keys())
-    for i, cat in enumerate(cats):
-        y = y_offsets[i]
-        fig.add_shape(type="line", x0=0.5, y0=0, x1=0.9, y1=y, line=dict(color="blue", width=2))
+    # Define branch positions (approximate fishbone style)
+    branches = {
+        "Man": (2, 1),
+        "Machine": (4, 1),
+        "Method": (6, 1),
+        "Material": (8, 1),
+        "Measurement": (3, -1),
+        "Environment": (7, -1)
+    }
+
+    # Add branches + causes
+    for cat, (x, y) in branches.items():
+        # Branch line
         fig.add_trace(go.Scatter(
-            x=[0.92], y=[y],
-            text=[f"<b>{cat}</b><br>" + "<br>".join(data[cat]) if data[cat] else f"<b>{cat}</b><br>(none)"],
-            mode="text",
-            textposition="middle left"
+            x=[x, x+1], y=[0, y],
+            mode="lines", line=dict(color="black", width=2),
+            showlegend=False
         ))
+
+        # Category label
+        fig.add_trace(go.Scatter(
+            x=[x+1.2], y=[y],
+            text=[cat], mode="text",
+            textposition="middle right",
+            showlegend=False
+        ))
+
+        # Add causes as text
+        if categories.get(cat):
+            for i, cause in enumerate(categories[cat]):
+                offset = (i+1) * 0.3 * (1 if y > 0 else -1)
+                fig.add_trace(go.Scatter(
+                    x=[x+1.5], y=[y+offset],
+                    text=[cause], mode="text",
+                    textposition="middle right",
+                    showlegend=False
+                ))
 
     fig.update_layout(
         title="Fishbone Diagram (Ishikawa)",
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         plot_bgcolor="white",
-        margin=dict(l=20, r=20, t=40, b=20),
-        height=500
+        height=600,
+        margin=dict(l=20, r=20, t=40, b=20)
     )
+
     return fig
-
-
-
-
-
-
