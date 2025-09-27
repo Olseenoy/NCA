@@ -95,9 +95,9 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             action = line.lstrip("•-0123456789. ").strip()
             action_rows.append([
                 Paragraph(md_to_html(action), normal_style),
-                Paragraph("Unassigned", normal_style),
-                Paragraph("TBD", normal_style),
-                Paragraph("Pending", normal_style),
+                Paragraph(" ", normal_style),
+                Paragraph(" ", normal_style),
+                Paragraph(" ", normal_style),
             ])
             continue
 
