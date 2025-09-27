@@ -1067,17 +1067,19 @@ def main():
             
             
             # --- Processed table session ---
-            idx = st.number_input(
-                "Pick row index to analyze",
-                min_value=0,
-                max_value=len(p) - 1,
-                value=0,
-            )
-            row = p.iloc[int(idx)]
-            raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
-            st.markdown("**Selected row preview:**")
-            st.write(raw_text)
-            
+            if p is not None and not p.empty:
+                idx = st.number_input(
+                    "Pick row index to analyze",
+                    min_value=0,
+                    max_value=len(p) - 1,
+                    value=0,
+                )
+                row = p.iloc[int(idx)]
+                raw_text = str(row.get("combined_text") or row.get("clean_text") or "")
+                st.markdown("**Selected row preview:**")
+                st.write(raw_text)
+            else:
+                st.warning("No processed data available to analyze.")
             
 
 
