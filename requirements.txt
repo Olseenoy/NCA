@@ -41,3 +41,5 @@ kaleido==0.2.1
 fuzzywuzzy
 plotly[kaleido]
 python-Levenshtein
+markdown2
+beautifulsoup4
