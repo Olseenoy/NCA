@@ -1261,29 +1261,60 @@ def main():
             
             styles = getSampleStyleSheet()
             
-            def convert_markdown_to_pdf_content(markdown_text, styles=styles):
-                """Convert AI markdown into ReportLab Paragraphs & Lists for clean PDF rendering."""
-                html = markdown(markdown_text)
-                soup = BeautifulSoup(html, "html.parser")
+            from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
+            from reportlab.lib.styles import getSampleStyleSheet
             
-                content = []
-                for element in soup.children:
-                    if element.name == "h1":
-                        content.append(Paragraph(element.get_text(), styles['Heading1']))
-                    elif element.name == "h2":
-                        content.append(Paragraph(element.get_text(), styles['Heading2']))
-                    elif element.name == "h3":
-                        content.append(Paragraph(element.get_text(), styles['Heading3']))
-                    elif element.name == "p":
-                        content.append(Paragraph(element.get_text(), styles['Normal']))
-                    elif element.name in ["ul", "ol"]:
-                        items = [ListItem(Paragraph(li.get_text(), styles['Normal'])) for li in element.find_all("li")]
-                        bullet_type = 'bullet' if element.name == "ul" else '1'  # numbered if ordered list
-                        content.append(ListFlowable(items, bulletType=bullet_type, start='1'))
-                    else:
-                        # fallback
-                        content.append(Paragraph(element.get_text(), styles['Normal']))
-                return content
+            def convert_markdown_to_pdf_content(md_text, styles=None):
+                """
+                Convert AI RCA markdown/text into structured ReportLab flowables.
+                Handles headings (**bold**), lists (1., -, •), and paragraphs.
+                """
+                if styles is None:
+                    styles = getSampleStyleSheet()
+            
+                flowables = []
+                lines = md_text.splitlines()
+                in_list = False
+                list_items = []
+            
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        # close list if we were inside one
+                        if in_list:
+                            flowables.append(ListFlowable(list_items, bulletType='bullet'))
+                            list_items = []
+                            in_list = False
+                        flowables.append(Spacer(1, 6))
+                        continue
+            
+                    # --- Bold / headings ---
+                    if line.startswith("**") and line.endswith("**"):
+                        text = line.strip("*")
+                        flowables.append(Paragraph(text, styles['Heading3']))
+                        continue
+            
+                    # --- Numbered list ---
+                    if line[0].isdigit() and (line[1:3] == ". " or line[1] == "."):
+                        in_list = True
+                        list_items.append(ListItem(Paragraph(line, styles['Normal'])))
+                        continue
+            
+                    # --- Bulleted list ---
+                    if line.startswith("- ") or line.startswith("• "):
+                        in_list = True
+                        list_items.append(ListItem(Paragraph(line[2:], styles['Normal'])))
+                        continue
+            
+                    # --- Regular text ---
+                    flowables.append(Paragraph(line, styles['Normal']))
+            
+                # flush list at the end
+                if in_list:
+                    flowables.append(ListFlowable(list_items, bulletType='bullet'))
+            
+                return flowables
+
 
             def generate_pdf():
                 buffer = io.BytesIO()
