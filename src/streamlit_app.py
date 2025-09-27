@@ -30,23 +30,26 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 # --- Markdown → PDF flowable converter ---
 
-from reportlab.platypus import Table, TableStyle
-from reportlab.lib import colors
-
-from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
-from reportlab.lib.styles import getSampleStyleSheet
-
-from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-
 import re
-from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem, Table, TableStyle
+from reportlab.platypus import (
+    Paragraph, Spacer, ListFlowable, ListItem, Table, TableStyle
+)
 from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY
 
 def convert_markdown_to_pdf_content(raw_text, styles):
     flowables = []
     lines = raw_text.splitlines()
+
+    # --- Custom Normal style ---
+    normal_style = ParagraphStyle(
+        "Justify12",
+        parent=styles["Normal"],
+        fontSize=12,
+        leading=14,   # ~1.0 line spacing
+        alignment=TA_JUSTIFY
+    )
 
     bullet_buffer = []
     in_action_plan = False
@@ -57,16 +60,15 @@ def convert_markdown_to_pdf_content(raw_text, styles):
         if bullet_buffer:
             flowables.append(
                 ListFlowable(
-                    [ListItem(Paragraph(item, styles["Normal"])) for item in bullet_buffer],
-                    bulletType='bullet'
+                    [ListItem(Paragraph(item, normal_style)) for item in bullet_buffer],
+                    bulletType='1' if bullet_buffer[0][0].isdigit() else 'bullet'
                 )
             )
             bullet_buffer = []
             flowables.append(Spacer(1, 10))
 
     def md_to_html(text: str) -> str:
-        """Convert simple markdown (bold only) to safe HTML for ReportLab."""
-        # Replace **text** with <b>text</b>
+        """Convert markdown (bold only) to safe HTML for ReportLab."""
         return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
 
     for line in lines:
@@ -81,12 +83,22 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             in_action_plan = True
             flowables.append(Paragraph("<b>Action Plan</b>", styles["Heading2"]))
             flowables.append(Spacer(1, 6))
-            action_rows = [["Action", "Owner", "Timeline", "Status"]]
+            action_rows = [[
+                Paragraph("<b>Action</b>", normal_style),
+                Paragraph("<b>Owner</b>", normal_style),
+                Paragraph("<b>Timeline</b>", normal_style),
+                Paragraph("<b>Status</b>", normal_style),
+            ]]
             continue
 
-        if in_action_plan and (line.startswith("•") or line[0].isdigit()):
-            action = line.lstrip("•0123456789. ").strip()
-            action_rows.append([md_to_html(action), "", "", "Pending"])
+        if in_action_plan and (line.startswith("-") or line[0].isdigit()):
+            action = line.lstrip("•-0123456789. ").strip()
+            action_rows.append([
+                Paragraph(md_to_html(action), normal_style),
+                Paragraph("Unassigned", normal_style),
+                Paragraph("TBD", normal_style),
+                Paragraph("Pending", normal_style),
+            ])
             continue
 
         # Headings
@@ -95,14 +107,15 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             flowables.append(Paragraph(md_to_html(line), styles["Heading2"]))
             flowables.append(Spacer(1, 6))
 
-        # Bullets
-        elif line.startswith("•") or line[0].isdigit():
-            bullet_buffer.append(md_to_html(line.lstrip("• ").strip()))
+        # Numbered / bulleted list
+        elif line.startswith("•") or line[0].isdigit() or line.startswith("-"):
+            clean_line = line.lstrip("•- ").strip()  # remove bullet dots/hyphens
+            bullet_buffer.append(md_to_html(clean_line))
 
         # Normal paragraph
         else:
             flush_bullets()
-            flowables.append(Paragraph(md_to_html(line), styles["Normal"]))
+            flowables.append(Paragraph(md_to_html(line), normal_style))
             flowables.append(Spacer(1, 6))
 
     flush_bullets()
@@ -116,11 +129,13 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             ('ALIGN', (1,0), (-1,-1), 'CENTER'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ]))
         flowables.append(table)
         flowables.append(Spacer(1, 12))
 
     return flowables
+
 
 
 
