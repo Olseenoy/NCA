@@ -1416,9 +1416,8 @@ def main():
                             st.session_state["rca_pdf_text"] = raw_text
                     
                             # Categorize for fishbone (if AI didn’t provide structured fishbone)
-                            st.session_state["fishbone_categories"] = (
-                                result.get("fishbone") or categorize_root_causes(raw_text)
-                            )
+                            st.session_state["fishbone_categories"] = result.get("fishbone") or {}
+
                     
                     # --- Fishbone Visualization Section ---
                     if raw_text:
