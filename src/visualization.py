@@ -291,54 +291,27 @@ def rule_based_rca_fallback(issue_text, processed_df=None):
         "fishbone": fishbone,
     }
 
-
-
-
-def visualize_fishbone_plotly(fishbone_data):
+def visualize_fishbone_plotly(data):
     """
-    Draws a fishbone (Ishikawa) diagram from categorized root causes.
-    fishbone_data = {
-        "Machine": ["Poor maintenance", "Wear & tear"],
-        "Method": ["Incorrect sealing procedure"],
-        "Material": ["Seal quality issues"],
-        "Manpower": ["Operator error"],
-        "Measurement": ["Improper calibration"],
-        "Environment": ["High temperature", "Humidity"]
-    }
+    Creates a fishbone diagram using Plotly.
     """
-
     fig = go.Figure()
 
-    # Draw backbone
-    fig.add_shape(type="line", x0=0.1, y0=0.5, x1=0.9, y1=0.5,
-                  line=dict(color="black", width=3))
+    # Spine
+    fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3))
 
-    # Position categories alternately top/bottom
-    categories = list(fishbone_data.keys())
-    spacing = 0.8 / (len(categories) - 1)
-    y_offsets = [0.7, 0.3] * ((len(categories) // 2) + 1)
-
-    for i, cat in enumerate(categories):
-        x = 0.15 + i * spacing
-        y = 0.5
-        y_target = y_offsets[i]
-
-        # Draw main bone
-        fig.add_shape(type="line", x0=x, y0=y, x1=x+0.1, y1=y_target,
-                      line=dict(color="black", width=2))
-
-        # Add category label
-        fig.add_annotation(x=x+0.12, y=y_target, text=cat,
-                           showarrow=False, font=dict(size=12, color="blue"))
-
-        # Add sub-causes as bullet points
-        causes = fishbone_data[cat]
-        for j, cause in enumerate(causes):
-            fig.add_annotation(
-                x=x+0.15, y=y_target + (0.05 if y_target > y else -0.05) * (j+1),
-                text=f"• {cause}", showarrow=False,
-                font=dict(size=10, color="black"), align="left"
-            )
+    # Categories
+    y_offsets = [0.3, 0.5, 0.7, -0.3, -0.5, -0.7]
+    cats = list(data.keys())
+    for i, cat in enumerate(cats):
+        y = y_offsets[i]
+        fig.add_shape(type="line", x0=0.5, y0=0, x1=0.9, y1=y, line=dict(color="blue", width=2))
+        fig.add_trace(go.Scatter(
+            x=[0.92], y=[y],
+            text=[f"<b>{cat}</b><br>" + "<br>".join(data[cat]) if data[cat] else f"<b>{cat}</b><br>(none)"],
+            mode="text",
+            textposition="middle left"
+        ))
 
     fig.update_layout(
         title="Fishbone Diagram (Ishikawa)",
@@ -346,10 +319,10 @@ def visualize_fishbone_plotly(fishbone_data):
         yaxis=dict(visible=False),
         plot_bgcolor="white",
         margin=dict(l=20, r=20, t=40, b=20),
-        height=600
+        height=500
     )
-
     return fig
+
 
 
 
