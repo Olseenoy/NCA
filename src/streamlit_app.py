@@ -1033,7 +1033,7 @@ def main():
                                             st.session_state["time_summary"] = (
                                                 f"{freq_choice} trend of '{value_col}' over '{time_col}', aggregated by {agg_choice}"
                                             )
-                                    except Exception as e:
+                                        except Exception as e:
                                             st.warning(f"⚠️ Could not save chart image: {e}")
                                             st.session_state["time_chart"] = None
 
