@@ -96,16 +96,29 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     backend_used = llm_backend
 
     # --- Gemini ---
-    if llm_backend == "gemini":
+# --- Gemini with Groq fallback ---
+if llm_backend == "gemini":
+    try:
+        if not os.getenv("GEMINI_API_KEY"):
+            raise ValueError("Gemini API key not set. Please set GEMINI_API_KEY.")
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt.format(issue=issue_text))
+        response_text = response.text
+    except Exception as e:
+        # Gemini failed → fallback to Groq
         try:
-            if not os.getenv("GEMINI_API_KEY"):
-                return {"error": "Gemini API key not set. Please set GEMINI_API_KEY."}
-            genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt.format(issue=issue_text))
-            response_text = response.text
-        except Exception as e:
-            return {"error": f"Gemini failed: {e}"}
+            if not os.getenv("GROQ_API_KEY"):
+                return {"error": f"Gemini failed ({e}), and Groq API key not set."}
+            llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+            chain = LLMChain(
+                llm=llm,
+                prompt=PromptTemplate(input_variables=["issue"], template=prompt)
+            )
+            response_text = chain.run(issue=issue_text)
+        except Exception as e2:
+            return {"error": f"Gemini failed ({e}), Groq failed ({e2})"}
+
 
     # --- Groq ---
     elif llm_backend == "groq":
