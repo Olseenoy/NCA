@@ -95,115 +95,114 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
     response_text = None
     backend_used = llm_backend
 
-    # --- Gemini ---
-# --- Gemini with Groq fallback ---
-if llm_backend == "gemini":
-    try:
-        if not os.getenv("GEMINI_API_KEY"):
-            raise ValueError("Gemini API key not set. Please set GEMINI_API_KEY.")
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt.format(issue=issue_text))
-        response_text = response.text
-        backend_used = "gemini"
-    except Exception as e:
-        # Gemini failed → fallback to Groq
+    # --- Gemini with Groq fallback ---
+    if llm_backend == "gemini":
+        try:
+            if not os.getenv("GEMINI_API_KEY"):
+                raise ValueError("Gemini API key not set. Please set GEMINI_API_KEY.")
+            genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt.format(issue=issue_text))
+            response_text = response.text
+            backend_used = "gemini"
+        except Exception as e:
+            # Gemini failed → fallback to Groq
+            try:
+                if not os.getenv("GROQ_API_KEY"):
+                    return {"error": f"Gemini failed ({e}), and Groq API key not set."}
+                llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+                chain = LLMChain(
+                    llm=llm,
+                    prompt=PromptTemplate(input_variables=["issue"], template=prompt)
+                )
+                response_text = chain.run(issue=issue_text)
+                backend_used = "groq (fallback)"
+            except Exception as e2:
+                return {"error": f"Gemini failed ({e}), Groq failed ({e2})"}
+
+    # --- Groq ---
+    elif llm_backend == "groq":
         try:
             if not os.getenv("GROQ_API_KEY"):
-                return {"error": f"Gemini failed ({e}), and Groq API key not set."}
+                return {"error": "Groq API key not set. Please set GROQ_API_KEY."}
             llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
             chain = LLMChain(
                 llm=llm,
                 prompt=PromptTemplate(input_variables=["issue"], template=prompt)
             )
             response_text = chain.run(issue=issue_text)
-            backend_used = "groq (fallback)"
-        except Exception as e2:
-            return {"error": f"Gemini failed ({e}), Groq failed ({e2})"}
+            backend_used = "groq"
+        except Exception as e:
+            return {"error": f"Groq failed: {e}"}
 
-# --- Groq ---
-elif llm_backend == "groq":
-    try:
-        if not os.getenv("GROQ_API_KEY"):
-            return {"error": "Groq API key not set. Please set GROQ_API_KEY."}
-        llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
-        chain = LLMChain(
-            llm=llm,
-            prompt=PromptTemplate(input_variables=["issue"], template=prompt)
-        )
-        response_text = chain.run(issue=issue_text)
-        backend_used = "groq"
-    except Exception as e:
-        return {"error": f"Groq failed: {e}"}
+    # --- Ollama (legacy) ---
+    elif llm_backend == "ollama":
+        try:
+            llm = Ollama(model="llama2")
+            response = llm.invoke(prompt.format(issue=issue_text))
+            response_text = response if isinstance(response, str) else str(response)
+            backend_used = "ollama"
+        except Exception as e:
+            return {"error": f"Ollama failed: {e}"}
 
-# --- Ollama (legacy) ---
-elif llm_backend == "ollama":
-    try:
-        llm = Ollama(model="llama2")
-        response = llm.invoke(prompt.format(issue=issue_text))
-        response_text = response if isinstance(response, str) else str(response)
-        backend_used = "ollama"
-    except Exception as e:
-        return {"error": f"Ollama failed: {e}"}
+    # --- OpenAI (legacy) ---
+    elif llm_backend == "openai":
+        try:
+            if not os.getenv("OPENAI_API_KEY"):
+                return {"error": "OpenAI API key not set. Please set OPENAI_API_KEY."}
+            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+            response = llm.invoke(prompt.format(issue=issue_text))
+            response_text = response.content if hasattr(response, "content") else str(response)
+            backend_used = "openai"
+        except Exception as e:
+            return {"error": f"OpenAI failed: {e}"}
 
-# --- OpenAI (legacy) ---
-elif llm_backend == "openai":
-    try:
-        if not os.getenv("OPENAI_API_KEY"):
-            return {"error": "OpenAI API key not set. Please set OPENAI_API_KEY."}
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        response = llm.invoke(prompt.format(issue=issue_text))
-        response_text = response.content if hasattr(response, "content") else str(response)
-        backend_used = "openai"
-    except Exception as e:
-        return {"error": f"OpenAI failed: {e}"}
+    # --- Hugging Face (legacy) ---
+    elif llm_backend == "huggingface":
+        try:
+            if not os.getenv("HUGGINGFACE_API_KEY"):
+                return {"error": "Hugging Face token not set. Please set HUGGINGFACE_API_KEY."}
+            headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"}
+            api_url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
+            payload = {
+                "inputs": prompt.format(issue=issue_text),
+                "parameters": {"max_new_tokens": 500}
+            }
+            response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            result = response.json()
+            if isinstance(result, list) and "generated_text" in result[0]:
+                response_text = result[0]["generated_text"]
+            else:
+                response_text = json.dumps(result)
+            backend_used = "huggingface"
+        except Exception as e:
+            return {"error": f"Hugging Face failed: {e}"}
 
-# --- Hugging Face (legacy) ---
-elif llm_backend == "huggingface":
-    try:
-        if not os.getenv("HUGGINGFACE_API_KEY"):
-            return {"error": "Hugging Face token not set. Please set HUGGINGFACE_API_KEY."}
-        headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"}
-        api_url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
-        payload = {
-            "inputs": prompt.format(issue=issue_text),
-            "parameters": {"max_new_tokens": 500}
-        }
-        response = requests.post(api_url, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()
-        result = response.json()
-        if isinstance(result, list) and "generated_text" in result[0]:
-            response_text = result[0]["generated_text"]
-        else:
-            response_text = json.dumps(result)
-        backend_used = "huggingface"
-    except Exception as e:
-        return {"error": f"Hugging Face failed: {e}"}
+    else:
+        return {"error": f"Unsupported LLM backend: {llm_backend}"}
 
-else:
-    return {"error": f"Unsupported LLM backend: {llm_backend}"}
+    # --- Unified JSON Parsing ---
+    parsed = None
+    if response_text:
+        try:
+            parsed = json.loads(response_text)
+        except Exception:
+            match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group(0))
+                except Exception:
+                    parsed = None
 
-# --- Unified JSON Parsing ---
-parsed = None
-if response_text:
-    try:
-        parsed = json.loads(response_text)
-    except Exception:
-        match = re.search(r"\{.*\}", response_text, re.DOTALL)
-        if match:
-            try:
-                parsed = json.loads(match.group(0))
-            except Exception:
-                parsed = None
+    if parsed is None:
+        parsed = {"raw_text": response_text}
 
-if parsed is None:
-    parsed = {"raw_text": response_text}
-
-return {
-    "backend": backend_used,
-    "response": response_text,
-    "parsed": parsed
-}
+    return {
+        "backend": backend_used,
+        "response": response_text,
+        "parsed": parsed
+    }
 
 
 # --- Utility: Plot Fishbone diagram ---
@@ -224,3 +223,4 @@ def visualize_fishbone_plotly(fishbone_dict):
             ))
     fig.update_layout(title="Fishbone Diagram", showlegend=False)
     return fig
+
