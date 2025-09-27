@@ -1327,11 +1327,22 @@ def main():
                     elements.append(rgb_image_for_pdf(st.session_state["trend_chart"]))
                     elements.append(Spacer(1, 20))
                 
-                if "time_chart" in st.session_state:
+                # --- Time-Series Export ---
+                if "time_chart" in st.session_state and st.session_state["time_chart"]:
                     elements.append(Paragraph("Time-Series Chart", styles['Heading2']))
                     elements.append(Paragraph(st.session_state.get("time_summary", ""), styles['Normal']))
                     elements.append(rgb_image_for_pdf(st.session_state["time_chart"]))
                     elements.append(Spacer(1, 20))
+                
+                elif "time_fig" in st.session_state:
+                    # fallback if PNG not available
+                    tmp_time_path = "tmp_time_series.png"
+                    st.session_state["time_fig"].write_image(tmp_time_path, format="png", scale=2, engine="kaleido")
+                    elements.append(Paragraph("Time-Series Chart", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state.get("time_summary", ""), styles['Normal']))
+                    elements.append(rgb_image_for_pdf(tmp_time_path))
+                    elements.append(Spacer(1, 20))
+
 
               
                 # =====================
