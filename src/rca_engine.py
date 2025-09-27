@@ -120,19 +120,19 @@ if llm_backend == "gemini":
             return {"error": f"Gemini failed ({e}), Groq failed ({e2})"}
 
 
-    # --- Groq ---
-    elif llm_backend == "groq":
-        try:
-            if not os.getenv("GROQ_API_KEY"):
-                return {"error": "Groq API key not set. Please set GROQ_API_KEY."}
-            llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
-            chain = LLMChain(
-                llm=llm,
-                prompt=PromptTemplate(input_variables=["issue"], template=prompt)
-            )
-            response_text = chain.run(issue=issue_text)
-        except Exception as e:
-            return {"error": f"Groq failed: {e}"}
+# --- Groq ---
+elif llm_backend == "groq":
+    try:
+        if not os.getenv("GROQ_API_KEY"):
+            return {"error": "Groq API key not set. Please set GROQ_API_KEY."}
+        llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+        chain = LLMChain(
+            llm=llm,
+            prompt=PromptTemplate(input_variables=["issue"], template=prompt)
+        )
+        response_text = chain.run(issue=issue_text)
+    except Exception as e:
+        return {"error": f"Groq failed: {e}"}
 
     # --- Ollama (legacy) ---
     elif llm_backend == "ollama":
