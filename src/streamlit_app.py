@@ -1205,18 +1205,20 @@ def main():
                             rca_pdf_text_content.append(str(capa))
             
                     # --- Fallback: Raw AI Report ---
+                    # --- Fallback: Raw AI Report ---
                     if not any([why, result.get("root_cause"), capa]):
                         raw_text = result.get("parsed", {}).get("raw_text") or result.get("response")
                         if raw_text:
                             st.markdown("**AI RCA Report:**")
-                            st.markdown(raw_text)
+                            st.markdown(raw_text)  # Streamlit keeps original markdown
+                    
+                            # Convert markdown → PDF flowables
+                            converted_content = convert_markdown_to_pdf_content(raw_text, styles)
+                    
                             rca_pdf_content.append(Paragraph("AI RCA Report:", styles['Heading3']))
-                            rca_pdf_content.append(Paragraph(raw_text, styles['Normal']))
+                            rca_pdf_content.extend(converted_content)  # add formatted blocks
+                    
                             rca_pdf_text_content.append(raw_text)
-            
-                # Store both PDF and text versions in session_state
-                st.session_state["rca_pdf_content"] = rca_pdf_content
-                st.session_state["rca_pdf_text"] = rca_pdf_text_content
 
 
 
@@ -1252,6 +1254,37 @@ def main():
                 return RLImage(img_buffer, width=width, height=height)
 
             # Main PDF generator
+            from markdown2 import markdown
+            from bs4 import BeautifulSoup
+            from reportlab.platypus import Paragraph, ListFlowable, ListItem
+            from reportlab.lib.styles import getSampleStyleSheet
+            
+            styles = getSampleStyleSheet()
+            
+            def convert_markdown_to_pdf_content(markdown_text, styles=styles):
+                """Convert AI markdown into ReportLab Paragraphs & Lists for clean PDF rendering."""
+                html = markdown(markdown_text)
+                soup = BeautifulSoup(html, "html.parser")
+            
+                content = []
+                for element in soup.children:
+                    if element.name == "h1":
+                        content.append(Paragraph(element.get_text(), styles['Heading1']))
+                    elif element.name == "h2":
+                        content.append(Paragraph(element.get_text(), styles['Heading2']))
+                    elif element.name == "h3":
+                        content.append(Paragraph(element.get_text(), styles['Heading3']))
+                    elif element.name == "p":
+                        content.append(Paragraph(element.get_text(), styles['Normal']))
+                    elif element.name in ["ul", "ol"]:
+                        items = [ListItem(Paragraph(li.get_text(), styles['Normal'])) for li in element.find_all("li")]
+                        bullet_type = 'bullet' if element.name == "ul" else '1'  # numbered if ordered list
+                        content.append(ListFlowable(items, bulletType=bullet_type, start='1'))
+                    else:
+                        # fallback
+                        content.append(Paragraph(element.get_text(), styles['Normal']))
+                return content
+
             def generate_pdf():
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4)
@@ -1343,16 +1376,18 @@ def main():
                     elements.append(rgb_image_for_pdf(tmp_time_path))
                     elements.append(Spacer(1, 20))
 
-
-              
+               
                 # =====================
                 # Root Cause Analysis (RCA)
                 # =====================
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
-                    for para in st.session_state["rca_pdf_content"]:
-                        elements.append(para)
+                    
+                    # Directly extend with the prepared flowables
+                    elements.extend(st.session_state["rca_pdf_content"])
+                    
                     elements.append(Spacer(1, 20))
+
 
 
             
