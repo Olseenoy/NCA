@@ -1460,23 +1460,29 @@ def main():
                         st.session_state["fishbone_categories"] = result.get("fishbone") or {}
             
                 # --- Fishbone Visualization Section ---
-                if raw_text:
-                    # Extract short points
-                    points = extract_main_points(raw_text)
-                    fishbone_data = categorize_6m(points)
-            
+                # --- Fishbone Visualization Section ---
+                possible_root_causes = result.get("possible_root_causes") or []
+                
+                if possible_root_causes:
+                    # Extract only the point titles (e.g., "Machine Maintenance", "Wear and Tear")
+                    fishbone_points = [p.split(":")[0] if ":" in p else p for p in possible_root_causes]
+                
+                    # Categorize for 6M fishbone
+                    fishbone_data = categorize_6m(fishbone_points)
+                
                     # Save for UI + PDF
                     st.session_state["fishbone_data"] = fishbone_data
-            
+                
                     # Show in UI
                     st.markdown("### Fishbone Diagram")
                     fig = visualize_fishbone_plotly(fishbone_data)
                     st.plotly_chart(fig, use_container_width=True)
-            
+                
                     # Save as image for PDF
                     fig_path = "/tmp/fishbone.png"
                     fig.write_image(fig_path)
                     st.session_state["fishbone_img"] = fig_path
+
 
 
 
