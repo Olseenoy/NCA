@@ -18,7 +18,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Tabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from PIL import Image as PILImage
+from PIL import Image as PILImage 
 from typing import Optional, Dict
 from dotenv import load_dotenv, set_key, find_dotenv
 from io import BytesIO
