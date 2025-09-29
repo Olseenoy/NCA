@@ -128,18 +128,18 @@ import textwrap
 def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     Draw a proper fishbone diagram with 6M branches.
-    Causes are bullet-listed, left-aligned, and wrapped if too long.
+    Causes are bullet-listed, right-aligned with wrapping.
     """
     fig = go.Figure()
 
-    # Draw the main spine
+    # Main spine
     fig.add_trace(go.Scatter(
         x=[0, 10], y=[0, 0],
         mode="lines", line=dict(color="black", width=3),
         showlegend=False
     ))
 
-    # Define branch positions (approximate fishbone style)
+    # Branch positions
     branches = {
         "Man": (2, 1),
         "Machine": (4, 1),
@@ -157,25 +157,28 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
             showlegend=False
         ))
 
-        # Prepare wrapped causes
+        # Wrap causes
         causes_wrapped = []
         for c in categories.get(cat, []):
             wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
             causes_wrapped.append(f"- {wrapped}")
 
-        # Format text block: causes first, then category
+        # Causes + Category
         if causes_wrapped:
             causes_text = "<br>".join(causes_wrapped)
             text_label = f"{causes_text}<br><b>{cat}</b>"
         else:
             text_label = f"<b>{cat}</b>"
 
-        # Add text block (aligned left)
+        # For top vs bottom branches, adjust vertical offset
+        offset = 0.3 if y > 0 else -0.3
+
+        # Add text block (right aligned)
         fig.add_trace(go.Scatter(
-            x=[x+1.5], y=[y],
+            x=[x+1.2], y=[y+offset],
             text=[text_label],
             mode="text",
-            textposition="middle left",
+            textposition="middle right",   # 🔑 Right aligned
             textfont=dict(family="Arial", size=12),
             showlegend=False
         ))
@@ -190,8 +193,6 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     )
 
     return fig
-
-
 
 
 # --- Markdown → PDF flowable converter ---
