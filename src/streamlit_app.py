@@ -959,6 +959,8 @@ def main():
             # Pareto chart from recurring issues table
            # ---------------------------
             # --- Recurring Issues & Pareto ---
+            from PIL import Image as PILImage
+
             st.subheader("Recurring Issues & Pareto Analysis")
             
             p = st.session_state.get("processed")
