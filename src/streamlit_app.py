@@ -124,7 +124,6 @@ def categorize_6m(points):
 
 
 import textwrap
-import textwrap
 import plotly.graph_objects as go
 
 def visualize_fishbone_plotly(categories, wrap_width=25):
@@ -134,9 +133,12 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     fig = go.Figure()
 
+    # Vertical offset to shift the whole diagram lower
+    y_offset = -0.5  
+
     # Main spine
     fig.add_trace(go.Scatter(
-        x=[0, 10], y=[0, 0],
+        x=[0, 10], y=[0+y_offset, 0+y_offset],
         mode="lines", line=dict(color="black", width=3),
         showlegend=False
     ))
@@ -152,14 +154,14 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     }
 
     for cat, (x, y) in branches.items():
-        # Branch line
+        # Branch line (shifted down)
         fig.add_trace(go.Scatter(
-            x=[x, x+1], y=[0, y],
+            x=[x, x+1], y=[0+y_offset, y+y_offset],
             mode="lines", line=dict(color="black", width=2),
             showlegend=False
         ))
 
-        # Wrap causes with tighter spacing
+        # Wrap causes
         causes_wrapped = []
         for c in categories.get(cat, []):
             wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
@@ -171,13 +173,13 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
         else:
             text_label = f"<b>{cat}</b>"
 
-        # Place just after branch tip, aligned right
+        # Add text (shifted down too)
         fig.add_trace(go.Scatter(
-            x=[x+1.05], y=[y - 0.1 if y > 0 else y + 0.1],
+            x=[x+1.05], y=[y+y_offset - 0.1 if y > 0 else y+y_offset + 0.1],
             text=[text_label],
             mode="text",
             textposition="top right" if y > 0 else "bottom right",
-            textfont=dict(family="Arial", size=10),  # smaller text
+            textfont=dict(family="Arial", size=10),
             showlegend=False
         ))
 
@@ -186,11 +188,12 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         plot_bgcolor="white",
-        height=500,  # smaller height
-        margin=dict(l=40, r=40, t=60, b=40)  # tighter margins
+        height=500,
+        margin=dict(l=40, r=40, t=120, b=40)  # more space at top
     )
 
     return fig
+
 
 
 # --- Markdown → PDF flowable converter ---
