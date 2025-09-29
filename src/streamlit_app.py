@@ -126,7 +126,7 @@ def categorize_6m(points):
 def visualize_fishbone_plotly(categories):
     """
     Draw a proper fishbone diagram with 6M branches.
-    Categories are bold, causes indented under them.
+    Causes listed first, then category name below them.
     """
     fig = go.Figure()
 
@@ -156,16 +156,16 @@ def visualize_fishbone_plotly(categories):
             showlegend=False
         ))
 
-        # Format causes as indented list
+        # Format causes ABOVE category
         if categories.get(cat):
             causes_text = "<br>".join([f"- {c}" for c in categories[cat]])
-            text_label = f"<b>{cat}</b><br>{causes_text}"
+            text_label = f"{causes_text}<br><b>{cat}</b>"
         else:
             text_label = f"<b>{cat}</b>"
 
         # Add category + causes in one block of text
         fig.add_trace(go.Scatter(
-            x=[x+1.2], y=[y],
+            x=[x+1.5], y=[y],   # pushed a bit further so no overlap
             text=[text_label],
             mode="text",
             textposition="middle left",
@@ -177,12 +177,11 @@ def visualize_fishbone_plotly(categories):
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         plot_bgcolor="white",
-        height=600,
-        margin=dict(l=20, r=20, t=40, b=20)
+        height=650,
+        margin=dict(l=40, r=40, t=60, b=40)
     )
 
     return fig
-
 
 
 
