@@ -123,10 +123,12 @@ def categorize_6m(points):
     return categories
 
 
-def visualize_fishbone_plotly(categories):
+import textwrap
+
+def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     Draw a proper fishbone diagram with 6M branches.
-    Causes listed first, then category name below them.
+    Causes are bullet-listed, left-aligned, and wrapped if too long.
     """
     fig = go.Figure()
 
@@ -147,7 +149,6 @@ def visualize_fishbone_plotly(categories):
         "Environment": (7, -1)
     }
 
-    # Add branches + causes
     for cat, (x, y) in branches.items():
         # Branch line
         fig.add_trace(go.Scatter(
@@ -156,19 +157,26 @@ def visualize_fishbone_plotly(categories):
             showlegend=False
         ))
 
-        # Format causes ABOVE category
-        if categories.get(cat):
-            causes_text = "<br>".join([f"- {c}" for c in categories[cat]])
+        # Prepare wrapped causes
+        causes_wrapped = []
+        for c in categories.get(cat, []):
+            wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
+            causes_wrapped.append(f"- {wrapped}")
+
+        # Format text block: causes first, then category
+        if causes_wrapped:
+            causes_text = "<br>".join(causes_wrapped)
             text_label = f"{causes_text}<br><b>{cat}</b>"
         else:
             text_label = f"<b>{cat}</b>"
 
-        # Add category + causes in one block of text
+        # Add text block (aligned left)
         fig.add_trace(go.Scatter(
-            x=[x+1.5], y=[y],   # pushed a bit further so no overlap
+            x=[x+1.5], y=[y],
             text=[text_label],
             mode="text",
             textposition="middle left",
+            textfont=dict(family="Arial", size=12),
             showlegend=False
         ))
 
