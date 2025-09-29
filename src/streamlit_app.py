@@ -124,11 +124,12 @@ def categorize_6m(points):
 
 
 import textwrap
+import plotly.graph_objects as go
 
 def visualize_fishbone_plotly(categories, wrap_width=25):
     """
-    Draw a proper fishbone diagram with 6M branches.
-    Causes are bullet-listed, right-aligned with wrapping.
+    Fishbone diagram (Ishikawa).
+    Category placed at branch edge, causes listed under it (right aligned).
     """
     fig = go.Figure()
 
@@ -157,28 +158,25 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
             showlegend=False
         ))
 
-        # Wrap causes
+        # Wrap causes with tighter spacing
         causes_wrapped = []
         for c in categories.get(cat, []):
             wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
             causes_wrapped.append(f"- {wrapped}")
 
-        # Causes + Category
+        # Category at branch edge
         if causes_wrapped:
             causes_text = "<br>".join(causes_wrapped)
-            text_label = f"{causes_text}<br><b>{cat}</b>"
+            text_label = f"<b>{cat}</b><br>{causes_text}"
         else:
             text_label = f"<b>{cat}</b>"
 
-        # For top vs bottom branches, adjust vertical offset
-        offset = 0.3 if y > 0 else -0.3
-
-        # Add text block (right aligned)
+        # Position slightly after the branch tip
         fig.add_trace(go.Scatter(
-            x=[x+1.2], y=[y+offset],
+            x=[x+1.05], y=[y],
             text=[text_label],
             mode="text",
-            textposition="middle right",   # 🔑 Right aligned
+            textposition="top right" if y > 0 else "bottom right",  # stick to edge
             textfont=dict(family="Arial", size=12),
             showlegend=False
         ))
@@ -188,7 +186,7 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         plot_bgcolor="white",
-        height=650,
+        height=700,
         margin=dict(l=40, r=40, t=60, b=40)
     )
 
