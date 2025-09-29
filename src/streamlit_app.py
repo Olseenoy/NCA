@@ -130,25 +130,25 @@ import plotly.graph_objects as go
 def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     Fishbone diagram (Ishikawa).
-    Category placed at branch edge, causes listed under it (right aligned, no clipping).
+    Shifted slightly left to avoid right-side cutoff.
     """
     fig = go.Figure()
 
-    # Main spine
+    # Main spine (shortened so layout shifts left)
     fig.add_trace(go.Scatter(
-        x=[0, 10], y=[0, 0],
+        x=[0, 9], y=[0, 0],
         mode="lines", line=dict(color="black", width=3),
         showlegend=False
     ))
 
     # Branch positions
     branches = {
-        "Man": (2, 1),
-        "Machine": (4, 1),
-        "Method": (6, 1),
-        "Material": (8, 1),
-        "Measurement": (3, -1),
-        "Environment": (7, -1)
+        "Man": (1.5, 1),
+        "Machine": (3.5, 1),
+        "Method": (5.5, 1),
+        "Material": (7.5, 1),
+        "Measurement": (2.5, -1),
+        "Environment": (6.5, -1)
     }
 
     for cat, (x, y) in branches.items():
@@ -159,21 +159,21 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
             showlegend=False
         ))
 
-        # Wrap causes with tighter spacing
+        # Wrap causes
         causes_wrapped = []
         for c in categories.get(cat, []):
             wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
             causes_wrapped.append(f"- {wrapped}")
 
-        # Category first, then causes
+        # Category + causes
         if causes_wrapped:
             text_label = f"<b>{cat}</b><br>{'<br>'.join(causes_wrapped)}"
         else:
             text_label = f"<b>{cat}</b>"
 
-        # Place just after branch tip, aligned right
+        # Text placement
         fig.add_trace(go.Scatter(
-            x=[x+1.05], y=[y - 0.1 if y > 0 else y + 0.1],  # offset so text grows downward
+            x=[x+0.9], y=[y - 0.1 if y > 0 else y + 0.1],
             text=[text_label],
             mode="text",
             textposition="top right" if y > 0 else "bottom right",
@@ -187,12 +187,10 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
         yaxis=dict(visible=False),
         plot_bgcolor="white",
         height=750,
-        margin=dict(l=60, r=60, t=80, b=60)
+        margin=dict(l=80, r=40, t=80, b=60)  # extra left margin, less right
     )
 
     return fig
-
-
 
 # --- Markdown → PDF flowable converter ---
 
