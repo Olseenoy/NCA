@@ -125,18 +125,19 @@ def categorize_6m(points):
 
 def visualize_fishbone_plotly(categories):
     """
-    Draw a proper fishbone diagram with 6M branches (tighter cause spacing).
+    Draw a proper fishbone diagram with 6M branches.
+    Categories are bold, causes indented under them.
     """
     fig = go.Figure()
 
-    # Spine
+    # Draw the main spine
     fig.add_trace(go.Scatter(
         x=[0, 10], y=[0, 0],
         mode="lines", line=dict(color="black", width=3),
         showlegend=False
     ))
 
-    # Branch layout
+    # Define branch positions (approximate fishbone style)
     branches = {
         "Man": (2, 1),
         "Machine": (4, 1),
@@ -146,6 +147,7 @@ def visualize_fishbone_plotly(categories):
         "Environment": (7, -1)
     }
 
+    # Add branches + causes
     for cat, (x, y) in branches.items():
         # Branch line
         fig.add_trace(go.Scatter(
@@ -154,24 +156,21 @@ def visualize_fishbone_plotly(categories):
             showlegend=False
         ))
 
-        # Category label
+        # Format causes as indented list
+        if categories.get(cat):
+            causes_text = "<br>".join([f"- {c}" for c in categories[cat]])
+            text_label = f"<b>{cat}</b><br>{causes_text}"
+        else:
+            text_label = f"<b>{cat}</b>"
+
+        # Add category + causes in one block of text
         fig.add_trace(go.Scatter(
-            x=[x+1.1], y=[y],
-            text=[cat], mode="text",
-            textposition="middle right",
+            x=[x+1.2], y=[y],
+            text=[text_label],
+            mode="text",
+            textposition="middle left",
             showlegend=False
         ))
-
-        # Causes closer to category
-        if categories.get(cat):
-            for i, cause in enumerate(categories[cat]):
-                offset = (i+1) * 0.2 * (1 if y > 0 else -1)  # reduced from 0.3 → tighter
-                fig.add_trace(go.Scatter(
-                    x=[x+1.4], y=[y+offset],
-                    text=[cause], mode="text",
-                    textposition="middle right",
-                    showlegend=False
-                ))
 
     fig.update_layout(
         title="Fishbone Diagram (Ishikawa)",
@@ -181,6 +180,7 @@ def visualize_fishbone_plotly(categories):
         height=600,
         margin=dict(l=20, r=20, t=40, b=20)
     )
+
     return fig
 
 
