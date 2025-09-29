@@ -1315,27 +1315,35 @@ def main():
                     st.error(f"Trend setup failed: {e}")
 
                     # --- Time-Series Analysis ---
+                    # --- Time-Series Analysis ---
                     st.subheader("⏳ Time-Series Trend Analysis")
                     if date_cols and num_cols:
                         time_col = st.selectbox("Select time column", options=date_cols, key="time_col")
                         value_col = st.selectbox("Select value column", options=num_cols, key="time_value_col")
-            
+                    
                         freq_options = {"Daily": "D", "Weekly": "W", "Monthly": "M", "Yearly": "Y"}
                         freq_choice = st.selectbox("Select aggregation level", options=list(freq_options.keys()))
                         agg_options = ["mean", "sum", "max", "min"]
                         agg_choice = st.selectbox("Select aggregation function", options=agg_options)
-            
-                        if st.button("Plot Time-Series Trend", key="time_btn"):
+                    
+                        # --- Run + Reset Buttons ---
+                        col1, col2 = st.columns([1, 1])
+                        with col1:
+                            run_time = st.button("Plot Time-Series Trend", key="time_btn")
+                        with col2:
+                            reset_time = st.button("Reset Time-Series Trend", type="secondary", key="time_reset_btn")
+                    
+                        if run_time:
                             try:
                                 parsed, diag = parse_dates_strict(
                                     p[time_col],
                                     st.session_state.get("date_format")
                                 )
-            
+                    
                                 if diag["parsed_count"] > 0:
                                     ts_df = p.copy()
                                     ts_df["_parsed_time"] = parsed
-            
+                    
                                     fig_time = plot_time_series_trend(
                                         ts_df,
                                         date_col="_parsed_time",
@@ -1344,12 +1352,12 @@ def main():
                                         agg_func=agg_choice,
                                         date_format=st.session_state.get("date_format")
                                     )
-            
+                    
                                     if fig_time:
                                         st.session_state["time_fig"] = fig_time
                                         st.session_state["time_col"] = value_col
                                         st.session_state["time_date_col_saved"] = time_col
-            
+                    
                                         time_chart_path = "time_series_trend.png"
                                         try:
                                             fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
@@ -1363,20 +1371,24 @@ def main():
                                             st.session_state["time_chart"] = None
                             except Exception as e:
                                 st.warning(f"⚠️ Error generating time-series: {e}")
+                    
+                        # --- Reset Logic ---
+                        if reset_time:
+                            for key in ["time_fig", "time_col", "time_date_col_saved", "time_chart", "time_summary"]:
+                                if key in st.session_state:
+                                    del st.session_state[key]
+                            st.success("Time-Series trend has been reset. Please run again.")
+                    
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
-            
-                except Exception as e:
-                    st.warning(f"⚠️ Error in Trend/Time-Series section: {e}")
-            else:
-                st.warning("No processed data available. Please preprocess first.")
-
-            
-            # --- Persistent display for Time-Series ---
-            if "time_fig" in st.session_state and "time_col" in st.session_state:
-                st.success(f"Time-Series Chart: {st.session_state.get('time_col')} over {st.session_state.get('time_date_col_saved')}")
-                st.plotly_chart(st.session_state['time_fig'], use_container_width=True)
-
+                    
+                    # --- Persistent display for Time-Series ---
+                    if "time_fig" in st.session_state and "time_col" in st.session_state:
+                        st.success(
+                            f"Time-Series Chart: {st.session_state.get('time_col')} "
+                            f"over {st.session_state.get('time_date_col_saved')}"
+                        )
+                        st.plotly_chart(st.session_state['time_fig'], use_container_width=True)
 
 
 
