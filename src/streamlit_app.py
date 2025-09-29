@@ -1579,6 +1579,8 @@ def main():
             
 
             # Helper to fix black & white issue
+            from PIL import Image as PILImage
+
 
             def rgb_image_for_pdf(path, width=400, height=250):
                 """Convert any chart image into true RGB and return ReportLab-safe Image."""
