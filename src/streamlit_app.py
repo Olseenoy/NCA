@@ -40,24 +40,22 @@ import plotly.graph_objects as go
 
 def extract_main_points(result, raw_text: str = ""):
     """
-    Extracts only short causes for Fishbone.
-    Priority:
-    1. Use result['possible_root_causes'] if available
-    2. Extract 'Possible Root Causes' section from raw_text
-    3. Fallback: extract all short causes from raw_text
+    Extracts ONLY points from 'Possible Root Causes'.
+    Ignores CAPA or other sections.
     """
     points = []
 
-    # --- 1. Directly use structured possible_root_causes ---
+    # --- 1. If structured possible_root_causes exist, use them directly ---
     if result.get("possible_root_causes"):
         for p in result["possible_root_causes"]:
-            if ":" in p:
-                points.append(p.split(":", 1)[0].strip())
-            else:
-                points.append(p.strip())
+            clean = p.strip("-• ").strip()
+            if clean:
+                if ":" in clean:
+                    clean = clean.split(":", 1)[0].strip()
+                points.append(clean)
         return points
 
-    # --- 2. Try to parse "Possible Root Causes" section from AI output ---
+    # --- 2. Extract only from 'Possible Root Causes' section in raw_text ---
     if raw_text:
         lines = raw_text.splitlines()
         capture = False
@@ -71,29 +69,17 @@ def extract_main_points(result, raw_text: str = ""):
                 capture = True
                 continue
 
-            # Stop capture at next heading
-            if capture and (":" not in clean and len(clean.split()) < 3):
+            # Stop at next header (like CAPA, Action Plan, etc.)
+            if capture and any(h in clean.lower() for h in ["capa", "corrective", "preventive", "action plan"]):
                 break
 
             if capture:
                 if ":" in clean:
-                    points.append(clean.split(":", 1)[0].strip())
-                else:
-                    points.append(clean.strip())
-
-    # --- 3. Fallback: grab short phrases from raw_text anyway ---
-    if not points and raw_text:
-        for line in raw_text.splitlines():
-            line = line.strip("-• ").strip()
-            if not line:
-                continue
-            if ":" in line:
-                cause = line.split(":", 1)[0].strip()
-            else:
-                cause = " ".join(line.split()[:4])
-            points.append(cause)
+                    clean = clean.split(":", 1)[0].strip()
+                points.append(clean)
 
     return points
+
 
 
 def categorize_6m(points):
@@ -1500,7 +1486,6 @@ def main():
                         st.session_state["fishbone_categories"] = result.get("fishbone") or {}
             
                 # --- Fishbone Visualization Section ---
-                # --- Fishbone Visualization Section ---
                 points = extract_main_points(result, raw_text)
                 fishbone_data = categorize_6m(points)
                 
@@ -1516,6 +1501,7 @@ def main():
                 fig_path = "/tmp/fishbone.png"
                 fig.write_image(fig_path)
                 st.session_state["fishbone_img"] = fig_path
+
 
 
 
