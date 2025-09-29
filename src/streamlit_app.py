@@ -38,21 +38,61 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 import re
 import plotly.graph_objects as go
 
-def extract_main_points(text: str):
+def extract_main_points(result, raw_text: str = ""):
     """
-    Extracts only short causes from raw AI RCA text.
-    Example: 'Machine Maintenance: Lack of regular maintenance' -> 'Machine Maintenance'
+    Extracts only short causes for Fishbone.
+    Priority:
+    1. Use result['possible_root_causes'] if available
+    2. Extract 'Possible Root Causes' section from raw_text
+    3. Fallback: extract all short causes from raw_text
     """
     points = []
-    for line in text.splitlines():
-        line = line.strip("-• ").strip()
-        if not line:
-            continue
-        if ":" in line:
-            cause = line.split(":", 1)[0].strip()
-        else:
-            cause = " ".join(line.split()[:4])  # first few words
-        points.append(cause)
+
+    # --- 1. Directly use structured possible_root_causes ---
+    if result.get("possible_root_causes"):
+        for p in result["possible_root_causes"]:
+            if ":" in p:
+                points.append(p.split(":", 1)[0].strip())
+            else:
+                points.append(p.strip())
+        return points
+
+    # --- 2. Try to parse "Possible Root Causes" section from AI output ---
+    if raw_text:
+        lines = raw_text.splitlines()
+        capture = False
+        for line in lines:
+            clean = line.strip("-• ").strip()
+            if not clean:
+                continue
+
+            # Detect start of section
+            if "possible root cause" in clean.lower():
+                capture = True
+                continue
+
+            # Stop capture at next heading
+            if capture and (":" not in clean and len(clean.split()) < 3):
+                break
+
+            if capture:
+                if ":" in clean:
+                    points.append(clean.split(":", 1)[0].strip())
+                else:
+                    points.append(clean.strip())
+
+    # --- 3. Fallback: grab short phrases from raw_text anyway ---
+    if not points and raw_text:
+        for line in raw_text.splitlines():
+            line = line.strip("-• ").strip()
+            if not line:
+                continue
+            if ":" in line:
+                cause = line.split(":", 1)[0].strip()
+            else:
+                cause = " ".join(line.split()[:4])
+            points.append(cause)
+
     return points
 
 
@@ -1461,23 +1501,22 @@ def main():
             
                 # --- Fishbone Visualization Section ---
                 # --- Fishbone Visualization Section ---
-                if raw_text:
-                    # Extract short points
-                    points = extract_main_points(raw_text)
-                    fishbone_data = categorize_6m(points)
-            
-                    # Save for UI + PDF
-                    st.session_state["fishbone_data"] = fishbone_data
-            
-                    # Show in UI
-                    st.markdown("### Fishbone Diagram")
-                    fig = visualize_fishbone_plotly(fishbone_data)
-                    st.plotly_chart(fig, use_container_width=True)
-            
-                    # Save as image for PDF
-                    fig_path = "/tmp/fishbone.png"
-                    fig.write_image(fig_path)
-                    st.session_state["fishbone_img"] = fig_path
+                points = extract_main_points(result, raw_text)
+                fishbone_data = categorize_6m(points)
+                
+                # Save for UI + PDF
+                st.session_state["fishbone_data"] = fishbone_data
+                
+                # Show in UI
+                st.markdown("### Fishbone Diagram")
+                fig = visualize_fishbone_plotly(fishbone_data)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Save as image for PDF
+                fig_path = "/tmp/fishbone.png"
+                fig.write_image(fig_path)
+                st.session_state["fishbone_img"] = fig_path
+
 
 
 
