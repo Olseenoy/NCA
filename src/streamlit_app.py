@@ -130,11 +130,19 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     Fishbone diagram (Ishikawa).
     Category placed at branch edge, causes listed under it (right aligned, compact size).
+    Dynamically shifts diagram down so nothing is cut off.
     """
     fig = go.Figure()
 
-    # Vertical offset to shift the whole diagram lower
-    y_offset = -0.5  
+    # Count max number of lines (for dynamic offset)
+    max_lines = 0
+    for causes in categories.values():
+        for c in causes:
+            wrapped = textwrap.wrap(c, width=wrap_width)
+            max_lines = max(max_lines, len(wrapped))
+
+    # Dynamic vertical offset (more lines → lower diagram)
+    y_offset = -0.3 * max_lines  
 
     # Main spine
     fig.add_trace(go.Scatter(
@@ -189,7 +197,7 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
         yaxis=dict(visible=False),
         plot_bgcolor="white",
         height=500,
-        margin=dict(l=40, r=40, t=120, b=40)  # more space at top
+        margin=dict(l=40, r=40, t=120, b=40)  # extra top margin
     )
 
     return fig
