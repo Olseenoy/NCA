@@ -56,7 +56,7 @@ def extract_main_points(result, raw_text: str = ""):
             if ":" in clean:
                 clean = clean.split(":", 1)[0].strip()
             if clean:
-                points.append(clean)
+                points.append(f"- {clean}")   # 👈 add dash here
         return points
 
     # --- 2. Extract from raw_text section ---
