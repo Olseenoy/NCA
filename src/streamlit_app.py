@@ -163,16 +163,12 @@ def visualize_fishbone_plotly(categories):
         else:
             text_label = f"<b>{cat}</b>"
 
-        # 🔑 Push text further right/left depending on branch side
-        x_offset = 2 if y > 0 else 2
-        y_offset = 0.3 if y > 0 else -0.3  
-
+        # Add category + causes in one block of text
         fig.add_trace(go.Scatter(
-            x=[x+1+x_offset],  # shift text away from line
-            y=[y+y_offset],
+            x=[x+1.2], y=[y],
             text=[text_label],
             mode="text",
-            textposition="middle left" if y > 0 else "middle left",
+            textposition="middle left",
             showlegend=False
         ))
 
@@ -181,8 +177,8 @@ def visualize_fishbone_plotly(categories):
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         plot_bgcolor="white",
-        height=700,
-        margin=dict(l=40, r=40, t=40, b=40)
+        height=600,
+        margin=dict(l=20, r=20, t=40, b=20)
     )
 
     return fig
