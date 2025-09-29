@@ -130,18 +130,18 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     Fishbone diagram (Ishikawa).
     Category placed at branch edge, causes listed under it (right aligned, compact size).
-    Dynamically shifts diagram down so nothing is cut off.
+    Ensures top/bottom labels are never cut off.
     """
     fig = go.Figure()
 
-    # Count max number of lines (for dynamic offset)
+    # Count max number of wrapped lines (for spacing)
     max_lines = 0
     for causes in categories.values():
         for c in causes:
             wrapped = textwrap.wrap(c, width=wrap_width)
             max_lines = max(max_lines, len(wrapped))
 
-    # Dynamic vertical offset (more lines → lower diagram)
+    # Vertical offset for main spine
     y_offset = -0.3 * max_lines  
 
     # Main spine
@@ -162,7 +162,7 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     }
 
     for cat, (x, y) in branches.items():
-        # Branch line (shifted down)
+        # Branch line
         fig.add_trace(go.Scatter(
             x=[x, x+1], y=[0+y_offset, y+y_offset],
             mode="lines", line=dict(color="black", width=2),
@@ -175,13 +175,13 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
             wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
             causes_wrapped.append(f"- {wrapped}")
 
-        # Category first, then causes
+        # Category + causes text
         if causes_wrapped:
             text_label = f"<b>{cat}</b><br>{'<br>'.join(causes_wrapped)}"
         else:
             text_label = f"<b>{cat}</b>"
 
-        # Add text (shifted down too)
+        # Add text
         fig.add_trace(go.Scatter(
             x=[x+1.05], y=[y+y_offset - 0.1 if y > 0 else y+y_offset + 0.1],
             text=[text_label],
@@ -191,13 +191,14 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
             showlegend=False
         ))
 
+    # Expand y-axis so nothing is clipped
     fig.update_layout(
         title="Fishbone Diagram (Ishikawa)",
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
+        xaxis=dict(visible=False, range=[0, 11]),
+        yaxis=dict(visible=False, range=[-3+ y_offset, 3+ y_offset]),  # extra padding
         plot_bgcolor="white",
-        height=500,
-        margin=dict(l=40, r=40, t=120, b=40)  # extra top margin
+        height=550,
+        margin=dict(l=40, r=40, t=80, b=60)
     )
 
     return fig
