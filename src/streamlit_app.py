@@ -38,47 +38,54 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 import re
 import plotly.graph_objects as go
 
+import re
+
 def extract_main_points(result, raw_text: str = ""):
     """
-    Extracts ONLY points from 'Possible Root Causes'.
-    Ignores CAPA or other sections.
+    Extracts ONLY points from 'Possible Root Causes' and cleans them.
+    Example: '1. ** Wear and Tear' -> 'Wear and Tear'
     """
     points = []
 
-    # --- 1. If structured possible_root_causes exist, use them directly ---
+    # --- 1. If structured list exists, use it ---
     if result.get("possible_root_causes"):
         for p in result["possible_root_causes"]:
-            clean = p.strip("-• ").strip()
+            clean = re.sub(r"^\d+[\.\)]\s*", "", p)  # remove "1." or "2)"
+            clean = clean.strip("-•* ").strip()
+            clean = re.sub(r"\*+", "", clean)        # remove extra asterisks
+            if ":" in clean:
+                clean = clean.split(":", 1)[0].strip()
             if clean:
-                if ":" in clean:
-                    clean = clean.split(":", 1)[0].strip()
                 points.append(clean)
         return points
 
-    # --- 2. Extract only from 'Possible Root Causes' section in raw_text ---
+    # --- 2. Extract from raw_text section ---
     if raw_text:
         lines = raw_text.splitlines()
         capture = False
         for line in lines:
-            clean = line.strip("-• ").strip()
+            clean = line.strip()
             if not clean:
                 continue
 
-            # Detect start of section
             if "possible root cause" in clean.lower():
                 capture = True
                 continue
 
-            # Stop at next header (like CAPA, Action Plan, etc.)
             if capture and any(h in clean.lower() for h in ["capa", "corrective", "preventive", "action plan"]):
                 break
 
             if capture:
+                clean = re.sub(r"^\d+[\.\)]\s*", "", clean)
+                clean = clean.strip("-•* ").strip()
+                clean = re.sub(r"\*+", "", clean)
                 if ":" in clean:
                     clean = clean.split(":", 1)[0].strip()
-                points.append(clean)
+                if clean:
+                    points.append(clean)
 
     return points
+
 
 
 
@@ -118,18 +125,18 @@ def categorize_6m(points):
 
 def visualize_fishbone_plotly(categories):
     """
-    Draw a proper fishbone diagram with 6M branches.
+    Draw a proper fishbone diagram with 6M branches (tighter cause spacing).
     """
     fig = go.Figure()
 
-    # Draw the main spine
+    # Spine
     fig.add_trace(go.Scatter(
         x=[0, 10], y=[0, 0],
         mode="lines", line=dict(color="black", width=3),
         showlegend=False
     ))
 
-    # Define branch positions (approximate fishbone style)
+    # Branch layout
     branches = {
         "Man": (2, 1),
         "Machine": (4, 1),
@@ -139,7 +146,6 @@ def visualize_fishbone_plotly(categories):
         "Environment": (7, -1)
     }
 
-    # Add branches + causes
     for cat, (x, y) in branches.items():
         # Branch line
         fig.add_trace(go.Scatter(
@@ -150,18 +156,18 @@ def visualize_fishbone_plotly(categories):
 
         # Category label
         fig.add_trace(go.Scatter(
-            x=[x+1.2], y=[y],
+            x=[x+1.1], y=[y],
             text=[cat], mode="text",
             textposition="middle right",
             showlegend=False
         ))
 
-        # Add causes as text
+        # Causes closer to category
         if categories.get(cat):
             for i, cause in enumerate(categories[cat]):
-                offset = (i+1) * 0.3 * (1 if y > 0 else -1)
+                offset = (i+1) * 0.2 * (1 if y > 0 else -1)  # reduced from 0.3 → tighter
                 fig.add_trace(go.Scatter(
-                    x=[x+1.5], y=[y+offset],
+                    x=[x+1.4], y=[y+offset],
                     text=[cause], mode="text",
                     textposition="middle right",
                     showlegend=False
@@ -175,7 +181,6 @@ def visualize_fishbone_plotly(categories):
         height=600,
         margin=dict(l=20, r=20, t=40, b=20)
     )
-
     return fig
 
 
