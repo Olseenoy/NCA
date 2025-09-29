@@ -1039,6 +1039,7 @@ def main():
 
 
             # --- SPC Section ---
+            # --- SPC Section ---
             st.subheader("Statistical Process Control (SPC)")
             p = st.session_state.get('processed')
             
@@ -1068,8 +1069,15 @@ def main():
                                 continue
                         time_col_selected = st.selectbox('Optional time column', options=[None] + time_cols, key='spc_time_col_select')
             
-                        # --- Run SPC Analysis Button ---
-                        if st.button("Run SPC Analysis"):
+                        # --- Run + Reset Buttons ---
+                        col1, col2 = st.columns([1, 1])
+                        with col1:
+                            run_clicked = st.button("Run SPC Analysis")
+                        with col2:
+                            reset_clicked = st.button("Reset SPC Analysis", type="secondary")
+            
+                        # Run logic
+                        if run_clicked:
                             try:
                                 from visualization import plot_spc_chart
                                 fig_spc = plot_spc_chart(spc_df, spc_col_selected, subgroup_size=subgroup_size, time_col=time_col_selected)
@@ -1090,6 +1098,13 @@ def main():
                             except Exception as e:
                                 st.error(f"SPC plotting failed: {e}")
             
+                        # Reset logic
+                        if reset_clicked:
+                            for key in ["spc_fig", "spc_col_saved", "spc_chart", "spc_summary"]:
+                                if key in st.session_state:
+                                    del st.session_state[key]
+                            st.success("SPC analysis has been reset. Please run again.")
+            
                 except Exception as e:
                     st.error(f"SPC setup failed: {e}")
             
@@ -1104,7 +1119,6 @@ def main():
                     use_container_width=True,
                     key=f"spc_chart_{st.session_state.get('spc_col_saved', '')}"
                 )
-            
 
 
 
