@@ -126,7 +126,7 @@ def categorize_6m(points):
 def visualize_fishbone_plotly(categories):
     """
     Draw a proper fishbone diagram with 6M branches.
-    Category at branch edge, causes listed below it.
+    Causes listed first, then category name below them.
     """
     fig = go.Figure()
 
@@ -147,6 +147,7 @@ def visualize_fishbone_plotly(categories):
         "Environment": (7, -1)
     }
 
+    # Add branches + causes
     for cat, (x, y) in branches.items():
         # Branch line
         fig.add_trace(go.Scatter(
@@ -155,27 +156,21 @@ def visualize_fishbone_plotly(categories):
             showlegend=False
         ))
 
-        # Add category label at the tip of the branch
+        # Format causes ABOVE category
+        if categories.get(cat):
+            causes_text = "<br>".join([f"- {c}" for c in categories[cat]])
+            text_label = f"{causes_text}<br><b>{cat}</b>"
+        else:
+            text_label = f"<b>{cat}</b>"
+
+        # Add category + causes in one block of text
         fig.add_trace(go.Scatter(
-            x=[x+1.2], y=[y],
-            text=[f"<b>{cat}</b>"],
+            x=[x+1.5], y=[y],   # pushed a bit further so no overlap
+            text=[text_label],
             mode="text",
-            textposition="top left" if y > 0 else "bottom left",
+            textposition="middle left",
             showlegend=False
         ))
-
-        # Add causes neatly under the category
-        if categories.get(cat):
-            for i, cause in enumerate(categories[cat]):
-                offset = (i+1) * 0.3 * (1 if y > 0 else -1)  # stack downwards
-                fig.add_trace(go.Scatter(
-                    x=[x+1.2], 
-                    y=[y - offset if y > 0 else y + offset], 
-                    text=[f"- {cause}"],
-                    mode="text",
-                    textposition="top left" if y > 0 else "bottom left",
-                    showlegend=False
-                ))
 
     fig.update_layout(
         title="Fishbone Diagram (Ishikawa)",
@@ -187,6 +182,7 @@ def visualize_fishbone_plotly(categories):
     )
 
     return fig
+
 
 
 
