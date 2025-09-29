@@ -1252,7 +1252,14 @@ def main():
                         date_col = st.selectbox("Select Date Column", options=date_cols, key="trend_date_col")
                         value_col = st.selectbox("Select Value Column", options=num_cols, key="trend_value_col")
             
-                        if st.button("Run Trend Analysis", key="trend_btn"):
+                        # --- Run + Reset Buttons ---
+                        col1, col2 = st.columns([1, 1])
+                        with col1:
+                            run_trend = st.button("Run Trend Analysis", key="trend_btn")
+                        with col2:
+                            reset_trend = st.button("Reset Trend Analysis", type="secondary", key="trend_reset_btn")
+            
+                        if run_trend:
                             try:
                                 trend_df[date_col], diag = parse_dates_strict(
                                     trend_df[date_col],
@@ -1285,6 +1292,14 @@ def main():
             
                             except Exception as e:
                                 st.warning(f"⚠️ Unable to render trend plot: {e}")
+            
+                        # Reset logic
+                        if reset_trend:
+                            for key in ["trend_fig", "trend_col", "trend_date_col_saved", "trend_chart", "trend_summary"]:
+                                if key in st.session_state:
+                                    del st.session_state[key]
+                            st.success("Trend analysis has been reset. Please run again.")
+            
                     else:
                         st.info("No valid date and numeric column pair available for trend plotting.")
             
@@ -1296,6 +1311,9 @@ def main():
                         )
                         st.plotly_chart(st.session_state["trend_fig"], use_container_width=True)
             
+                except Exception as e:
+                    st.error(f"Trend setup failed: {e}")
+
                     # --- Time-Series Analysis ---
                     st.subheader("⏳ Time-Series Trend Analysis")
                     if date_cols and num_cols:
