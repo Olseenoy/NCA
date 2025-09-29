@@ -124,12 +124,13 @@ def categorize_6m(points):
 
 
 import textwrap
+import textwrap
 import plotly.graph_objects as go
 
 def visualize_fishbone_plotly(categories, wrap_width=25):
     """
     Fishbone diagram (Ishikawa).
-    Category placed at branch edge, causes listed under it (right aligned).
+    Category placed at branch edge, causes listed under it (right aligned, no clipping).
     """
     fig = go.Figure()
 
@@ -164,19 +165,18 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
             wrapped = "<br>".join(textwrap.wrap(c, width=wrap_width))
             causes_wrapped.append(f"- {wrapped}")
 
-        # Category at branch edge
+        # Category first, then causes
         if causes_wrapped:
-            causes_text = "<br>".join(causes_wrapped)
-            text_label = f"<b>{cat}</b><br>{causes_text}"
+            text_label = f"<b>{cat}</b><br>{'<br>'.join(causes_wrapped)}"
         else:
             text_label = f"<b>{cat}</b>"
 
-        # Position slightly after the branch tip
+        # Place just after branch tip, aligned right
         fig.add_trace(go.Scatter(
-            x=[x+1.05], y=[y],
+            x=[x+1.05], y=[y - 0.1 if y > 0 else y + 0.1],  # offset so text grows downward
             text=[text_label],
             mode="text",
-            textposition="top right" if y > 0 else "bottom right",  # stick to edge
+            textposition="top right" if y > 0 else "bottom right",
             textfont=dict(family="Arial", size=12),
             showlegend=False
         ))
@@ -186,11 +186,12 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         plot_bgcolor="white",
-        height=700,
-        margin=dict(l=40, r=40, t=60, b=40)
+        height=750,
+        margin=dict(l=60, r=60, t=80, b=60)
     )
 
     return fig
+
 
 
 # --- Markdown → PDF flowable converter ---
