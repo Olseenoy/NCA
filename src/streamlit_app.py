@@ -555,37 +555,37 @@ def main():
    # ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
-    
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
-    if uploaded:
-        try:
-            df = ingest_file(uploaded)
-            if df is not None and not df.empty:
-                st.session_state.df = df
-                st.session_state.raw_df = df
-        except Exception as e:
-            st.error(f"File ingestion failed: {e}")
+        if uploaded:
+            try:
+                df = ingest_file(uploaded)
+                if df is not None and not df.empty:
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+            except Exception as e:
+                st.error(f"File ingestion failed: {e}")
 
-elif source_choice == "Google Sheets":
-    st.sidebar.write("Google Sheets options")
-    sheet_url = st.sidebar.text_input("Sheet URL or ID", value="", key="sheet_url")
-    if st.sidebar.button("Load Google Sheet"):
-        try:
-            def extract_sheet_id(url_or_id: str) -> str:
-                if "/d/" in url_or_id:
-                    return url_or_id.split("/d/")[1].split("/")[0]
-                return url_or_id
+    elif source_choice == "Google Sheets":
+        st.sidebar.write("Google Sheets options")
+        sheet_url = st.sidebar.text_input("Sheet URL or ID", value="", key="sheet_url")
+        if st.sidebar.button("Load Google Sheet"):
+            try:
+                def extract_sheet_id(url_or_id: str) -> str:
+                    if "/d/" in url_or_id:
+                        return url_or_id.split("/d/")[1].split("/")[0]
+                    return url_or_id
+    
+                sheet_id = extract_sheet_id(sheet_url)
+                csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid=0"
+                df = pd.read_csv(csv_url)
+    
+                if df is not None and not df.empty:
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+            except Exception as e:
+                st.error(f"Google Sheets CSV ingestion failed: {e}")
 
-            sheet_id = extract_sheet_id(sheet_url)
-            csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid=0"
-            df = pd.read_csv(csv_url)
-
-            if df is not None and not df.empty:
-                st.session_state.df = df
-                st.session_state.raw_df = df
-        except Exception as e:
-            st.error(f"Google Sheets CSV ingestion failed: {e}")
 
     
     elif source_choice == "OneDrive / SharePoint":
