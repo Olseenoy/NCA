@@ -482,7 +482,7 @@ def main():
                 st.session_state[key] = None
 
     # ---------------- Sidebar: Source + Auth settings ----------------
-    # ---------------- Sidebar: Source + Auth settings ----------------
+# ---------------- Sidebar: Source + Auth settings ----------------
     source_choice = st.sidebar.selectbox(
         "Select input method",
         [
@@ -495,7 +495,6 @@ def main():
             "Manual Entry",
         ],
         index=0,
-        key="source_choice",  # give it a key so we can reset later if needed
     )
     
     # ---------------- Reset on source change ----------------
@@ -505,11 +504,8 @@ def main():
     
     if st.session_state.current_source != source_choice:
         # Clear all relevant session variables
-        for key in [
-            "raw_df", "df", "header_row", "logs", "current_log",
-            "manual_saved", "processed", "embeddings", "labels",
-            "uploaded_file", "sheet_url", "sa_input", "api_key_in"
-        ]:
+        for key in ["raw_df", "df", "header_row", "logs", "current_log", 
+                    "manual_saved", "processed", "embeddings", "labels"]:
             if key == "logs":
                 st.session_state[key] = []
             elif key == "current_log":
@@ -519,16 +515,12 @@ def main():
             else:
                 st.session_state[key] = None
     
-        # Also reset widget states explicitly
-        for widget_key in ["uploaded_file", "sheet_url", "sa_input", "api_key_in", "source_choice"]:
-            if widget_key in st.session_state:
-                del st.session_state[widget_key]
-    
         # Update current source
         st.session_state.current_source = source_choice
     
         # Rerun app to start clean
         safe_rerun()
+
 
 
     # ---------------- Sidebar: Credentials ----------------
