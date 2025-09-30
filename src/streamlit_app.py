@@ -704,6 +704,11 @@ def main():
             df = st.session_state.df
         if df is not None:
             print(df.dtypes)
+
+    # ---------------- Persist any loaded data ----------------
+    if df is not None and source_choice != "Manual Entry":
+        st.session_state.df = df
+        st.session_state.raw_df = df
 # ----------------- Data Preview and downstream workflow -----------------
  
     # Ensure DataFrame from manual logs is captured
