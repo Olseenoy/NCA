@@ -501,11 +501,19 @@ def main():
     )
     
     # ---------------- Reset on source change ----------------
+    # ---------------- Reset on source change ----------------
     if "last_source" not in st.session_state:
         st.session_state.last_source = source_choice
     
     if st.session_state.last_source != source_choice:
-        # Clear all relevant session variables
+        # --- Clear Streamlit caches ---
+        try:
+            st.cache_data.clear()       # clears @st.cache_data
+            st.cache_resource.clear()   # clears @st.cache_resource
+        except Exception:
+            pass  # fallback in case Streamlit version doesn't support clear
+    
+        # --- Clear all relevant session variables ---
         for key in ["raw_df", "df", "header_row", "logs", "current_log",
                     "manual_saved", "processed", "embeddings", "labels"]:
             if key == "logs":
@@ -517,7 +525,7 @@ def main():
             else:
                 st.session_state[key] = None
     
-        # Clear sidebar widget states
+        # --- Clear sidebar widget states ---
         widget_keys_to_clear = [
             "uploaded_file", "sheet_url", "sa_input",
             "api_key_in", "use_service_account",
@@ -530,14 +538,15 @@ def main():
             if wk in st.session_state:
                 del st.session_state[wk]
     
-        # Update last_source
+        # --- Update last_source ---
         st.session_state.last_source = source_choice
     
-        # Rerun app to apply reset
+        # --- Rerun app to apply reset ---
         try:
             safe_rerun()
         except Exception:
             st.experimental_rerun()
+
     
     # ---------------- Sidebar: Credentials ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
