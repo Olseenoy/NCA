@@ -665,7 +665,7 @@ def main():
         else:
             df = st.session_state.df
         if df is not None:
-        print(df.dtypes)
+            print(df.dtypes)
 # ----------------- Data Preview and downstream workflow -----------------
  
     # Ensure DataFrame from manual logs is captured
