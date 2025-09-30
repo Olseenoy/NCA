@@ -494,9 +494,9 @@ def main():
             "MongoDB",
             "Manual Entry",
         ],
-        index=0,
-        key="source_choice_widget",
+        index=0
     )
+
     
     # ---------------- Manual Reset Button ----------------
     if st.sidebar.button("🔄 Reset Source"):
