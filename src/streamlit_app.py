@@ -557,52 +557,36 @@ def main():
     st.sidebar.markdown("---")
     
     if source_choice == "Upload File (CSV/Excel)":
-        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
-        if uploaded:
-            try:
-                df = ingest_file(uploaded)
-            except Exception as e:
-                st.error(f"File ingestion failed: {e}")
-    
-    elif source_choice == "Google Sheets":
-        st.sidebar.write("Google Sheets options")
-        sheet_url = st.sidebar.text_input("Sheet URL or ID", value="")
-        sa_path = get_cred_value("GOOGLE_SERVICE_ACCOUNT_JSON")
-        api_key = get_cred_value("GOOGLE_API_KEY")
-        use_service_account = st.sidebar.checkbox("Use service account JSON (preferred)", value=bool(sa_path))
-    
-        if use_service_account:
-            sa_input = st.sidebar.text_input(
-                "Service account JSON path (or leave to use env var)", 
-                value=sa_path or ""
-            )
-            if st.sidebar.button("Load Google Sheet"):
-                try:
-                    df = ingest_google_sheet(
-                        sa_input or sa_path or sheet_url,
-                        service_account_json_path=sa_input or sa_path,
-                        api_key=api_key
-                    )
-                except Exception as e:
-                    st.error(f"Google Sheets ingestion failed: {e}")
-        else:
-            # CSV export mode
-            api_key_in = st.sidebar.text_input(
-                "Optional: Google API Key (for public sheets)", 
-                value=api_key or ""
-            )
-            if st.sidebar.button("Load Google Sheet (CSV export)"):
-                try:
-                    def extract_sheet_id(url_or_id: str) -> str:
-                        if "/d/" in url_or_id:
-                            return url_or_id.split("/d/")[1].split("/")[0]
-                        return url_or_id
-    
-                    sheet_id = extract_sheet_id(sheet_url)
-                    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid=0"
-                    df = pd.read_csv(csv_url)
-                except Exception as e:
-                    st.error(f"Google Sheets CSV ingestion failed: {e}")
+    uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
+    if uploaded:
+        try:
+            df = ingest_file(uploaded)
+            if df is not None and not df.empty:
+                st.session_state.df = df
+                st.session_state.raw_df = df
+        except Exception as e:
+            st.error(f"File ingestion failed: {e}")
+
+elif source_choice == "Google Sheets":
+    st.sidebar.write("Google Sheets options")
+    sheet_url = st.sidebar.text_input("Sheet URL or ID", value="", key="sheet_url")
+    if st.sidebar.button("Load Google Sheet"):
+        try:
+            def extract_sheet_id(url_or_id: str) -> str:
+                if "/d/" in url_or_id:
+                    return url_or_id.split("/d/")[1].split("/")[0]
+                return url_or_id
+
+            sheet_id = extract_sheet_id(sheet_url)
+            csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid=0"
+            df = pd.read_csv(csv_url)
+
+            if df is not None and not df.empty:
+                st.session_state.df = df
+                st.session_state.raw_df = df
+        except Exception as e:
+            st.error(f"Google Sheets CSV ingestion failed: {e}")
+
     
     elif source_choice == "OneDrive / SharePoint":
         st.sidebar.write("OneDrive / SharePoint options")
