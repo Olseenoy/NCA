@@ -563,24 +563,35 @@ def main():
     
     # ----------------- Ingestion UI per source -----------------
 
+  # ----------------- Initialize session_state -----------------
+    for key in ["df", "raw_df", "uploaded_file_bytes", "manual_saved"]:
+        if key not in st.session_state:
+            st.session_state[key] = None
+    if "source_changed" not in st.session_state:
+        st.session_state.source_changed = False
+    
     df = None
     st.sidebar.markdown("---")
     
-    # ---- Upload File ----
+    # ----------------- Upload File -----------------
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
         if uploaded:
-            try:
-                df = ingest_file(uploaded)
-                if df is not None and not df.empty:
-                    st.session_state.df = df
-                    st.session_state.raw_df = df
-            except Exception as e:
-                st.error(f"File ingestion failed: {e}")
+            # persist file bytes
+            if "uploaded_file_bytes" not in st.session_state:
+                st.session_state.uploaded_file_bytes = uploaded.getvalue()
     
-    # Keep DataFrame across reruns
-    if "df" in st.session_state and st.session_state.df is not None:
-        df = st.session_state.df
+            if "df" not in st.session_state or st.session_state.df is None:
+                try:
+                    df = ingest_file(io.BytesIO(st.session_state.uploaded_file_bytes))
+                    if df is not None and not df.empty:
+                        st.session_state.df = df
+                        st.session_state.raw_df = df
+                except Exception as e:
+                    st.error(f"File ingestion failed: {e}")
+    
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
 
 
 
