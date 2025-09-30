@@ -465,10 +465,9 @@ def main():
         st.warning(f"Database init warning: {e}")
 
     # ---------------- Initialize session_state ----------------
-  # ---------------- Initialize session_state ----------------
     if "current_source" not in st.session_state:
         st.session_state.current_source = None
-    if "source_changed" not in st.session_state:   # <--- add safety flag
+    if "source_changed" not in st.session_state:   # safety flag
         st.session_state.source_changed = False
     
     for key in ["raw_df", "df", "header_row", "logs", "current_log", "manual_saved",
@@ -485,7 +484,6 @@ def main():
             else:
                 st.session_state[key] = None
     
-    # ---------------- Sidebar: Source + Auth settings ----------------
     # ---------------- Sidebar: Source + Auth settings ----------------
     source_choice = st.sidebar.selectbox(
         "Select input method",
@@ -519,7 +517,7 @@ def main():
             else:
                 st.session_state[key] = None
     
-        # Clear sidebar widget states so UI fully resets
+        # Clear sidebar widget states
         widget_keys_to_clear = [
             "uploaded_file", "sheet_url", "sa_input",
             "api_key_in", "use_service_account",
@@ -540,13 +538,7 @@ def main():
             safe_rerun()
         except Exception:
             st.experimental_rerun()
-
-
-
-
-
-
-
+    
     # ---------------- Sidebar: Credentials ----------------
     with st.sidebar.expander("🔒 Authentication & Credentials (expand to override)"):
         st.markdown("Credentials are loaded from environment variables by default. Use these fields to override for this session, or save to `.env` permanently.")
@@ -555,7 +547,7 @@ def main():
             is_secret = "SECRET" in k or "TOKEN" in k or "PASSWORD" in k
             default = get_cred_value(k)
             cred_inputs[k] = st.text_input(label, value=default, key=f"cred_{k}", type="password" if is_secret else "default")
-
+    
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Save for Session Only"):
@@ -568,22 +560,22 @@ def main():
                     save_creds_to_env(env_pairs)
                 except Exception as e:
                     st.error(f"Failed to write to .env: {e}")
-
+    
     # ----------------- Ingestion UI per source -----------------
-   # ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
+    
     if source_choice == "Upload File (CSV/Excel)":
-        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
+        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'], key="uploaded_file")
         if uploaded:
             try:
                 df = ingest_file(uploaded)
                 if df is not None and not df.empty:
-                    st.session_state.df = df
-                    st.session_state.raw_df = df
+                    st.session_state.df = df.copy()
+                    st.session_state.raw_df = df.copy()
             except Exception as e:
                 st.error(f"File ingestion failed: {e}")
-
+    
     elif source_choice == "Google Sheets":
         st.sidebar.write("Google Sheets options")
         sheet_url = st.sidebar.text_input("Sheet URL or ID", value="", key="sheet_url")
@@ -599,26 +591,23 @@ def main():
                 df = pd.read_csv(csv_url)
     
                 if df is not None and not df.empty:
-                    st.session_state.df = df
-                    st.session_state.raw_df = df
+                    st.session_state.df = df.copy()
+                    st.session_state.raw_df = df.copy()
             except Exception as e:
                 st.error(f"Google Sheets CSV ingestion failed: {e}")
-
-
     
     elif source_choice == "OneDrive / SharePoint":
         st.sidebar.write("OneDrive / SharePoint options")
-        od_file = st.sidebar.text_input("File path or sharing URL", value="")
+        od_file = st.sidebar.text_input("File path or sharing URL", value="", key="od_file")
         od_token = get_cred_value("ONEDRIVE_ACCESS_TOKEN")
         od_client_id = get_cred_value("ONEDRIVE_CLIENT_ID")
         od_client_secret = get_cred_value("ONEDRIVE_CLIENT_SECRET")
         od_tenant = get_cred_value("ONEDRIVE_TENANT_ID")
     
-        # allow overriding in UI
-        od_token_ui = st.sidebar.text_input("Access Token (optional, short-lived)", value=od_token or "", type="password")
-        od_client_id_ui = st.sidebar.text_input("Client ID (if using client credentials)", value=od_client_id or "")
-        od_client_secret_ui = st.sidebar.text_input("Client Secret (if using client credentials)", value=od_client_secret or "", type="password")
-        od_tenant_ui = st.sidebar.text_input("Tenant ID (if using client credentials)", value=od_tenant or "")
+        od_token_ui = st.sidebar.text_input("Access Token (optional, short-lived)", value=od_token or "", type="password", key="od_token_ui")
+        od_client_id_ui = st.sidebar.text_input("Client ID (if using client credentials)", value=od_client_id or "", key="od_client_id_ui")
+        od_client_secret_ui = st.sidebar.text_input("Client Secret (if using client credentials)", value=od_client_secret or "", type="password", key="od_client_secret_ui")
+        od_tenant_ui = st.sidebar.text_input("Tenant ID (if using client credentials)", value=od_tenant or "", key="od_tenant_ui")
     
         if st.sidebar.button("Load from OneDrive"):
             try:
@@ -629,16 +618,20 @@ def main():
                     client_secret=od_client_secret_ui or od_client_secret or None,
                     tenant_id=od_tenant_ui or od_tenant or None,
                 )
+                if df is not None and not df.empty:
+                    st.session_state.df = df.copy()
+                    st.session_state.raw_df = df.copy()
             except Exception as e:
                 st.error(f"OneDrive ingestion failed: {e}")
     
     elif source_choice == "REST API (ERP/MES/QMS)":
         st.sidebar.write("REST API options")
-        api_url = st.sidebar.text_input("API Endpoint URL", value="")
+        api_url = st.sidebar.text_input("API Endpoint URL", value="", key="api_url")
         api_token = get_cred_value("API_TOKEN")
-        api_token_ui = st.sidebar.text_input("API Token (optional)", value=api_token or "", type="password")
-        extra_headers = st.sidebar.text_area("Additional headers (JSON)", value="{}")
-        method = st.sidebar.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE"])
+        api_token_ui = st.sidebar.text_input("API Token (optional)", value=api_token or "", type="password", key="api_token_ui")
+        extra_headers = st.sidebar.text_area("Additional headers (JSON)", value="{}", key="extra_headers")
+        method = st.sidebar.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE"], key="method")
+    
         if st.sidebar.button("Fetch API"):
             try:
                 headers = {}
@@ -650,14 +643,18 @@ def main():
                 if api_token_ui:
                     headers.setdefault("Authorization", f"Bearer {api_token_ui}")
                 df = ingest_rest_api(api_url, method=method, headers=headers)
+                if df is not None and not df.empty:
+                    st.session_state.df = df.copy()
+                    st.session_state.raw_df = df.copy()
             except Exception as e:
                 st.error(f"REST API ingestion failed: {e}")
     
     elif source_choice == "SQL Database":
         st.sidebar.write("SQL Database options")
         db_conn_env = get_cred_value("DB_CONN")
-        db_conn_ui = st.sidebar.text_input("DB connection string (or leave to use env DB_CONN)", value=db_conn_env or "")
-        sql_query = st.sidebar.text_area("SQL Query", value="SELECT * FROM my_table LIMIT 100")
+        db_conn_ui = st.sidebar.text_input("DB connection string (or leave to use env DB_CONN)", value=db_conn_env or "", key="db_conn_ui")
+        sql_query = st.sidebar.text_area("SQL Query", value="SELECT * FROM my_table LIMIT 100", key="sql_query")
+    
         if st.sidebar.button("Run Query"):
             conn_str = db_conn_ui or db_conn_env
             if not conn_str:
@@ -665,16 +662,20 @@ def main():
             else:
                 try:
                     df = ingest_database(conn_str, sql_query)
+                    if df is not None and not df.empty:
+                        st.session_state.df = df.copy()
+                        st.session_state.raw_df = df.copy()
                 except Exception as e:
                     st.error(f"Database ingestion failed: {e}")
     
     elif source_choice == "MongoDB":
         st.sidebar.write("MongoDB options")
         mongo_uri_env = get_cred_value("MONGO_URI")
-        mongo_uri_ui = st.sidebar.text_input("Mongo URI (or leave to use env MONGO_URI)", value=mongo_uri_env or "")
-        mongo_db = st.sidebar.text_input("Database name")
-        mongo_coll = st.sidebar.text_input("Collection name")
-        mongo_query_text = st.sidebar.text_area("Query (JSON)", value="{}")
+        mongo_uri_ui = st.sidebar.text_input("Mongo URI (or leave to use env MONGO_URI)", value=mongo_uri_env or "", key="mongo_uri_ui")
+        mongo_db = st.sidebar.text_input("Database name", key="mongo_db")
+        mongo_coll = st.sidebar.text_input("Collection name", key="mongo_coll")
+        mongo_query_text = st.sidebar.text_area("Query (JSON)", value="{}", key="mongo_query_text")
+    
         if st.sidebar.button("Load MongoDB"):
             try:
                 q = {}
@@ -684,6 +685,9 @@ def main():
                     st.warning("Invalid JSON for Mongo query; using empty query {}.")
                     q = {}
                 df = ingest_mongodb(mongo_uri_ui or mongo_uri_env, mongo_db, mongo_coll, query=q)
+                if df is not None and not df.empty:
+                    st.session_state.df = df.copy()
+                    st.session_state.raw_df = df.copy()
             except Exception as e:
                 st.error(f"MongoDB ingestion failed: {e}")
     
@@ -691,8 +695,8 @@ def main():
         if not st.session_state.manual_saved:
             df = manual_log_entry()
             if df is not None and not df.empty:
-                st.session_state.df = df
-                st.session_state.raw_df = df
+                st.session_state.df = df.copy()
+                st.session_state.raw_df = df.copy()
                 st.session_state.manual_saved = True
                 st.session_state.current_log = 1
                 st.session_state.logs = []
@@ -704,8 +708,8 @@ def main():
     
     # ---------------- Persist any loaded data ----------------
     if df is not None and source_choice != "Manual Entry":
-        st.session_state.df = df
-        st.session_state.raw_df = df
+        st.session_state.df = df.copy()
+        st.session_state.raw_df = df.copy()
 
 
 # ----------------- Data Preview and downstream workflow -----------------
