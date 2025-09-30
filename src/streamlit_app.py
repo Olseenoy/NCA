@@ -687,7 +687,7 @@ def main():
     # ---------------- Persist any loaded data ----------------
     if df is not None and source_choice != "Manual Entry":
         st.session_state.df = df
-        st.session_state.raw_df = df
+        
 
 # ----------------- Data Preview and downstream workflow -----------------
  
