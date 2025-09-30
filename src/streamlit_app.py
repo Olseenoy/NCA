@@ -562,23 +562,33 @@ def main():
                     st.error(f"Failed to write to .env: {e}")
     
     # ----------------- Ingestion UI per source -----------------
+# ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
     
+    # ---- Upload File ----
     if source_choice == "Upload File (CSV/Excel)":
-        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'], key="uploaded_file")
+        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
         if uploaded:
             try:
                 df = ingest_file(uploaded)
                 if df is not None and not df.empty:
-                    st.session_state.df = df.copy()
-                    st.session_state.raw_df = df.copy()
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+                    st.session_state.source_changed = True
+                    safe_rerun()
             except Exception as e:
                 st.error(f"File ingestion failed: {e}")
     
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
+    
+    
+    # ---- Google Sheets ----
     elif source_choice == "Google Sheets":
         st.sidebar.write("Google Sheets options")
         sheet_url = st.sidebar.text_input("Sheet URL or ID", value="", key="sheet_url")
+    
         if st.sidebar.button("Load Google Sheet"):
             try:
                 def extract_sheet_id(url_or_id: str) -> str:
@@ -591,46 +601,60 @@ def main():
                 df = pd.read_csv(csv_url)
     
                 if df is not None and not df.empty:
-                    st.session_state.df = df.copy()
-                    st.session_state.raw_df = df.copy()
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+                    st.session_state.source_changed = True
+                    safe_rerun()
             except Exception as e:
-                st.error(f"Google Sheets CSV ingestion failed: {e}")
+                st.error(f"Google Sheets ingestion failed: {e}")
     
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
+    
+    
+    # ---- OneDrive / SharePoint ----
     elif source_choice == "OneDrive / SharePoint":
         st.sidebar.write("OneDrive / SharePoint options")
-        od_file = st.sidebar.text_input("File path or sharing URL", value="", key="od_file")
+        od_file = st.sidebar.text_input("File path or sharing URL", value="")
         od_token = get_cred_value("ONEDRIVE_ACCESS_TOKEN")
         od_client_id = get_cred_value("ONEDRIVE_CLIENT_ID")
         od_client_secret = get_cred_value("ONEDRIVE_CLIENT_SECRET")
         od_tenant = get_cred_value("ONEDRIVE_TENANT_ID")
     
-        od_token_ui = st.sidebar.text_input("Access Token (optional, short-lived)", value=od_token or "", type="password", key="od_token_ui")
-        od_client_id_ui = st.sidebar.text_input("Client ID (if using client credentials)", value=od_client_id or "", key="od_client_id_ui")
-        od_client_secret_ui = st.sidebar.text_input("Client Secret (if using client credentials)", value=od_client_secret or "", type="password", key="od_client_secret_ui")
-        od_tenant_ui = st.sidebar.text_input("Tenant ID (if using client credentials)", value=od_tenant or "", key="od_tenant_ui")
+        od_token_ui = st.sidebar.text_input("Access Token", value=od_token or "", type="password")
+        od_client_id_ui = st.sidebar.text_input("Client ID", value=od_client_id or "")
+        od_client_secret_ui = st.sidebar.text_input("Client Secret", value=od_client_secret or "", type="password")
+        od_tenant_ui = st.sidebar.text_input("Tenant ID", value=od_tenant or "")
     
         if st.sidebar.button("Load from OneDrive"):
             try:
                 df = ingest_onedrive(
                     od_file,
-                    access_token=od_token_ui or od_token or None,
-                    client_id=od_client_id_ui or od_client_id or None,
-                    client_secret=od_client_secret_ui or od_client_secret or None,
-                    tenant_id=od_tenant_ui or od_tenant or None,
+                    access_token=od_token_ui or od_token,
+                    client_id=od_client_id_ui or od_client_id,
+                    client_secret=od_client_secret_ui or od_client_secret,
+                    tenant_id=od_tenant_ui or od_tenant,
                 )
                 if df is not None and not df.empty:
-                    st.session_state.df = df.copy()
-                    st.session_state.raw_df = df.copy()
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+                    st.session_state.source_changed = True
+                    safe_rerun()
             except Exception as e:
                 st.error(f"OneDrive ingestion failed: {e}")
     
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
+    
+    
+    # ---- REST API ----
     elif source_choice == "REST API (ERP/MES/QMS)":
         st.sidebar.write("REST API options")
-        api_url = st.sidebar.text_input("API Endpoint URL", value="", key="api_url")
+        api_url = st.sidebar.text_input("API Endpoint URL", value="")
         api_token = get_cred_value("API_TOKEN")
-        api_token_ui = st.sidebar.text_input("API Token (optional)", value=api_token or "", type="password", key="api_token_ui")
-        extra_headers = st.sidebar.text_area("Additional headers (JSON)", value="{}", key="extra_headers")
-        method = st.sidebar.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE"], key="method")
+        api_token_ui = st.sidebar.text_input("API Token", value=api_token or "", type="password")
+        extra_headers = st.sidebar.text_area("Additional headers (JSON)", value="{}")
+        method = st.sidebar.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE"])
     
         if st.sidebar.button("Fetch API"):
             try:
@@ -638,43 +662,57 @@ def main():
                 try:
                     headers = json.loads(extra_headers)
                 except Exception:
-                    st.warning("Invalid JSON for extra headers; ignoring.")
-                    headers = {}
+                    st.warning("Invalid JSON headers; using {}")
                 if api_token_ui:
                     headers.setdefault("Authorization", f"Bearer {api_token_ui}")
+    
                 df = ingest_rest_api(api_url, method=method, headers=headers)
                 if df is not None and not df.empty:
-                    st.session_state.df = df.copy()
-                    st.session_state.raw_df = df.copy()
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+                    st.session_state.source_changed = True
+                    safe_rerun()
             except Exception as e:
                 st.error(f"REST API ingestion failed: {e}")
     
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
+    
+    
+    # ---- SQL Database ----
     elif source_choice == "SQL Database":
         st.sidebar.write("SQL Database options")
         db_conn_env = get_cred_value("DB_CONN")
-        db_conn_ui = st.sidebar.text_input("DB connection string (or leave to use env DB_CONN)", value=db_conn_env or "", key="db_conn_ui")
-        sql_query = st.sidebar.text_area("SQL Query", value="SELECT * FROM my_table LIMIT 100", key="sql_query")
+        db_conn_ui = st.sidebar.text_input("DB connection string", value=db_conn_env or "")
+        sql_query = st.sidebar.text_area("SQL Query", value="SELECT * FROM my_table LIMIT 100")
     
         if st.sidebar.button("Run Query"):
             conn_str = db_conn_ui or db_conn_env
             if not conn_str:
-                st.error("No DB connection string supplied (env DB_CONN or enter here).")
+                st.error("No DB connection string supplied.")
             else:
                 try:
                     df = ingest_database(conn_str, sql_query)
                     if df is not None and not df.empty:
-                        st.session_state.df = df.copy()
-                        st.session_state.raw_df = df.copy()
+                        st.session_state.df = df
+                        st.session_state.raw_df = df
+                        st.session_state.source_changed = True
+                        safe_rerun()
                 except Exception as e:
                     st.error(f"Database ingestion failed: {e}")
     
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
+    
+    
+    # ---- MongoDB ----
     elif source_choice == "MongoDB":
         st.sidebar.write("MongoDB options")
         mongo_uri_env = get_cred_value("MONGO_URI")
-        mongo_uri_ui = st.sidebar.text_input("Mongo URI (or leave to use env MONGO_URI)", value=mongo_uri_env or "", key="mongo_uri_ui")
-        mongo_db = st.sidebar.text_input("Database name", key="mongo_db")
-        mongo_coll = st.sidebar.text_input("Collection name", key="mongo_coll")
-        mongo_query_text = st.sidebar.text_area("Query (JSON)", value="{}", key="mongo_query_text")
+        mongo_uri_ui = st.sidebar.text_input("Mongo URI", value=mongo_uri_env or "")
+        mongo_db = st.sidebar.text_input("Database name")
+        mongo_coll = st.sidebar.text_input("Collection name")
+        mongo_query_text = st.sidebar.text_area("Query (JSON)", value="{}")
     
         if st.sidebar.button("Load MongoDB"):
             try:
@@ -682,29 +720,39 @@ def main():
                 try:
                     q = json.loads(mongo_query_text)
                 except Exception:
-                    st.warning("Invalid JSON for Mongo query; using empty query {}.")
-                    q = {}
+                    st.warning("Invalid JSON query; using {}")
                 df = ingest_mongodb(mongo_uri_ui or mongo_uri_env, mongo_db, mongo_coll, query=q)
+    
                 if df is not None and not df.empty:
-                    st.session_state.df = df.copy()
-                    st.session_state.raw_df = df.copy()
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+                    st.session_state.source_changed = True
+                    safe_rerun()
             except Exception as e:
                 st.error(f"MongoDB ingestion failed: {e}")
     
+        if "df" in st.session_state and st.session_state.df is not None:
+            df = st.session_state.df
+    
+    
+    # ---- Manual Entry ----
     elif source_choice == "Manual Entry":
         if not st.session_state.manual_saved:
             df = manual_log_entry()
             if df is not None and not df.empty:
-                st.session_state.df = df.copy()
-                st.session_state.raw_df = df.copy()
+                st.session_state.df = df
+                st.session_state.raw_df = df
                 st.session_state.manual_saved = True
                 st.session_state.current_log = 1
                 st.session_state.logs = []
+                st.session_state.source_changed = True
                 safe_rerun()
         else:
             df = st.session_state.df
+    
         if df is not None:
             print(df.dtypes)
+
     
     # ---------------- Persist any loaded data ----------------
     if df is not None and source_choice != "Manual Entry":
