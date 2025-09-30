@@ -501,18 +501,17 @@ def main():
     )
     
     # ---------------- Reset on source change ----------------
-    # ---------------- Reset on source change ----------------
+
     if "last_source" not in st.session_state:
         st.session_state.last_source = source_choice
     
     if st.session_state.last_source != source_choice:
-        # --- Clear Streamlit caches ---
+        # --- Clear Streamlit caches like dev menu ---
         try:
             st.cache_data.clear()       # clears @st.cache_data
             st.cache_resource.clear()   # clears @st.cache_resource
         except Exception:
-            pass  # fallback in case Streamlit version doesn't support clear
-    
+            pass  # fallback for older Streamlit versions
         # --- Clear all relevant session variables ---
         for key in ["raw_df", "df", "header_row", "logs", "current_log",
                     "manual_saved", "processed", "embeddings", "labels"]:
