@@ -58,35 +58,34 @@ def select_input_type():
 # Local file ingestion (CSV + Excel)
 # -----------------------------------------
 def ingest_file(file_obj) -> pd.DataFrame:
+    import pandas as pd
+    import io
 
+    # Streamlit UploadedFile always has a .name
+    filename = getattr(file_obj, "name", "unknown").lower()
 
-    # Determine filename and extension
-    filename = getattr(file_obj, "name", str(file_obj)).lower()
+    # Use BytesIO to ensure the file is read correctly
+    file_bytes = io.BytesIO(file_obj.read()) if not isinstance(file_obj, io.BytesIO) else file_obj
 
-    # Read Excel files
     if filename.endswith((".xlsx", ".xls")):
         try:
-            import openpyxl
-        except ImportError:
-            raise ImportError("openpyxl is required to read Excel files. Install with `pip install openpyxl`.")
-        try:
-            # Streamlit uploaded files sometimes need BytesIO
-            if isinstance(file_obj, io.BytesIO):
-                return pd.read_excel(file_obj, engine="openpyxl")
+            # Use openpyxl for .xlsx and xlrd for .xls
+            if filename.endswith(".xlsx"):
+                return pd.read_excel(file_bytes, engine="openpyxl")
             else:
-                return pd.read_excel(file_obj, engine="openpyxl")
+                return pd.read_excel(file_bytes, engine="xlrd")
         except Exception as e:
             raise RuntimeError(f"Failed to read Excel file: {e}")
 
-    # Read CSV files
     elif filename.endswith(".csv"):
         try:
-            return pd.read_csv(file_obj)
+            return pd.read_csv(file_bytes)
         except Exception as e:
             raise RuntimeError(f"Failed to read CSV file: {e}")
 
     else:
         raise ValueError("Unsupported file format. Only CSV, XLSX, and XLS are supported.")
+
 
 # -----------------------------------------
 # Google Sheets ingestion
