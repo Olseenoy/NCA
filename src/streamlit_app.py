@@ -486,6 +486,7 @@ def main():
                 st.session_state[key] = None
     
     # ---------------- Sidebar: Source + Auth settings ----------------
+    # ---------------- Sidebar: Source + Auth settings ----------------
     source_choice = st.sidebar.selectbox(
         "Select input method",
         [
@@ -501,26 +502,24 @@ def main():
         key="source_choice_widget",
     )
     
-    # ---------------- Detect source change ----------------
-    if source_choice != st.session_state.current_source:
-        # wipe state
+    # ---------------- Reset on source change ----------------
+    if "last_source" not in st.session_state:
+        st.session_state.last_source = source_choice
+    
+    if st.session_state.last_source != source_choice:
+        # Clear all relevant session variables
         for key in ["raw_df", "df", "header_row", "logs", "current_log",
                     "manual_saved", "processed", "embeddings", "labels"]:
-            if key in st.session_state:
-                del st.session_state[key]
+            if key == "logs":
+                st.session_state[key] = []
+            elif key == "current_log":
+                st.session_state[key] = 1
+            elif key == "manual_saved":
+                st.session_state[key] = False
+            else:
+                st.session_state[key] = None
     
-        st.session_state.current_source = source_choice
-        st.session_state.source_changed = True
-        st.stop()   # prevent infinite reruns
-    
-    # ---------------- Manual Reset Button ----------------
-    if st.sidebar.button("🔄 Reset Source"):
-        for key in ["raw_df", "df", "header_row", "logs", "current_log",
-                    "manual_saved", "processed", "embeddings", "labels"]:
-            if key in st.session_state:
-                del st.session_state[key]
-    
-        # Also clear sidebar widget states
+        # Clear sidebar widget states so UI fully resets
         widget_keys_to_clear = [
             "uploaded_file", "sheet_url", "sa_input",
             "api_key_in", "use_service_account",
@@ -533,13 +532,15 @@ def main():
             if wk in st.session_state:
                 del st.session_state[wk]
     
-        st.session_state.source_changed = True
-        st.stop()   # rerun safely
+        # Update last_source
+        st.session_state.last_source = source_choice
     
-    # ---------------- Safe rerun handler ----------------
-    if st.session_state.source_changed:
-        st.session_state.source_changed = False
-        st.experimental_rerun()
+        # Rerun app to apply reset
+        try:
+            safe_rerun()
+        except Exception:
+            st.experimental_rerun()
+
 
 
 
