@@ -537,22 +537,15 @@ def main():
                     st.error(f"Failed to write to .env: {e}")
 
     # ----------------- Ingestion UI per source -----------------
-# ----------------- Ingestion UI per source -----------------
+    # ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
-    
+
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
         if uploaded:
             try:
-                import os
-                ext = os.path.splitext(uploaded.name)[1].lower()
-                if ext == ".csv":
-                    df = pd.read_csv(uploaded)
-                elif ext in [".xlsx", ".xls"]:
-                    df = pd.read_excel(uploaded, engine="openpyxl")
-                else:
-                    st.error("Unsupported file format")
+                df = ingest_file(uploaded)
             except Exception as e:
                 st.error(f"File ingestion failed: {e}")
     
