@@ -538,17 +538,25 @@ def main():
                     st.error(f"Failed to write to .env: {e}")
 
     # ----------------- Ingestion UI per source -----------------
+    # ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
-
+    
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
         if uploaded:
             try:
-                df = ingest_file(uploaded)
+                import os
+                ext = os.path.splitext(uploaded.name)[1].lower()
+                if ext == ".csv":
+                    df = pd.read_csv(uploaded)
+                elif ext in [".xlsx", ".xls"]:
+                    df = pd.read_excel(uploaded, engine="openpyxl")
+                else:
+                    st.error("Unsupported file format")
             except Exception as e:
                 st.error(f"File ingestion failed: {e}")
-
+    
     elif source_choice == "Google Sheets":
         st.sidebar.write("Google Sheets options")
         sheet_url = st.sidebar.text_input("Sheet URL or ID", value="")
@@ -559,7 +567,11 @@ def main():
             sa_input = st.sidebar.text_input("Service account JSON path (or leave to use env var)", value=sa_path or "")
             if st.sidebar.button("Load Google Sheet"):
                 try:
-                    df = ingest_google_sheet(sa_input or sa_path or sheet_url, service_account_json_path=sa_input or sa_path, api_key=api_key)
+                    df = ingest_google_sheet(
+                        sa_input or sa_path or sheet_url,
+                        service_account_json_path=sa_input or sa_path,
+                        api_key=api_key
+                    )
                 except Exception as e:
                     st.error(f"Google Sheets ingestion failed: {e}")
         else:
