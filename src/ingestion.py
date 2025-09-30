@@ -58,25 +58,33 @@ def select_input_type():
 # Local file ingestion (CSV + Excel)
 # -----------------------------------------
 def ingest_file(file_obj) -> pd.DataFrame:
-    if hasattr(file_obj, "name"):
-        filename = file_obj.name.lower()
-    else:
-        filename = str(file_obj).lower()
 
+
+    # Determine filename and extension
+    filename = getattr(file_obj, "name", str(file_obj)).lower()
+
+    # Read Excel files
     if filename.endswith((".xlsx", ".xls")):
         try:
             import openpyxl
-        except Exception:
+        except ImportError:
             raise ImportError("openpyxl is required to read Excel files. Install with `pip install openpyxl`.")
         try:
-            return pd.read_excel(file_obj, engine="openpyxl")
+            # Streamlit uploaded files sometimes need BytesIO
+            if isinstance(file_obj, io.BytesIO):
+                return pd.read_excel(file_obj, engine="openpyxl")
+            else:
+                return pd.read_excel(file_obj, engine="openpyxl")
         except Exception as e:
             raise RuntimeError(f"Failed to read Excel file: {e}")
+
+    # Read CSV files
     elif filename.endswith(".csv"):
         try:
             return pd.read_csv(file_obj)
         except Exception as e:
             raise RuntimeError(f"Failed to read CSV file: {e}")
+
     else:
         raise ValueError("Unsupported file format. Only CSV, XLSX, and XLS are supported.")
 
