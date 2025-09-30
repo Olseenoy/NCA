@@ -567,30 +567,21 @@ def main():
     st.sidebar.markdown("---")
     
     # ---- Upload File ----
-
-
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
-    
         if uploaded:
-            # Save file bytes in session_state to persist across reruns
-            if "uploaded_file_bytes" not in st.session_state or st.session_state.uploaded_file_name != uploaded.name:
-                try:
-                    st.session_state.uploaded_file_bytes = uploaded.getvalue()
-                    st.session_state.uploaded_file_name = uploaded.name
+            try:
+                df = ingest_file(uploaded)
+                if df is not None and not df.empty:
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+            except Exception as e:
+                st.error(f"File ingestion failed: {e}")
     
-                    # Load into DataFrame
-                    df = ingest_file(io.BytesIO(st.session_state.uploaded_file_bytes))
-                    if df is not None and not df.empty:
-                        st.session_state.df = df
-                        st.session_state.raw_df = df
-    
-                except Exception as e:
-                    st.error(f"File ingestion failed: {e}")
-    
-        # Keep DataFrame across reruns
-        if "df" in st.session_state and st.session_state.df is not None:
-            df = st.session_state.df
+    # Keep DataFrame across reruns
+    if "df" in st.session_state and st.session_state.df is not None:
+        df = st.session_state.df
+
 
 
 
