@@ -991,13 +991,12 @@ def main():
                 if text is None:
                     return ""
                 
-                # Ensure it's a string; if not, attempt conversion
                 if not isinstance(text, str):
                     try:
                         text = str(text)
                     except Exception:
                         return ""
-            
+                
                 text = text.lower()
                 text = re.sub(r"\d+", "", text)            # remove numbers
                 text = re.sub(r"[^a-z\s-]", "", text)     # remove punctuation except hyphen
@@ -1006,12 +1005,13 @@ def main():
                 tokens = text.split()
                 tokens = [lemmatizer.lemmatize(t) for t in tokens]
                 return " ".join(tokens).strip()
-
+            
             def find_recurring_issues(df, top_n=10, similarity_threshold=80):
                 """
                 Detect recurring issues in columns related to issues, problems, defects, faults.
                 Normalize, merge similar phrases, pick the most descriptive phrase (longest), 
                 capitalize first letter, and return top N.
+                Only phrases with 4 or more words are considered.
                 """
                 issue_synonyms = ["issue", "issues", "problem", "problems", "defect", "defects", "fault", "faults"]
             
@@ -1027,22 +1027,21 @@ def main():
                 # normalize
                 normalized = [normalize_text(t) for t in all_issues if t and str(t).strip()]
             
+                # filter out phrases with fewer than 4 words
+                filtered_pairs = [(orig, norm) for orig, norm in zip(all_issues, normalized) if len(norm.split()) >= 4]
+            
                 # merge similar issues
                 merged_issues_dict = {}  # key: representative issue, value: count
-                for orig, norm in zip(all_issues, normalized):
+                for orig, norm in filtered_pairs:
                     if not merged_issues_dict:
                         merged_issues_dict[norm] = 1
                     else:
-                        # find best match among existing merged issues
                         match, score = process.extractOne(norm, list(merged_issues_dict.keys()))
                         if score >= similarity_threshold:
-                            existing_count = merged_issues_dict[match]  # get existing count
-                            # pick the longer/original issue as representative
+                            existing_count = merged_issues_dict[match]
                             candidate_phrase = orig if len(orig.split()) > len(match.split()) else match
-                            # remove old key if different
                             if candidate_phrase != match:
                                 merged_issues_dict.pop(match)
-                            # update count correctly
                             merged_issues_dict[candidate_phrase] = existing_count + 1
                         else:
                             merged_issues_dict[norm] = 1
