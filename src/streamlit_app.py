@@ -498,24 +498,14 @@ def main():
         key="source_choice_widget",
     )
     
-    # ---------------- Reset on source change ----------------
-    if "last_source" not in st.session_state:
-        st.session_state.last_source = source_choice
-    
-    if st.session_state.last_source != source_choice:
-        # Clear all relevant session variables
+    # ---------------- Manual Reset Button ----------------
+    if st.sidebar.button("🔄 Reset Source"):
         for key in ["raw_df", "df", "header_row", "logs", "current_log",
                     "manual_saved", "processed", "embeddings", "labels"]:
-            if key == "logs":
-                st.session_state[key] = []
-            elif key == "current_log":
-                st.session_state[key] = 1
-            elif key == "manual_saved":
-                st.session_state[key] = False
-            else:
-                st.session_state[key] = None
+            if key in st.session_state:
+                del st.session_state[key]
     
-        # Clear sidebar widget states so UI fully resets
+        # Also clear sidebar widget states
         widget_keys_to_clear = [
             "uploaded_file", "sheet_url", "sa_input",
             "api_key_in", "use_service_account",
@@ -528,14 +518,11 @@ def main():
             if wk in st.session_state:
                 del st.session_state[wk]
     
-        # Update last_source
-        st.session_state.last_source = source_choice
+        # Reset source state
+        st.session_state.current_source = source_choice
     
-        # Rerun app to apply reset
-        try:
-            safe_rerun()
-        except Exception:
-            st.experimental_rerun()
+        # Force a fresh rerun
+        st.experimental_rerun()
 
 
 
