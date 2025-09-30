@@ -483,6 +483,7 @@ def main():
 
     # ---------------- Sidebar: Source + Auth settings ----------------
 # ---------------- Sidebar: Source + Auth settings ----------------
+    # give the selectbox a key so we can also reset it
     source_choice = st.sidebar.selectbox(
         "Select input method",
         [
@@ -495,17 +496,20 @@ def main():
             "Manual Entry",
         ],
         index=0,
+        key="source_choice",
     )
     
-    # ---------------- Reset on source change ----------------
-    # Ensure key exists before comparing
+    # Ensure current_source exists (first-run)
     if "current_source" not in st.session_state:
-        st.session_state.current_source = source_choice
+        st.session_state.current_source = st.session_state.source_choice
     
-    if st.session_state.current_source != source_choice:
-        # Clear all relevant session variables
-        for key in ["raw_df", "df", "header_row", "logs", "current_log", 
-                    "manual_saved", "processed", "embeddings", "labels"]:
+    # If the source changed, clear stored data AND the sidebar widget states, then rerun
+    if st.session_state.current_source != st.session_state.source_choice:
+        # --- Clear persistent/data keys (same as you had) ---
+        for key in ["raw_df", "df", "header_row", "logs", "current_log",
+                    "manual_saved", "processed", "embeddings", "labels",
+                    # also clear saved charts / PDF artifacts (optional but useful)
+                    "clusters_chart", "pareto_chart", "spc_chart", "trend_chart", "time_chart", "fishbone_img"]:
             if key == "logs":
                 st.session_state[key] = []
             elif key == "current_log":
@@ -515,11 +519,34 @@ def main():
             else:
                 st.session_state[key] = None
     
-        # Update current source
-        st.session_state.current_source = source_choice
+        # --- Clear sidebar widget keys so UI widgets reset visually ---
+        widget_keys_to_clear = [
+            # file upload
+            "uploaded_file",
+            # google sheets inputs
+            "sheet_url",
+            "sa_input",
+            "api_key_in",
+            # any other sidebar keys you use elsewhere (add them if you named widgets differently)
+            "use_service_account",
+            # the selectbox key itself (so the widget is re-created cleanly)
+            "source_choice",
+        ]
+    
+        # Delete them from session_state if they exist
+        for wk in widget_keys_to_clear:
+            if wk in st.session_state:
+                del st.session_state[wk]
+    
+        # Update current_source to the newly selected one
+        st.session_state.current_source = st.session_state.source_choice
     
         # Rerun app to start clean
-        safe_rerun()
+        # use your safe_rerun() if you have it, else fallback to st.experimental_rerun()
+        try:
+            safe_rerun()
+        except Exception:
+            st.experimental_rerun()
 
 
 
