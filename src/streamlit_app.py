@@ -664,6 +664,7 @@ def main():
                 safe_rerun()
         else:
             df = st.session_state.df
+        if df is not None:
         print(df.dtypes)
 # ----------------- Data Preview and downstream workflow -----------------
  
