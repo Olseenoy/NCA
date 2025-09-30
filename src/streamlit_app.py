@@ -577,14 +577,14 @@ def main():
     # ---- Upload File ----
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
-            if uploaded:
-                try:
-                    df = ingest_file(uploaded)
-                    if df is not None and not df.empty:
-                        st.session_state.df = df
-                        st.session_state.raw_df = df
-                except Exception as e:
-                    st.error(f"File ingestion failed: {e}")
+        if uploaded:
+            try:
+                df = ingest_file(uploaded)
+                if df is not None and not df.empty:
+                    st.session_state.df = df
+                    st.session_state.raw_df = df
+            except Exception as e:
+                st.error(f"File ingestion failed: {e}")
 
     # Keep DataFrame across reruns
     if "df" in st.session_state and st.session_state.df is not None:
