@@ -495,16 +495,15 @@ def main():
             "Manual Entry",
         ],
         index=0,
-        key="source_choice_widget",   # unique key so it's tracked by Streamlit
+        key="source_choice_widget",
     )
     
     # ---------------- Reset on source change ----------------
-    if "current_source" not in st.session_state:
-        st.session_state.current_source = source_choice
+    if "last_source" not in st.session_state:
+        st.session_state.last_source = source_choice
     
-    # Compare local selectbox value against last saved choice
-    if st.session_state.current_source != source_choice:
-        # Clear relevant session state
+    if st.session_state.last_source != source_choice:
+        # Clear all relevant session variables
         for key in ["raw_df", "df", "header_row", "logs", "current_log",
                     "manual_saved", "processed", "embeddings", "labels"]:
             if key == "logs":
@@ -518,20 +517,26 @@ def main():
     
         # Clear sidebar widget states so UI fully resets
         widget_keys_to_clear = [
-            "uploaded_file", "sheet_url", "sa_input", "api_key_in", "use_service_account"
+            "uploaded_file", "sheet_url", "sa_input",
+            "api_key_in", "use_service_account",
+            "od_file", "od_token_ui", "od_client_id_ui", "od_client_secret_ui", "od_tenant_ui",
+            "api_url", "api_token_ui", "extra_headers", "method",
+            "db_conn_ui", "sql_query",
+            "mongo_uri_ui", "mongo_db", "mongo_coll", "mongo_query_text",
         ]
         for wk in widget_keys_to_clear:
             if wk in st.session_state:
                 del st.session_state[wk]
     
-        # Save new choice
-        st.session_state.current_source = source_choice
+        # Update last_source
+        st.session_state.last_source = source_choice
     
-        # Force rerun
+        # Rerun app to apply reset
         try:
             safe_rerun()
         except Exception:
             st.experimental_rerun()
+
 
 
 
