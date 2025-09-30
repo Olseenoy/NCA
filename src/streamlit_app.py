@@ -468,6 +468,9 @@ def main():
   # ---------------- Initialize session_state ----------------
     if "current_source" not in st.session_state:
         st.session_state.current_source = None
+    if "source_changed" not in st.session_state:   # <--- add safety flag
+        st.session_state.source_changed = False
+    
     for key in ["raw_df", "df", "header_row", "logs", "current_log", "manual_saved",
                 "processed", "embeddings", "labels", "creds"]:
         if key not in st.session_state:
@@ -481,9 +484,8 @@ def main():
                 st.session_state[key] = {}
             else:
                 st.session_state[key] = None
-
+    
     # ---------------- Sidebar: Source + Auth settings ----------------
-# ---------------- Sidebar: Source + Auth settings ----------------
     source_choice = st.sidebar.selectbox(
         "Select input method",
         [
@@ -498,6 +500,18 @@ def main():
         index=0,
         key="source_choice_widget",
     )
+    
+    # ---------------- Detect source change ----------------
+    if source_choice != st.session_state.current_source:
+        # wipe state
+        for key in ["raw_df", "df", "header_row", "logs", "current_log",
+                    "manual_saved", "processed", "embeddings", "labels"]:
+            if key in st.session_state:
+                del st.session_state[key]
+    
+        st.session_state.current_source = source_choice
+        st.session_state.source_changed = True
+        st.stop()   # prevent infinite reruns
     
     # ---------------- Manual Reset Button ----------------
     if st.sidebar.button("🔄 Reset Source"):
@@ -519,10 +533,12 @@ def main():
             if wk in st.session_state:
                 del st.session_state[wk]
     
-        # Reset source state
-        st.session_state.current_source = source_choice
+        st.session_state.source_changed = True
+        st.stop()   # rerun safely
     
-        # Force a fresh rerun
+    # ---------------- Safe rerun handler ----------------
+    if st.session_state.source_changed:
+        st.session_state.source_changed = False
         st.experimental_rerun()
 
 
