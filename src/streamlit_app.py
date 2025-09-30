@@ -495,15 +495,16 @@ def main():
             "Manual Entry",
         ],
         index=0,
-        key="source_choice_widget",   # avoid clash with our own state key
+        key="source_choice_widget",   # unique key so it's tracked by Streamlit
     )
     
     # ---------------- Reset on source change ----------------
     if "current_source" not in st.session_state:
         st.session_state.current_source = source_choice
     
+    # Compare local selectbox value against last saved choice
     if st.session_state.current_source != source_choice:
-        # --- Clear persistent/data keys ---
+        # Clear relevant session state
         for key in ["raw_df", "df", "header_row", "logs", "current_log",
                     "manual_saved", "processed", "embeddings", "labels"]:
             if key == "logs":
@@ -515,23 +516,23 @@ def main():
             else:
                 st.session_state[key] = None
     
-        # --- Clear sidebar widget keys so UI resets visually ---
+        # Clear sidebar widget states so UI fully resets
         widget_keys_to_clear = [
-            "uploaded_file", "sheet_url", "sa_input", "api_key_in",
-            "use_service_account", "source_choice_widget"
+            "uploaded_file", "sheet_url", "sa_input", "api_key_in", "use_service_account"
         ]
         for wk in widget_keys_to_clear:
             if wk in st.session_state:
                 del st.session_state[wk]
     
-        # Update current source
+        # Save new choice
         st.session_state.current_source = source_choice
     
-        # Rerun app to start clean
+        # Force rerun
         try:
             safe_rerun()
         except Exception:
             st.experimental_rerun()
+
 
 
 
