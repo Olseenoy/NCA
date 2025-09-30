@@ -593,7 +593,7 @@ def main():
                         api_key=api_key_in
                     )
                 except Exception as e:
-            st.error(f"Google Sheets CSV ingestion failed: {e}")
+                    st.error(f"Google Sheets CSV ingestion failed: {e}")
 
 
     elif source_choice == "OneDrive / SharePoint":
