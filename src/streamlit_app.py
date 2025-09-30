@@ -579,9 +579,22 @@ def main():
             api_key_in = st.sidebar.text_input("Optional: Google API Key (for public sheets)", value=api_key or "")
             if st.sidebar.button("Load Google Sheet (CSV export)"):
                 try:
-                    df = ingest_google_sheet(sheet_url, service_account_json_path=None, api_key=api_key_in)
+                    sheet_input = sheet_url.strip()
+                    # Extract sheet ID if full URL is provided
+                    if "docs.google.com" in sheet_input and "/d/" in sheet_input:
+                        import re
+                        match = re.search(r"/d/([a-zA-Z0-9-_]+)", sheet_input)
+                        if match:
+                            sheet_input = match.group(1)
+        
+                    df = ingest_google_sheet(
+                        sheet_input,
+                        service_account_json_path=None,
+                        api_key=api_key_in
+                    )
                 except Exception as e:
-                    st.error(f"Google Sheets CSV ingestion failed: {e}")
+            st.error(f"Google Sheets CSV ingestion failed: {e}")
+
 
     elif source_choice == "OneDrive / SharePoint":
         st.sidebar.write("OneDrive / SharePoint options")
