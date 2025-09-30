@@ -560,10 +560,10 @@ def main():
                     st.error(f"Failed to write to .env: {e}")
 
     # ----------------- Ingestion UI per source -----------------
-    # ----------------- Ingestion UI per source -----------------
+   # ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
-
+    
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
         if uploaded:
@@ -580,7 +580,10 @@ def main():
         use_service_account = st.sidebar.checkbox("Use service account JSON (preferred)", value=bool(sa_path))
     
         if use_service_account:
-            sa_input = st.sidebar.text_input("Service account JSON path (or leave to use env var)", value=sa_path or "")
+            sa_input = st.sidebar.text_input(
+                "Service account JSON path (or leave to use env var)", 
+                value=sa_path or ""
+            )
             if st.sidebar.button("Load Google Sheet"):
                 try:
                     df = ingest_google_sheet(
@@ -592,7 +595,10 @@ def main():
                     st.error(f"Google Sheets ingestion failed: {e}")
         else:
             # CSV export mode
-            api_key_in = st.sidebar.text_input("Optional: Google API Key (for public sheets)", value=api_key or "")
+            api_key_in = st.sidebar.text_input(
+                "Optional: Google API Key (for public sheets)", 
+                value=api_key or ""
+            )
             if st.sidebar.button("Load Google Sheet (CSV export)"):
                 try:
                     def extract_sheet_id(url_or_id: str) -> str:
@@ -605,10 +611,7 @@ def main():
                     df = pd.read_csv(csv_url)
                 except Exception as e:
                     st.error(f"Google Sheets CSV ingestion failed: {e}")
-
-
-
-
+    
     elif source_choice == "OneDrive / SharePoint":
         st.sidebar.write("OneDrive / SharePoint options")
         od_file = st.sidebar.text_input("File path or sharing URL", value="")
@@ -616,13 +619,13 @@ def main():
         od_client_id = get_cred_value("ONEDRIVE_CLIENT_ID")
         od_client_secret = get_cred_value("ONEDRIVE_CLIENT_SECRET")
         od_tenant = get_cred_value("ONEDRIVE_TENANT_ID")
-
+    
         # allow overriding in UI
         od_token_ui = st.sidebar.text_input("Access Token (optional, short-lived)", value=od_token or "", type="password")
         od_client_id_ui = st.sidebar.text_input("Client ID (if using client credentials)", value=od_client_id or "")
         od_client_secret_ui = st.sidebar.text_input("Client Secret (if using client credentials)", value=od_client_secret or "", type="password")
         od_tenant_ui = st.sidebar.text_input("Tenant ID (if using client credentials)", value=od_tenant or "")
-
+    
         if st.sidebar.button("Load from OneDrive"):
             try:
                 df = ingest_onedrive(
@@ -634,7 +637,7 @@ def main():
                 )
             except Exception as e:
                 st.error(f"OneDrive ingestion failed: {e}")
-
+    
     elif source_choice == "REST API (ERP/MES/QMS)":
         st.sidebar.write("REST API options")
         api_url = st.sidebar.text_input("API Endpoint URL", value="")
@@ -655,7 +658,7 @@ def main():
                 df = ingest_rest_api(api_url, method=method, headers=headers)
             except Exception as e:
                 st.error(f"REST API ingestion failed: {e}")
-
+    
     elif source_choice == "SQL Database":
         st.sidebar.write("SQL Database options")
         db_conn_env = get_cred_value("DB_CONN")
@@ -670,7 +673,7 @@ def main():
                     df = ingest_database(conn_str, sql_query)
                 except Exception as e:
                     st.error(f"Database ingestion failed: {e}")
-
+    
     elif source_choice == "MongoDB":
         st.sidebar.write("MongoDB options")
         mongo_uri_env = get_cred_value("MONGO_URI")
@@ -689,7 +692,7 @@ def main():
                 df = ingest_mongodb(mongo_uri_ui or mongo_uri_env, mongo_db, mongo_coll, query=q)
             except Exception as e:
                 st.error(f"MongoDB ingestion failed: {e}")
-
+    
     elif source_choice == "Manual Entry":
         if not st.session_state.manual_saved:
             df = manual_log_entry()
@@ -704,11 +707,12 @@ def main():
             df = st.session_state.df
         if df is not None:
             print(df.dtypes)
-
+    
     # ---------------- Persist any loaded data ----------------
     if df is not None and source_choice != "Manual Entry":
         st.session_state.df = df
         st.session_state.raw_df = df
+
 # ----------------- Data Preview and downstream workflow -----------------
  
     # Ensure DataFrame from manual logs is captured
