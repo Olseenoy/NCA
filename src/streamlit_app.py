@@ -204,16 +204,6 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     return fig
 
 
-def extract_sheet_id(url_or_id: str) -> str:
-    """
-    Extracts the Google Sheet ID from a full URL or returns the string if it's already an ID.
-    """
-    match = re.search(r"/d/([a-zA-Z0-9-_]+)", url_or_id)
-    if match:
-        return match.group(1)
-    return url_or_id.strip()
-
-
 # --- Markdown → PDF flowable converter ---
 
 import re
@@ -547,7 +537,7 @@ def main():
                     st.error(f"Failed to write to .env: {e}")
 
     # ----------------- Ingestion UI per source -----------------
-    # ----------------- Ingestion UI per source -----------------
+# ----------------- Ingestion UI per source -----------------
     df = None
     st.sidebar.markdown("---")
     
@@ -572,6 +562,7 @@ def main():
         sa_path = get_cred_value("GOOGLE_SERVICE_ACCOUNT_JSON")
         api_key = get_cred_value("GOOGLE_API_KEY")
         use_service_account = st.sidebar.checkbox("Use service account JSON (preferred)", value=bool(sa_path))
+    
         if use_service_account:
             sa_input = st.sidebar.text_input("Service account JSON path (or leave to use env var)", value=sa_path or "")
             if st.sidebar.button("Load Google Sheet"):
@@ -588,10 +579,17 @@ def main():
             api_key_in = st.sidebar.text_input("Optional: Google API Key (for public sheets)", value=api_key or "")
             if st.sidebar.button("Load Google Sheet (CSV export)"):
                 try:
+                    def extract_sheet_id(url_or_id: str) -> str:
+                        if "/d/" in url_or_id:
+                            return url_or_id.split("/d/")[1].split("/")[0]
+                        return url_or_id
+    
                     sheet_id = extract_sheet_id(sheet_url)
-                    df = ingest_google_sheet(sheet_id, service_account_json_path=None, api_key=api_key_in)
+                    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid=0"
+                    df = pd.read_csv(csv_url)
                 except Exception as e:
                     st.error(f"Google Sheets CSV ingestion failed: {e}")
+
 
 
 
