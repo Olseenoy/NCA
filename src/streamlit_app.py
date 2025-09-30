@@ -557,7 +557,7 @@ def main():
     st.sidebar.markdown("---")
     
     if source_choice == "Upload File (CSV/Excel)":
-    uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
+        uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
     if uploaded:
         try:
             df = ingest_file(uploaded)
