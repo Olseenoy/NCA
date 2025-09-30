@@ -565,15 +565,6 @@ def main():
     df = None
     st.sidebar.markdown("---")
     
-    # Clear previous session data when switching source
-    if "last_source" not in st.session_state:
-        st.session_state.last_source = None
-    if st.session_state.last_source != source_choice:
-        for key in ["df", "raw_df", "uploaded_file_bytes"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.session_state.last_source = source_choice
-    
     # ---- Upload File ----
     if source_choice == "Upload File (CSV/Excel)":
         uploaded = st.sidebar.file_uploader("Upload CSV or Excel", type=['csv', 'xlsx', 'xls'])
@@ -585,17 +576,10 @@ def main():
                     st.session_state.raw_df = df
             except Exception as e:
                 st.error(f"File ingestion failed: {e}")
-
+    
     # Keep DataFrame across reruns
     if "df" in st.session_state and st.session_state.df is not None:
         df = st.session_state.df
-
-
-
-
-
-
-
     
     
     # ---- Google Sheets ----
