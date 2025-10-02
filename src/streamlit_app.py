@@ -579,7 +579,7 @@ def main():
         - 💰 **Increased cost of poor quality**  
         - ⚖️ **Inconsistent product compliance** across factories  
     
-        A smarter system is needed to **analyze non-conformance data**, **cluster similar issues**, and **suggest root causes** using data-driven insights.
+        Our smarter system is needed to **analyze non-conformance data**, **cluster similar issues**, and **suggest root causes** using data-driven insights.
         """)
 
     try:
