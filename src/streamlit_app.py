@@ -45,13 +45,23 @@ def inject_custom_css():
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
-        background-color: #007AC2; /* Blue */
-        color: black;
+        background-color: #F58220; /* Promasidor Orange */
+        color: white;
     }
     section[data-testid="stSidebar"] h1, 
     section[data-testid="stSidebar"] h2, 
     section[data-testid="stSidebar"] h3 {
         color: white;
+    }
+
+    /* ===== Sidebar Toggle (collapse/expand arrow) ===== */
+    button[kind="header"] {
+        background-color: transparent !important;
+        color: white !important;
+        border: none !important;
+    }
+    [data-testid="stSidebarCollapseControl"] {
+        color: white !important;
     }
 
     /* ===== Titles & Headers ===== */
@@ -119,16 +129,16 @@ def inject_custom_css():
         color: #007AC2; /* Blue */
     }
 
-    /* ===== Hide Streamlit Branding ===== */
+    /* ===== Hide Streamlit Branding (but keep toggle visible) ===== */
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
-    header { visibility: hidden; }
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
 
 # Call it at top
 inject_custom_css()
+
 
 # --------------------------
 # Fishbone Helpers
