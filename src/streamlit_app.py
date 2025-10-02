@@ -65,38 +65,6 @@ def inject_custom_css():
     }
 
     /* ===== Titles & Headers ===== */
-    def inject_custom_css():
-    css = """
-    <style>
-    /* ===== App Background ===== */
-    .stApp {
-        background: linear-gradient(135deg, #fffef7, #f7f9fe);
-    }
-
-    /* ===== Sidebar ===== */
-    section[data-testid="stSidebar"] {
-        background-color: #f58220; /* Orange sidebar */
-        color: white;
-    }
-
-    /* ===== Buttons ===== */
-    div.stButton > button {
-        background-color: #007AC2; /* Promasidor Blue */
-        color: white !important;
-        border-radius: 6px;
-        font-weight: 500;
-    }
-    div.stButton > button:hover {
-        background-color: #005a91 !important;
-    }
-
-    /* ===== Tables ===== */
-    .stDataFrame, .stTable {
-        border: 1px solid #E5E7EB;
-        border-radius: 8px;
-    }
-
-    /* ===== Titles & Headers ===== */
     h1, .stMarkdown h1, div[data-testid="stMarkdownContainer"] h1 {
         color: #007AC2 !important; /* Promasidor Blue */
         font-size: 40px !important;
@@ -107,23 +75,6 @@ def inject_custom_css():
         padding-bottom: 5px !important;
         margin-bottom: 20px !important;
     }
-    h2, .stMarkdown h2, div[data-testid="stMarkdownContainer"] h2 {
-        color: #F58220 !important; /* Orange */
-        font-size: 28px !important;
-        font-weight: 600 !important;
-        margin-top: 25px !important;
-    }
-    h3, .stMarkdown h3, div[data-testid="stMarkdownContainer"] h3 {
-        color: #007AC2 !important; /* Blue */
-        font-size: 22px !important;
-        font-weight: 500 !important;
-    }
-    </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
-
-# Call it once at top
-inject_custom_css()
 
     }
     h2 {
