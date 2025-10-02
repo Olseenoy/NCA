@@ -566,15 +566,61 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 
 # ----------------- Main App -----------------
 def main():
+    # Page config
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
-    col1, col2 = st.columns([2, 12])
-
-    with col1:
-        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=200)
     
-    with col2:
-        st.title('Smart Non-Conformance Analyzer')
-
+    # Inject CSS for sticky header
+    st.markdown(
+        """
+        <style>
+        .sticky-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: white; /* Match your app's background */
+            z-index: 9999;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    
+        /* Push main content below the header */
+        .main > div.block-container {
+            padding-top: 120px; /* Adjust based on header height */
+        }
+    
+        /* Optional: make logo and title vertically aligned */
+        .header-content {
+            display: flex;
+            align-items: center;
+        }
+    
+        .header-content h1 {
+            margin-left: 20px;
+            font-size: 2rem;
+        }
+    
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Sticky header content
+    st.markdown(
+        """
+        <div class="sticky-header">
+            <div class="header-content">
+                <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" width="80">
+                <h1>Smart Non-Conformance Analyzer</h1>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Example scrollable content
+    for i in range(50):
+        st.write(f"Line {i+1}")
 
     try:
         init_db()
