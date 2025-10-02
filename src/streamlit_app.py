@@ -618,10 +618,6 @@ def main():
         unsafe_allow_html=True
     )
     
-    # Example scrollable content
-    for i in range(50):
-        st.write(f"Line {i+1}")
-
     try:
         init_db()
     except Exception as e:
