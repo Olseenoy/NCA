@@ -1590,11 +1590,15 @@ def main():
                                     )
                     
                                     if fig_time:
+                                        # ✅ Display the chart
+                                        st.plotly_chart(fig_time, use_container_width=True)
+                    
+                                        # Save to session state (different keys)
                                         st.session_state["time_fig"] = fig_time
-                                        # store selections in a different key
                                         st.session_state["time_value_col_saved"] = value_col
                                         st.session_state["time_date_col_saved"] = time_col
-                                    
+                    
+                                        # Save as PNG
                                         time_chart_path = "time_series_trend.png"
                                         try:
                                             fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
@@ -1606,19 +1610,20 @@ def main():
                                         except Exception as e:
                                             st.warning(f"⚠️ Could not save time-series chart image: {e}")
                                             st.session_state["time_chart"] = None
-
+                    
                             except Exception as e:
                                 st.warning(f"⚠️ Error generating time-series: {e}")
                     
                         # --- Reset Logic ---
                         if reset_time:
-                            for key in ["time_fig", "time_col_saved", "time_date_col_saved", "time_chart", "time_summary"]:
+                            for key in ["time_fig", "time_value_col_saved", "time_date_col_saved", "time_chart", "time_summary"]:
                                 if key in st.session_state:
                                     del st.session_state[key]
                             st.success("Time-Series trend has been reset. Please run again.")
                     
                     else:
                         st.warning("No valid datetime and numeric column pair for time-series analysis.")
+
 
             
                     # --- Persistent display for Time-Series ---
