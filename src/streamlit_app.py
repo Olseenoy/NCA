@@ -33,92 +33,169 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 # ================================
 # Custom CSS Theme (merged with YXIR-style) & Toggle
 # ================================
-def inject_css():
-    css = """
-    <style>
-    /* ===== Base ===== */
-    body, .stApp {
-        margin: 0;
-        padding: 0;
-        font-family: "Inter", "Segoe UI", sans-serif;
-        background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
-        color: #1E293B;
-    }
+if "theme_choice" not in st.session_state:
+    st.session_state.theme_choice = "Light"
 
-    /* ===== Sidebar ===== */
-    section[data-testid="stSidebar"] {
-        background: #F97316; /* Promasidor Orange */
-        color: #ffffff;
-    }
-    section[data-testid="stSidebar"] .css-1lcbmhc,
-    section[data-testid="stSidebar"] .stTextInput > div > div > input,
-    section[data-testid="stSidebar"] .stTextArea textarea {
-        color: #ffffff !important;
-    }
+theme_choice = st.sidebar.radio("🎨 Theme", ["Light", "Dark"], index=0)
+st.session_state.theme_choice = theme_choice
 
-    /* ===== Headers ===== */
-    h1, h2, h3, h4 {
-        font-weight: 600;
-        color: #F97316; /* Orange headers */
-    }
+def inject_css(theme="Light"):
+    if theme == "Light":
+        css = """
+        <style>
+        /* ===== Base & YXIR-inspired ===== */
+        body, .stApp {
+          margin: 0; padding: 0;
+          font-family: "Inter", sans-serif;
+          color: #1E1E2D;
+          background-color: #FFFFFF;
+        }
 
-    /* ===== Buttons ===== */
-    div.stButton > button {
-        background-color: #0052D4; /* Promasidor Blue */
-        color: #ffffff;
-        border-radius: 6px;
-        border: none;
-        padding: 8px 18px;
-        font-weight: 500;
-        transition: background-color 0.3s ease;
-    }
-    div.stButton > button:hover {
-        background-color: #003C9E;
-        cursor: pointer;
-    }
+        .stApp {
+          background-color: #f9f9fb;
+        }
+        section[data-testid="stSidebar"] {
+          background-color: #2c3e50;
+          color: white;
+        }
 
-    /* ===== Cards / DataFrames ===== */
-    .stDataFrame, .stTable {
-        background-color: #ffffff;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        font-size: 14px;
-        color: #1E293B;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
+        /* ===== Headings ===== */
+        h1, h2, h3, h4 {
+          font-weight: 600;
+          color: #1E1E2D;
+        }
+        h1, h2, h3 { color: #2c3e50; }
 
-    /* ===== Metrics ===== */
-    div[data-testid="stMetricValue"] {
-        font-size: 22px;
-        font-weight: bold;
-        color: #0052D4;
-    }
+        /* ===== Buttons ===== */
+        div.stButton > button {
+          background-color: #0052D4;
+          color: white;
+          border-radius: 6px;
+          border: none;
+          padding: 8px 16px;
+          font-weight: 500;
+          transition: background-color 0.3s ease;
+        }
+        div.stButton > button:hover {
+          background-color: #003C9E;
+          cursor: pointer;
+        }
 
-    /* ===== Inputs ===== */
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stTextArea textarea {
-        border: 1px solid #CBD5E1;
-        border-radius: 6px;
-        padding: 6px;
-        background: #F8FAFC;
-        color: #1E293B;
-    }
-    .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div > select:focus,
-    .stTextArea textarea:focus {
-        border-color: #0052D4;
-        outline: none;
-    }
+        /* ===== Tables / DataFrames ===== */
+        .stDataFrame, .stTable {
+          background-color: #FFFFFF;
+          border: 1px solid #E5E7EB;
+          border-radius: 6px;
+          color: #1E1E2D;
+        }
 
-    /* ===== Hide Branding ===== */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    </style>
-    """
+        /* ===== Inputs ===== */
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stTextArea textarea {
+          border: 1px solid #D1D5DB;
+          border-radius: 4px;
+          padding: 6px;
+          color: #1E1E2D;
+        }
+
+        /* ===== Your custom CSS additions ===== */
+        .stDataFrame, .stTable {
+          font-size: 14px;
+        }
+        div[data-testid="stMetricValue"] {
+          font-size: 22px;
+          font-weight: bold;
+          color: #27ae60;
+        }
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stTextArea textarea {
+          border-radius: 6px;
+          border: 1px solid #ccc;
+          padding: 6px;
+        }
+
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+        header { visibility: hidden; }
+        </style>
+        """
+    else:
+        css = """
+        <style>
+        /* ===== Base & YXIR-inspired dark ===== */
+        body, .stApp {
+          margin: 0; padding: 0;
+          font-family: "Inter", sans-serif;
+          color: #f0f0f0;
+          background-color: #1e1e2f;
+        }
+
+        .stApp {
+          background-color: #1e1e2f;
+        }
+        section[data-testid="stSidebar"] {
+          background-color: #111827;
+          color: #e5e7eb;
+        }
+
+        /* ===== Headings ===== */
+        h1, h2, h3, h4 {
+          font-weight: 600;
+          color: #f5f5f5;
+        }
+        h1, h2, h3 { color: #60a5fa; }
+
+        /* ===== Buttons ===== */
+        div.stButton > button {
+          background-color: #3b82f6;
+          color: white;
+          border-radius: 6px;
+          border: none;
+          padding: 8px 16px;
+          font-weight: 500;
+          transition: background-color 0.3s ease;
+        }
+        div.stButton > button:hover {
+          background-color: #2563eb;
+          cursor: pointer;
+        }
+
+        /* ===== Tables / DataFrames ===== */
+        .stDataFrame, .stTable {
+          background-color: #1f2937;
+          border: 1px solid #374151;
+          border-radius: 6px;
+          color: #f3f4f6;
+        }
+
+        /* ===== Inputs ===== */
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stTextArea textarea {
+          border: 1px solid #4b5563;
+          border-radius: 4px;
+          padding: 6px;
+          background-color: #111827;
+          color: #f3f4f6;
+        }
+
+        /* ===== Custom additions ===== */
+        div[data-testid="stMetricValue"] {
+          font-size: 22px;
+          font-weight: bold;
+          color: #10b981;
+        }
+
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+        header { visibility: hidden; }
+        </style>
+        """
     st.markdown(css, unsafe_allow_html=True)
 
+inject_css(st.session_state.theme_choice)
 # --------------------------
 # Fishbone Helpers
 # --------------------------
