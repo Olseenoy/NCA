@@ -884,7 +884,7 @@ def main():
         st.session_state.df = df.copy()
         st.session_state.raw_df = df.copy()
 
-            if "df" in st.session_state and st.session_state["df"] is not None:
+    if "df" in st.session_state and st.session_state["df"] is not None:
         df = st.session_state["df"]
 
     # ✅ Show intro text only if still no data after ingestion
