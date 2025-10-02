@@ -1813,6 +1813,25 @@ def main():
                 elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles['Title']))
                 elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
                 elements.append(Spacer(1, 20))
+
+
+                # =====================
+                # Root Cause Analysis (RCA)
+                # =====================
+                if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
+                    elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
+                    for para in st.session_state["rca_pdf_content"]:
+                        elements.append(para)
+                    elements.append(Spacer(1, 20))
+
+
+                # =====================
+                # Fishbone Diagram
+                # =====================
+                if "fishbone_img" in st.session_state:
+                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
+                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
+                    elements.append(Spacer(1, 20))
             
                 # =====================
                 # Clustering
@@ -1895,23 +1914,7 @@ def main():
                     elements.append(Spacer(1, 20))
 
                
-                # =====================
-                # Root Cause Analysis (RCA)
-                # =====================
-                if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
-                    elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
-                    for para in st.session_state["rca_pdf_content"]:
-                        elements.append(para)
-                    elements.append(Spacer(1, 20))
 
-
-                # =====================
-                # Fishbone Diagram
-                # =====================
-                if "fishbone_img" in st.session_state:
-                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
-                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
-                    elements.append(Spacer(1, 20))
 
 
 
