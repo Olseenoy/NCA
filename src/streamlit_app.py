@@ -43,46 +43,49 @@ def inject_css(theme="Light"):
     if theme == "Light":
         css = """
         <style>
-        /* ===== Light Theme (Blue + Orange) ===== */
+        /* ===== Base (Light Theme) ===== */
         body, .stApp {
           margin: 0; padding: 0;
           font-family: "Inter", sans-serif;
-          background-color: #f8fafc;
-          color: #1e293b;
+          color: #1E1E2D;
+          background-color: #FFFFFF;
         }
 
+        .stApp {
+          background-color: #f9f9fb;
+        }
         section[data-testid="stSidebar"] {
-          background-color: #1d4ed8;  /* Company Blue */
-          color: #ffffff;
+          background-color: #007ac2; /* Promasidor Blue */
+          color: white;
         }
 
         /* ===== Headings ===== */
         h1, h2, h3, h4 {
           font-weight: 600;
-          color: #1e40af;
+          color: #007ac2; /* Blue headings */
         }
 
         /* ===== Buttons ===== */
         div.stButton > button {
-          background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+          background-color: #f58220; /* Promasidor Orange */
           color: white;
           border-radius: 6px;
           border: none;
           padding: 8px 16px;
           font-weight: 500;
-          transition: all 0.3s ease;
+          transition: background-color 0.3s ease;
         }
         div.stButton > button:hover {
-          background: linear-gradient(90deg, #f97316, #fb923c); /* Orange hover */
+          background-color: #d96d15; /* Darker orange */
           cursor: pointer;
         }
 
         /* ===== Tables / DataFrames ===== */
         .stDataFrame, .stTable {
-          background-color: #ffffff;
-          border: 1px solid #e2e8f0;
+          background-color: #FFFFFF;
+          border: 1px solid #E5E7EB;
           border-radius: 6px;
-          color: #1e293b;
+          color: #1E1E2D;
           font-size: 14px;
         }
 
@@ -90,18 +93,17 @@ def inject_css(theme="Light"):
         .stTextInput > div > div > input,
         .stSelectbox > div > div > select,
         .stTextArea textarea {
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
+          border: 1px solid #D1D5DB;
+          border-radius: 4px;
           padding: 6px;
-          background-color: #ffffff;
-          color: #1e293b;
+          color: #1E1E2D;
         }
 
         /* ===== Metrics ===== */
         div[data-testid="stMetricValue"] {
           font-size: 22px;
           font-weight: bold;
-          color: #f97316; /* Orange */
+          color: #007ac2;
         }
 
         /* ===== Hide Streamlit Branding ===== */
@@ -113,46 +115,49 @@ def inject_css(theme="Light"):
     else:
         css = """
         <style>
-        /* ===== Dark Theme (Blue + Orange Accents) ===== */
+        /* ===== Base (Dark Theme) ===== */
         body, .stApp {
           margin: 0; padding: 0;
           font-family: "Inter", sans-serif;
-          background-color: #0f172a;
-          color: #f1f5f9;
+          color: #f5f5f5;
+          background-color: #1e1e2f;
         }
 
+        .stApp {
+          background-color: #1e1e2f;
+        }
         section[data-testid="stSidebar"] {
-          background-color: #1e293b;
-          color: #e2e8f0;
+          background-color: #007ac2; /* Promasidor Blue */
+          color: white;
         }
 
         /* ===== Headings ===== */
         h1, h2, h3, h4 {
           font-weight: 600;
-          color: #60a5fa; /* Bright Blue */
+          color: #f58220; /* Orange for visibility */
         }
 
         /* ===== Buttons ===== */
         div.stButton > button {
-          background: linear-gradient(90deg, #2563eb, #3b82f6);
+          background-color: #007ac2; /* Blue button */
           color: white;
           border-radius: 6px;
           border: none;
           padding: 8px 16px;
           font-weight: 500;
-          transition: all 0.3s ease;
+          transition: background-color 0.3s ease;
         }
         div.stButton > button:hover {
-          background: linear-gradient(90deg, #f97316, #fb923c); /* Orange hover */
+          background-color: #005a91; /* Darker blue */
           cursor: pointer;
         }
 
         /* ===== Tables / DataFrames ===== */
         .stDataFrame, .stTable {
-          background-color: #1e293b;
+          background-color: #1f2937;
           border: 1px solid #374151;
           border-radius: 6px;
-          color: #f8fafc;
+          color: #f3f4f6;
           font-size: 14px;
         }
 
@@ -160,18 +165,18 @@ def inject_css(theme="Light"):
         .stTextInput > div > div > input,
         .stSelectbox > div > div > select,
         .stTextArea textarea {
-          border: 1px solid #475569;
-          border-radius: 6px;
+          border: 1px solid #4b5563;
+          border-radius: 4px;
           padding: 6px;
-          background-color: #0f172a;
-          color: #f8fafc;
+          background-color: #111827;
+          color: #f3f4f6;
         }
 
         /* ===== Metrics ===== */
         div[data-testid="stMetricValue"] {
           font-size: 22px;
           font-weight: bold;
-          color: #f97316; /* Orange */
+          color: #f58220;
         }
 
         /* ===== Hide Streamlit Branding ===== */
@@ -183,6 +188,7 @@ def inject_css(theme="Light"):
     st.markdown(css, unsafe_allow_html=True)
 
 inject_css(st.session_state.theme_choice)
+
 
 
 # --------------------------
