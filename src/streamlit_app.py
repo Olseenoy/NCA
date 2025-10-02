@@ -42,7 +42,7 @@ def inject_custom_css():
     }
     section[data-testid="stSidebar"] {
         background-color: #f58220; /* Orange sidebar */
-        color: white;
+        color: black;
     }
     div.stButton > button {
         background-color: #007ac2; /* Blue buttons */
