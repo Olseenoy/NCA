@@ -566,59 +566,14 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 
 # ----------------- Main App -----------------
 def main():
-    
-    st.set_page_config(page_title='Smart NC Analyzer', layout='wide', initial_sidebar_state='expanded')
-    
-    # --- CSS to position title/logo at the very top, near sidebar toggle ---
-    st.markdown(
-        """
-        <style>
-        /* Container for top header near sidebar toggle */
-        .top-header {
-            position: fixed;
-            top: 0;
-            left: 70px; /* adjust to align with sidebar toggle */
-            display: flex;
-            align-items: center;
-            height: 50px; 
-            z-index: 9999;
-            background: linear-gradient(135deg, #f5f7fa, #ffffff); /* match app background */
-            padding-left: 10px;
-        }
-    
-        .top-header img {
-            height: 40px; /* logo size */
-        }
-    
-        .top-header h1 {
-            font-size: 1.5rem;
-            margin-left: 10px;
-        }
-    
-        /* Push content down so it doesn't overlap */
-        .main > div.block-container {
-            padding-top: 60px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # --- Sticky top header HTML ---
-    st.markdown(
-        """
-        <div class="top-header">
-            <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png">
-            <h1>Smart Non-Conformance Analyzer</h1>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # --- Example scrollable content ---
-    for i in range(0):
-        st.write(f"Line {i+1}")
+    st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+    col1, col2 = st.columns([2, 12])
 
+    with col1:
+        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=200)
+    
+    with col2:
+        st.title('Smart Non-Conformance Analyzer')
 
     
     try:
