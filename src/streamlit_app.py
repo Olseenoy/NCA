@@ -1591,9 +1591,10 @@ def main():
                     
                                     if fig_time:
                                         st.session_state["time_fig"] = fig_time
-                                        st.session_state["time_col_saved"] = value_col     # ✅ renamed
-                                        st.session_state["time_date_col_saved"] = time_col # ✅ renamed
-                    
+                                        # store selections in a different key
+                                        st.session_state["time_value_col_saved"] = value_col
+                                        st.session_state["time_date_col_saved"] = time_col
+                                    
                                         time_chart_path = "time_series_trend.png"
                                         try:
                                             fig_time.write_image(time_chart_path, format="png", scale=2, engine="kaleido")
@@ -1605,6 +1606,7 @@ def main():
                                         except Exception as e:
                                             st.warning(f"⚠️ Could not save time-series chart image: {e}")
                                             st.session_state["time_chart"] = None
+
                             except Exception as e:
                                 st.warning(f"⚠️ Error generating time-series: {e}")
                     
