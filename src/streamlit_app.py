@@ -580,9 +580,9 @@ def main():
             width: auto;     /* auto to fit content */
             background-color: linear-gradient(135deg, #f5f7fa, #ffffff);  /* MATCH APP GRADIENT */
             z-index: 9999;
-            padding: 10px 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-radius: 8px;
+            padding: 0;      /* remove padding */
+            box-shadow: none; /* remove shadow */
+            border-radius: 0; /* remove border radius */
         }
     
         /* Adjust the content inside header */
