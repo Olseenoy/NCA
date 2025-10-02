@@ -89,7 +89,7 @@ def inject_custom_css():
 
     /* ===== Buttons ===== */
     div.stButton > button {
-        background-color: #0052D4;  /* a strong blue as primary color */
+        background-color: #011d6f;  /* a strong blue as primary color */
         color: white;
         border-radius: 6px;
         border: none;
