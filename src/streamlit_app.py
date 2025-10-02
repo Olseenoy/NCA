@@ -576,7 +576,7 @@ def main():
         .sticky-header {
             position: fixed;
             top: 20px;       /* Adjust UP/DOWN */
-            left: 400px;      /* Adjust LEFT/RIGHT */
+            left: 300px;      /* Adjust LEFT/RIGHT */
             width: auto;     /* auto to fit content */
             background-color: white;
             z-index: 9999;
