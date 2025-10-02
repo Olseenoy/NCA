@@ -566,58 +566,58 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 
 # ----------------- Main App -----------------
 def main():
-
-    st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     
-    # --- CSS for sticky header with adjustable position ---
+    st.set_page_config(page_title='Smart NC Analyzer', layout='wide', initial_sidebar_state='expanded')
+    
+    # --- CSS to position title/logo at the very top, near sidebar toggle ---
     st.markdown(
         """
         <style>
-        .sticky-header {
+        /* Container for top header near sidebar toggle */
+        .top-header {
             position: fixed;
-            top: 50px;       /* Adjust UP/DOWN */
-            left: 300px;      /* Adjust LEFT/RIGHT */
-            width: auto;     /* auto to fit content */
-            background-color: linear-gradient(135deg, #f5f7fa, #ffffff);  /* MATCH APP GRADIENT */
-            z-index: 9999;
-            padding: 0;      /* remove padding */
-            box-shadow: none; /* remove shadow */
-            border-radius: 0; /* remove border radius */
-        }
-    
-        /* Adjust the content inside header */
-        .header-content {
+            top: 0;
+            left: 70px; /* adjust to align with sidebar toggle */
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* change to flex-end / center as you like */
+            height: 50px; 
+            z-index: 9999;
+            background: linear-gradient(135deg, #f5f7fa, #ffffff); /* match app background */
+            padding-left: 10px;
         }
     
-        .header-content h1 {
-            margin-left: 15px;  /* spacing between logo and title */
-            font-size: 1.8rem;
+        .top-header img {
+            height: 40px; /* logo size */
         }
     
-        /* Push page content down so it doesn't overlap header */
+        .top-header h1 {
+            font-size: 1.5rem;
+            margin-left: 10px;
+        }
+    
+        /* Push content down so it doesn't overlap */
         .main > div.block-container {
-            padding-top: 150px;  /* adjust based on header height */
+            padding-top: 60px;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
     
-    # --- Sticky header HTML ---
+    # --- Sticky top header HTML ---
     st.markdown(
         """
-        <div class="sticky-header">
-            <div class="header-content">
-                <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" width="100">
-                <h1>Smart Non-Conformance Analyzer</h1>
-            </div>
+        <div class="top-header">
+            <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png">
+            <h1>Smart Non-Conformance Analyzer</h1>
         </div>
         """,
         unsafe_allow_html=True
     )
+    
+    # --- Example scrollable content ---
+    for i in range(0):
+        st.write(f"Line {i+1}")
 
 
     
