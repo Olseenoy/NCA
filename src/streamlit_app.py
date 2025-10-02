@@ -576,20 +576,6 @@ def main():
         st.title('Smart Non-Conformance Analyzer')
 
 
-    # ✅ Show intro text only if no data is loaded yet
-    if 'df' not in st.session_state or st.session_state.get("df") is None:
-        st.markdown("""
-        In a **multi-factory production environment**, recurring quality non-conformances are often reported across different lines, shifts, or locations.  
-        While current systems capture incident data, they fall short in connecting patterns or uncovering deeper root causes, leading to:  
-    
-        - ⏱ **Delayed resolution** of product defects  
-        - 🔁 **Redundant corrective actions**  
-        - 💰 **Increased cost of poor quality**  
-        - ⚖️ **Inconsistent product compliance** across factories  
-    
-        Our smarter system is needed to **analyze non-conformance data**, **cluster similar issues**, and **suggest root causes** using data-driven insights.
-        """)
-
     try:
         init_db()
     except Exception as e:
@@ -897,6 +883,23 @@ def main():
     if df is not None and source_choice != "Manual Entry":
         st.session_state.df = df.copy()
         st.session_state.raw_df = df.copy()
+
+            if "df" in st.session_state and st.session_state["df"] is not None:
+        df = st.session_state["df"]
+
+    # ✅ Show intro text only if still no data after ingestion
+    if df is None:
+        st.markdown("""
+        In a **multi-factory production environment**, recurring quality non-conformances are often reported across different lines, shifts, or locations.  
+        While current systems capture incident data, they fall short in connecting patterns or uncovering deeper root causes, leading to:  
+    
+        - ⏱ **Delayed resolution** of product defects  
+        - 🔁 **Redundant corrective actions**  
+        - 💰 **Increased cost of poor quality**  
+        - ⚖️ **Inconsistent product compliance** across factories  
+    
+        Our smarter system is needed to **analyze non-conformance data**, **cluster similar issues**, and **suggest root causes** using data-driven insights.
+        """)
 
 
 # ----------------- Data Preview and downstream workflow -----------------
