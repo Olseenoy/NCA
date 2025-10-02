@@ -567,10 +567,10 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 # ----------------- Main App -----------------
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 12])
 
     with col1:
-        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=80)
+        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=150)
     
     with col2:
         st.title('Smart Non-Conformance Analyzer')
