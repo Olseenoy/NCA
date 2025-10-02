@@ -1099,7 +1099,6 @@ def main():
                "cluster_metrics" in st.session_state and \
                "cluster_fig" in st.session_state:
                 
-                st.subheader("Clustering & Visualizations")
                 st.success(st.session_state['cluster_text'])
                 st.info(st.session_state['cluster_metrics']["interpretation"])
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
