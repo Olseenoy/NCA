@@ -888,7 +888,7 @@ def main():
         df = st.session_state["df"]
 
     # ✅ Show intro text only if still no data after ingestion
-    if df is None:
+    if df is None and source_choice != "Manual Entry":
         st.markdown("""
         In a **multi-factory production environment**, recurring quality non-conformances are often reported across different lines, shifts, or locations.  
         While current systems capture incident data, they fall short in connecting patterns or uncovering deeper root causes, leading to:  
