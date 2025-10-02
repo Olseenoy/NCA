@@ -565,6 +565,7 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 
 
 # ----------------- Main App -----------------
+from PIL import Image
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     # Load your logo
