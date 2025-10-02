@@ -568,17 +568,19 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     st.title('Smart Non-Conformance Analyzer')
-    st.markdown("""
-    In a **multi-factory production environment**, recurring quality non-conformances are often reported across different lines, shifts, or locations.  
-    While current systems capture incident data, they fall short in connecting patterns or uncovering deeper root causes, leading to:  
+    # ✅ Show intro text only if no data is loaded yet
+    if 'df' not in st.session_state or st.session_state.get("df") is None:
+        st.markdown("""
+        In a **multi-factory production environment**, recurring quality non-conformances are often reported across different lines, shifts, or locations.  
+        While current systems capture incident data, they fall short in connecting patterns or uncovering deeper root causes, leading to:  
     
-    - ⏱ **Delayed resolution** of product defects  
-    - 🔁 **Redundant corrective actions**  
-    - 💰 **Increased cost of poor quality**  
-    - ⚖️ **Inconsistent product compliance** across factories  
+        - ⏱ **Delayed resolution** of product defects  
+        - 🔁 **Redundant corrective actions**  
+        - 💰 **Increased cost of poor quality**  
+        - ⚖️ **Inconsistent product compliance** across factories  
     
-    A smarter system is needed to **analyze non-conformance data**, **cluster similar issues**, and **suggest root causes** using data-driven insights.
-    """)
+        A smarter system is needed to **analyze non-conformance data**, **cluster similar issues**, and **suggest root causes** using data-driven insights.
+        """)
 
     try:
         init_db()
