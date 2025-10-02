@@ -45,7 +45,7 @@ def inject_custom_css():
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
-        background-color: #F58220; /* Promasidor Orange */
+        background-color: #007AC2; /* Blue */
         color: black;
     }
     section[data-testid="stSidebar"] h1, 
