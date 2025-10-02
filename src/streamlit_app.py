@@ -36,32 +36,100 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 def inject_custom_css():
     css = """
     <style>
-    /* Example CSS */
+    /* ===== App Background ===== */
     .stApp {
-        background: linear-gradient(135deg, #fffef7, #f7f9fe);
+        background: linear-gradient(135deg, #f5f7fa, #ffffff);
+        font-family: "Segoe UI", "Inter", sans-serif;
+        color: #1E1E2D;
     }
+
+    /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
-        background-color: #f58220; /* Orange sidebar */
+        background-color: #F58220; /* Promasidor Orange */
         color: black;
     }
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: white;
+    }
+
+    /* ===== Titles & Headers ===== */
+    h1 {
+        color: #007AC2; /* Promasidor Blue */
+        font-size: 40px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 3px solid #F58220; /* Orange underline */
+        padding-bottom: 5px;
+        margin-bottom: 20px;
+    }
+    h2 {
+        color: #F58220; /* Orange */
+        font-size: 28px;
+        font-weight: 600;
+        margin-top: 25px;
+    }
+    h3 {
+        color: #007AC2; /* Blue */
+        font-size: 22px;
+        font-weight: 500;
+    }
+
+    /* ===== Buttons ===== */
     div.stButton > button {
-        background-color: #007ac2; /* Blue buttons */
+        background-color: #007AC2; /* Blue */
         color: white;
         border-radius: 6px;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
     }
     div.stButton > button:hover {
         background-color: #005a91;
+        cursor: pointer;
     }
+
+    /* ===== DataFrames & Tables ===== */
     .stDataFrame, .stTable {
+        background-color: #FFFFFF;
         border: 1px solid #E5E7EB;
         border-radius: 8px;
+        font-size: 14px;
+        color: #1E1E2D;
     }
+
+    /* ===== Inputs ===== */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select,
+    .stTextArea textarea {
+        border: 1px solid #D1D5DB;
+        border-radius: 4px;
+        padding: 6px;
+        color: #1E1E2D;
+        background-color: #fff;
+    }
+
+    /* ===== Metrics ===== */
+    div[data-testid="stMetricValue"] {
+        font-size: 22px;
+        font-weight: bold;
+        color: #007AC2; /* Blue */
+    }
+
+    /* ===== Hide Streamlit Branding ===== */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
+    header { visibility: hidden; }
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
 
 # Call it at top
 inject_custom_css()
+
 # --------------------------
 # Fishbone Helpers
 # --------------------------
