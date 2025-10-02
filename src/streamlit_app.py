@@ -66,7 +66,7 @@ def inject_custom_css():
 
     /* ===== Titles & Headers ===== */
     h1, .stMarkdown h1, div[data-testid="stMarkdownContainer"] h1 {
-        color: #007AC2 !important; /* Promasidor Blue */
+        color: #011d6f !important; /* Promasidor Blue */
         font-size: 40px !important;
         font-weight: 700 !important;
         text-transform: uppercase !important;
