@@ -45,8 +45,8 @@ def inject_custom_css():
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
-        background-color: #F58220; /* Promasidor Orange */
-        color: white;
+        background-color: #0052D4;  /* a strong blue as primary color */
+        color: black;
     }
     section[data-testid="stSidebar"] h1, 
     section[data-testid="stSidebar"] h2, 
@@ -89,7 +89,7 @@ def inject_custom_css():
 
     /* ===== Buttons ===== */
     div.stButton > button {
-        background-color: #007AC2; /* Blue */
+        background-color: #0052D4;  /* a strong blue as primary color */
         color: white;
         border-radius: 6px;
         border: none;
