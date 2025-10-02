@@ -611,7 +611,7 @@ def main():
         """
         <div class="sticky-header">
             <div class="header-content">
-                <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" width="80">
+                <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" width="100">
                 <h1>Smart Non-Conformance Analyzer</h1>
             </div>
         </div>
