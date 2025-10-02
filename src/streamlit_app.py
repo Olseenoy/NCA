@@ -570,7 +570,7 @@ def main():
     col1, col2 = st.columns([1, 12])
 
     with col1:
-        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=150)
+        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=200)
     
     with col2:
         st.title('Smart Non-Conformance Analyzer')
