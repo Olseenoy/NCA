@@ -701,7 +701,7 @@ def main():
                     st.error(f"Failed to write to .env: {e}")
     
     # ----------------- Ingestion UI per source -----------------
-    df = st.session_state.get("df")
+    df = None
     st.sidebar.markdown("---")
     
     # ---- Upload File ----
