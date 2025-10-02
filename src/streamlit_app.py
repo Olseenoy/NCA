@@ -566,6 +566,7 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 
 # ----------------- Main App -----------------
 def main():
+
     # Page config
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     
@@ -578,7 +579,7 @@ def main():
             top: 0;
             left: 0;
             width: 100%;
-            background-color: white; /* Match your app's background */
+            background-color: white; 
             z-index: 9999;
             padding: 10px 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -589,10 +590,11 @@ def main():
             padding-top: 120px; /* Adjust based on header height */
         }
     
-        /* Optional: make logo and title vertically aligned */
+        /* Align logo and title to the right */
         .header-content {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
         }
     
         .header-content h1 {
@@ -605,7 +607,7 @@ def main():
         unsafe_allow_html=True
     )
     
-    # Sticky header content
+    # Sticky header content (logo + title on the right)
     st.markdown(
         """
         <div class="sticky-header">
@@ -617,6 +619,9 @@ def main():
         """,
         unsafe_allow_html=True
     )
+    
+
+
     
     try:
         init_db()
