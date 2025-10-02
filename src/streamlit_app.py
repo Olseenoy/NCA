@@ -45,8 +45,8 @@ def inject_custom_css():
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
-        background-color: #FFFFFF; /* white sidebar */
-        color: #1E1E2D;
+        background-color: #1b4383; /* blue sidebar */
+        color: black;
     }
     section[data-testid="stSidebar"] h1, 
     section[data-testid="stSidebar"] h2, 
