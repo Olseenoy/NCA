@@ -567,47 +567,46 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 # ----------------- Main App -----------------
 def main():
 
-    # Page config
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
     
-    # Inject CSS for sticky header
+    # --- CSS for sticky header with adjustable position ---
     st.markdown(
         """
         <style>
         .sticky-header {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: white; 
+            top: 20px;       /* Adjust UP/DOWN */
+            left: 50px;      /* Adjust LEFT/RIGHT */
+            width: auto;     /* auto to fit content */
+            background-color: white;
             z-index: 9999;
             padding: 10px 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
     
-        /* Push main content below the header */
-        .main > div.block-container {
-            padding-top: 120px; /* Adjust based on header height */
-        }
-    
-        /* Align logo and title to the right */
+        /* Adjust the content inside header */
         .header-content {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: flex-start; /* change to flex-end / center as you like */
         }
     
         .header-content h1 {
-            margin-left: 20px;
-            font-size: 2rem;
+            margin-left: 15px;  /* spacing between logo and title */
+            font-size: 1.8rem;
         }
     
+        /* Push page content down so it doesn't overlap header */
+        .main > div.block-container {
+            padding-top: 150px;  /* adjust based on header height */
+        }
         </style>
         """,
         unsafe_allow_html=True
     )
     
-    # Sticky header content (logo + title on the right)
+    # --- Sticky header HTML ---
     st.markdown(
         """
         <div class="sticky-header">
@@ -619,7 +618,6 @@ def main():
         """,
         unsafe_allow_html=True
     )
-    
 
 
     
