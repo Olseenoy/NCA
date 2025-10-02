@@ -578,7 +578,7 @@ def main():
             top: 50px;       /* Adjust UP/DOWN */
             left: 300px;      /* Adjust LEFT/RIGHT */
             width: auto;     /* auto to fit content */
-            background-color: white;
+            background-color: linear-gradient(135deg, #f5f7fa, #ffffff);  /* MATCH APP GRADIENT */
             z-index: 9999;
             padding: 10px 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
