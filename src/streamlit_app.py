@@ -30,7 +30,97 @@ from rca_engine import ai_rca_with_fallback
 from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 
 
+# ================================
+# Custom CSS Theme (with toggle)
+# ================================
 
+if "theme_choice" not in st.session_state:
+    st.session_state.theme_choice = "Light"
+
+# Sidebar theme selector
+theme_choice = st.sidebar.radio("🎨 Theme", ["Light", "Dark"], index=0)
+st.session_state.theme_choice = theme_choice
+
+def inject_css(theme="Light"):
+    if theme == "Light":
+        css = """
+        <style>
+        .stApp {
+            background-color: #f9f9fb;
+            font-family: "Segoe UI", sans-serif;
+            color: #333333;
+        }
+        section[data-testid="stSidebar"] {
+            background-color: #2c3e50;
+            color: white;
+        }
+        h1, h2, h3 { color: #2c3e50; font-weight: 600; }
+        div.stButton > button {
+            background-color: #3498db;
+            color: white; border-radius: 8px;
+            padding: 8px 16px; font-weight: 500;
+            border: none; transition: background-color 0.3s ease;
+        }
+        div.stButton > button:hover { background-color: #2980b9; cursor: pointer; }
+        .stDataFrame, .stTable {
+            border: 1px solid #ddd; border-radius: 8px;
+            font-size: 14px; color: #2c3e50; background-color: white;
+        }
+        div[data-testid="stMetricValue"] {
+            font-size: 22px; font-weight: bold; color: #27ae60;
+        }
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stTextArea textarea {
+            border-radius: 6px; border: 1px solid #ccc; padding: 6px;
+        }
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+    else:  # Dark theme
+        css = """
+        <style>
+        .stApp {
+            background-color: #1e1e2f;
+            font-family: "Segoe UI", sans-serif;
+            color: #f0f0f0;
+        }
+        section[data-testid="stSidebar"] {
+            background-color: #111827;
+            color: #e5e7eb;
+        }
+        h1, h2, h3 { color: #60a5fa; font-weight: 600; }
+        div.stButton > button {
+            background-color: #3b82f6;
+            color: white; border-radius: 8px;
+            padding: 8px 16px; font-weight: 500;
+            border: none; transition: background-color 0.3s ease;
+        }
+        div.stButton > button:hover { background-color: #2563eb; cursor: pointer; }
+        .stDataFrame, .stTable {
+            border: 1px solid #374151; border-radius: 8px;
+            font-size: 14px; color: #f3f4f6; background-color: #1f2937;
+        }
+        div[data-testid="stMetricValue"] {
+            font-size: 22px; font-weight: bold; color: #10b981;
+        }
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stTextArea textarea {
+            border-radius: 6px; border: 1px solid #4b5563; padding: 6px;
+            background-color: #111827; color: #f3f4f6;
+        }
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+    st.markdown(css, unsafe_allow_html=True)
+
+# Inject CSS at startup
+inject_css(st.session_state.theme_choice)
 
 # --------------------------
 # Fishbone Helpers
