@@ -33,7 +33,35 @@ from visualization import rule_based_rca_fallback, visualize_fishbone_plotly
 # ================================
 # Custom CSS Theme (merged with YXIR-style) & Toggle
 # ================================
+def inject_custom_css():
+    css = """
+    <style>
+    /* Example CSS */
+    .stApp {
+        background: linear-gradient(135deg, #fffef7, #f7f9fe);
+    }
+    section[data-testid="stSidebar"] {
+        background-color: #f58220; /* Orange sidebar */
+        color: white;
+    }
+    div.stButton > button {
+        background-color: #007ac2; /* Blue buttons */
+        color: white;
+        border-radius: 6px;
+    }
+    div.stButton > button:hover {
+        background-color: #005a91;
+    }
+    .stDataFrame, .stTable {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+    }
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
 
+# Call it at top
+inject_custom_css()
 # --------------------------
 # Fishbone Helpers
 # --------------------------
