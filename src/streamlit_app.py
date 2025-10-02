@@ -565,17 +565,14 @@ def save_creds_to_env(new_creds: dict, env_path: Optional[str] = None):
 
 
 # ----------------- Main App -----------------
-from PIL import Image
 def main():
     st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
-    # Load your logo
-    logo_path = "smart2.png"  # Make sure it's in your working dir or uploaded
-    
-    # Title + Logo inline
-    col1, col2 = st.columns([0.15, 0.85])  # adjust ratio
+    col1, col2 = st.columns([1, 6])
+
     with col1:
-        st.image(logo_path, use_container_width=True)
-    with col2: 
+        st.image("https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png", width=80)
+    
+    with col2:
         st.title('Smart Non-Conformance Analyzer')
 
 
