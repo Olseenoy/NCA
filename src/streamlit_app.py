@@ -1219,8 +1219,11 @@ def main():
                     recurring_df["Issue"] = recurring_df["Issue"].apply(
                         lambda x: "<br>".join(textwrap.wrap(x, width=80))
                     )
-                    # ✅ Use markdown to allow wrapped HTML display
-                    st.markdown(recurring_df.to_html(escape=False, index=True), unsafe_allow_html=True)
+                    # ✅ Reset index so "S/N" shows in same header row
+                    recurring_df = recurring_df.reset_index()
+
+                    # ✅ Render HTML table with wrapping
+                    st.markdown(recurring_df.to_html(escape=False, index=False), unsafe_allow_html=True)
                       
 
             
