@@ -1793,7 +1793,7 @@ def main():
                     if raw_text:
                         st.markdown("**AI RCA Report:**")
                         st.markdown(raw_text)
-            
+        
                         # Convert AI markdown into structured flowables (headings, lists, tables)
                         converted_content = convert_markdown_to_pdf_content(raw_text, styles)
                         st.session_state["rca_pdf_content"] = converted_content
