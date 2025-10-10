@@ -1860,9 +1860,8 @@ def main():
                     for para in st.session_state["rca_pdf_content"]:
                         elements.append(para)
                         
-                        # Check if this paragraph is the RCA report header line
-                        if "Root Cause Analysis (RCA) Report" in para.text:
-                            # Insert Fishbone Diagram immediately after
+                        # Insert Fishbone Diagram immediately after the RCA Report line
+                        if "Root Cause Analysis (RCA) Report" in para.getPlainText():
                             if "fishbone_img" in st.session_state:
                                 elements.append(Spacer(1, 10))
                                 elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
@@ -1871,11 +1870,12 @@ def main():
                     
                     elements.append(Spacer(1, 20))
                 
-                # (Optional fallback: if RCA content not present, still show Fishbone at the end)
+                # (Optional fallback)
                 elif "fishbone_img" in st.session_state:
                     elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
                     elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
                     elements.append(Spacer(1, 20))
+
 
                 
                 # =====================
