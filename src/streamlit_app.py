@@ -1851,6 +1851,16 @@ def main():
                 elements.append(Spacer(1, 20))
 
 
+
+                
+                # =====================
+                # Fishbone Diagram
+                # =====================
+                if "fishbone_img" in st.session_state:
+                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
+                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
+                    elements.append(Spacer(1, 20))
+            
                 # =====================
                 # Root Cause Analysis (RCA)
                 # =====================
@@ -1861,14 +1871,6 @@ def main():
                     elements.append(Spacer(1, 20))
 
 
-                # =====================
-                # Fishbone Diagram
-                # =====================
-                if "fishbone_img" in st.session_state:
-                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
-                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
-                    elements.append(Spacer(1, 20))
-            
                 # =====================
                 # Clustering
                 # =====================
