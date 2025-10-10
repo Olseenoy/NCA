@@ -1192,12 +1192,10 @@ def main():
          
             # ---------------------------
             # Pareto chart from recurring issues table
-           # ---------------------------
-            # --- Recurring Issues & Pareto ---
+            # ---------------------------
             # --- Recurring Issues & Pareto ---
             from PIL import Image as PILImage
-            import textwrap  # <-- add this import near your other imports
-            
+
             st.subheader("Recurring Issues & Pareto Analysis")
             
             p = st.session_state.get("processed")
@@ -1214,19 +1212,8 @@ def main():
                     recurring_df.index.name = "S/N"
             
                     st.markdown(" ")
-            
-                    # ✅ Add these lines before displaying the table
-                    recurring_df["Issue"] = recurring_df["Issue"].apply(
-                        lambda x: "<br>".join(textwrap.wrap(x, width=80))
-                    )
-                    # ✅ Reset index so "S/N" shows in same header row
-                    recurring_df = recurring_df.reset_index()
+                    st.table(recurring_df)
 
-                    # ✅ Render HTML table with wrapping
-                    st.markdown(recurring_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-                      
-
-            
                         
                     # --- Pareto Table from Recurring Issues ---
                     pareto_df = recurring_df.copy()
@@ -1934,24 +1921,9 @@ def main():
                 # =====================
                 if "pareto_summary" in st.session_state:
                     elements.append(Paragraph("Pareto Analysis", styles['Heading2']))
-                
-                    # ✅ Safely clean or fix the pareto_summary before adding to PDF
-                    pareto_text = st.session_state["pareto_summary"]
-                
-                    # Replace <br> with <br/> to make it XML-compliant for ReportLab
-                    pareto_text = pareto_text.replace("<br>", "<br/>")
-                
-                    # Optionally strip any other unsupported tags
-                    from bs4 import BeautifulSoup
-                    pareto_text = BeautifulSoup(pareto_text, "html.parser").get_text()
-                
-                    # Add to PDF safely
-                    elements.append(Paragraph(pareto_text, styles['Normal']))
-                
-                    # Add Pareto chart if available
+                    elements.append(Paragraph(st.session_state["pareto_summary"], styles['Normal']))
                     if "pareto_chart" in st.session_state:
                         elements.append(rgb_image_for_pdf(st.session_state["pareto_chart"]))
-                
                     elements.append(Spacer(1, 20))
                 
                             
