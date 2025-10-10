@@ -264,11 +264,11 @@ def visualize_fishbone_plotly(categories, wrap_width=25):
     # Branch positions
     branches = {
         "Man": (2, 1),
-        "Machine": (4, 1),
-        "Method": (6, 1),
-        "Material": (8, 1),
-        "Measurement": (3, -1),
-        "Environment": (7, -1)
+        "Machine": (5, 1),
+        "Method": (8, 1),
+        "Material": (2.5, -1),
+        "Measurement": (5.5, -1),
+        "Environment": (8.5, -1)
     }
 
     for cat, (x, y) in branches.items():
