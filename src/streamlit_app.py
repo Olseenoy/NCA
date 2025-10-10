@@ -1221,11 +1221,20 @@ def main():
                     pareto_df["Cumulative %"] = pareto_df["Percent"].cumsum().round(2)
             
                     # --- Save tables for PDF ---
+                    import textwrap
+
+                    # --- Save tables for PDF ---
                     st.session_state["recurring_issues_df"] = recurring_df
                     st.session_state["pareto_df"] = pareto_df
+                    
+                    # ✅ Wrap the top issue text to avoid overflow in PDF
+                    top_issue = pareto_df.iloc[0]['Issue']
+                    wrapped_issue = textwrap.fill(str(top_issue), width=90)  # adjust width as needed
+                    
                     st.session_state["pareto_summary"] = (
-                        f"Top recurring issues Pareto analysis completed. Top issue: {pareto_df.iloc[0]['Issue']}."
+                        f"Top recurring issues Pareto analysis completed. Top issue: {wrapped_issue}"
                     )
+
             
                     # --- Plot Pareto using Plotly ---
                     import plotly.graph_objects as go
