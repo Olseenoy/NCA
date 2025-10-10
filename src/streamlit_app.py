@@ -1850,7 +1850,32 @@ def main():
                 elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
                 elements.append(Spacer(1, 20))
 
-
+                
+                # =====================
+                # Root Cause Analysis (RCA)
+                # =====================
+                if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
+                    elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
+                    
+                    for para in st.session_state["rca_pdf_content"]:
+                        elements.append(para)
+                        
+                        # Check if this paragraph is the RCA report header line
+                        if "Root Cause Analysis (RCA) Report" in para.text:
+                            # Insert Fishbone Diagram immediately after
+                            if "fishbone_img" in st.session_state:
+                                elements.append(Spacer(1, 10))
+                                elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
+                                elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
+                                elements.append(Spacer(1, 20))
+                    
+                    elements.append(Spacer(1, 20))
+                
+                # (Optional fallback: if RCA content not present, still show Fishbone at the end)
+                elif "fishbone_img" in st.session_state:
+                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
+                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
+                    elements.append(Spacer(1, 20))
 
                 
                 # =====================
