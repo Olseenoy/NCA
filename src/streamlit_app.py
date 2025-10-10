@@ -1851,34 +1851,27 @@ def main():
                 elements.append(Spacer(1, 20))
 
                                 
+
                 # =====================
-                # Root Cause Analysis (RCA) Title & Issue
-                # =====================
-                elements.append(Paragraph("Root Cause Analysis (RCA) Report", styles['Heading1']))
-                
-                # The issue text is dynamically generated elsewhere and stored in session_state
-                if "issue_statement" in st.session_state and st.session_state["issue_statement"]:
-                    elements.append(Paragraph(f"Issue: {st.session_state['issue_statement']}", styles['Normal']))
-                    elements.append(Spacer(1, 20))
-                
-                # =====================
-                # Fishbone Diagram (moved here — right after issue)
-                # =====================
-                if "fishbone_img" in st.session_state:
-                    elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
-                    elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
-                    elements.append(Spacer(1, 20))
-                
-                # =====================
-                # Root Cause Analysis (RCA) Content
+                # Root Cause Analysis (RCA)
                 # =====================
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
+                
                     for para in st.session_state["rca_pdf_content"]:
+                        # Add each paragraph
                         elements.append(para)
+                
+                        # Check if this paragraph contains "Issue" (case-insensitive)
+                        if hasattr(para, 'text') and "issue" in para.text.lower():
+                            # Immediately insert the Fishbone Diagram after the Issue
+                            if "fishbone_img" in st.session_state:
+                                elements.append(Spacer(1, 10))
+                                elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
+                                elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
+                                elements.append(Spacer(1, 20))
+                
                     elements.append(Spacer(1, 20))
-
-
 
                 
                 # =====================
