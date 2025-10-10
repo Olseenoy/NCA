@@ -306,12 +306,12 @@ def visualize_fishbone_plotly(categories):
 
     # Define branch positions (approximate fishbone style)
     branches = {
-        "Man": (2, 1),
+        "Man": (1, 1),
         "Machine": (4, 1),
         "Method": (6, 1),
-        "Material": (8, 1),
-        "Measurement": (3, -1),
-        "Environment": (7, -1)
+        "Material": (1.5, -1),
+        "Measurement": (4.5, -1),
+        "Environment": (6.5, -1)
     }
 
     # Add branches + causes
