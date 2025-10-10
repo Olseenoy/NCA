@@ -1929,13 +1929,32 @@ def main():
                 # =====================
                 # Pareto
                 # =====================
+                # =====================
+                # Pareto
+                # =====================
                 if "pareto_summary" in st.session_state:
                     elements.append(Paragraph("Pareto Analysis", styles['Heading2']))
-                    elements.append(Paragraph(st.session_state["pareto_summary"], styles['Normal']))
+                
+                    # ✅ Safely clean or fix the pareto_summary before adding to PDF
+                    pareto_text = st.session_state["pareto_summary"]
+                
+                    # Replace <br> with <br/> to make it XML-compliant for ReportLab
+                    pareto_text = pareto_text.replace("<br>", "<br/>")
+                
+                    # Optionally strip any other unsupported tags
+                    from bs4 import BeautifulSoup
+                    pareto_text = BeautifulSoup(pareto_text, "html.parser").get_text()
+                
+                    # Add to PDF safely
+                    elements.append(Paragraph(pareto_text, styles['Normal']))
+                
+                    # Add Pareto chart if available
                     if "pareto_chart" in st.session_state:
                         elements.append(rgb_image_for_pdf(st.session_state["pareto_chart"]))
+                
                     elements.append(Spacer(1, 20))
-            
+                
+                            
                 # =====================
                 # SPC
                 # =====================
