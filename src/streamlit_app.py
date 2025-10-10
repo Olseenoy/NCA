@@ -1910,6 +1910,9 @@ def main():
                     recurring_df = st.session_state["recurring_issues_df"]
                 
                     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+                    from reportlab.lib import pagesizes
+                    doc = SimpleDocTemplate(buffer, pagesize=pagesizes.A4)
+
                     from reportlab.lib import colors
                     from reportlab.lib.pagesizes import A4  # ✅ Add this line
                     from reportlab.lib.styles import getSampleStyleSheet
