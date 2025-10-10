@@ -1909,10 +1909,11 @@ def main():
                     elements.append(Paragraph("Top Recurring Issues", styles['Heading2']))
                     recurring_df = st.session_state["recurring_issues_df"]
                 
-                    from reportlab.platypus import Paragraph, Table, TableStyle
-                    from reportlab.lib.styles import ParagraphStyle
-                    from reportlab.lib.pagesizes import A4
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
                     from reportlab.lib import colors
+                    from reportlab.lib.pagesizes import A4  # ✅ Add this line
+                    from reportlab.lib.styles import getSampleStyleSheet
+
                 
                     # --- make index a column named 'S/N' (safe regardless of how it was saved)
                     df = recurring_df.reset_index()
