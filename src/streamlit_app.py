@@ -1196,6 +1196,10 @@ def main():
             # --- Recurring Issues & Pareto ---
             from PIL import Image as PILImage
 
+            # --- Recurring Issues & Pareto ---
+            from PIL import Image as PILImage
+            import textwrap  # <-- add this import near your other imports
+            
             st.subheader("Recurring Issues & Pareto Analysis")
             
             p = st.session_state.get("processed")
@@ -1212,7 +1216,15 @@ def main():
                     recurring_df.index.name = "S/N"
             
                     st.markdown(" ")
-                    st.table(recurring_df)
+            
+                    # ✅ Add these lines before displaying the table
+                    recurring_df["Issue"] = recurring_df["Issue"].apply(
+                        lambda x: "<br>".join(textwrap.wrap(x, width=40))
+                    )
+            
+                    # ✅ Use markdown to allow wrapped HTML display
+                    st.markdown(recurring_df.to_html(escape=False, index=True), unsafe_allow_html=True)
+
             
                     # --- Pareto Table from Recurring Issues ---
                     pareto_df = recurring_df.copy()
