@@ -1194,11 +1194,9 @@ def main():
             # Pareto chart from recurring issues table
            # ---------------------------
             # --- Recurring Issues & Pareto ---
-            from PIL import Image as PILImage
-
             # --- Recurring Issues & Pareto ---
             from PIL import Image as PILImage
-            import textwrap  # <-- add this import near your other imports
+            import textwrap  # <-- make sure this is imported
             
             st.subheader("Recurring Issues & Pareto Analysis")
             
@@ -1217,15 +1215,44 @@ def main():
             
                     st.markdown(" ")
             
-                    # ✅ Add these lines before displaying the table
+                    # ✅ Wrap long text in Issue column
                     recurring_df["Issue"] = recurring_df["Issue"].apply(
-                        lambda x: "<br>".join(textwrap.wrap(x, width=80))
+                        lambda x: "<br>".join(textwrap.wrap(x, width=40))
                     )
             
-                    # ✅ Use markdown to allow wrapped HTML display
-                    st.markdown(recurring_df.to_html(escape=False, index=True), unsafe_allow_html=True)
-
+                    # ✅ Convert to HTML with centered headers and cells
+                    styled_html = recurring_df.to_html(
+                        escape=False,
+                        index=True,
+                        justify="center"
+                    )
             
+                    # ✅ Apply CSS for neat alignment
+                    styled_html = f"""
+                    <style>
+                        table {{
+                            width: 100%;
+                            border-collapse: collapse;
+                            text-align: center;
+                        }}
+                        th {{
+                            text-align: center !important;
+                            vertical-align: middle !important;
+                            background-color: #f2f2f2;
+                            padding: 8px;
+                        }}
+                        td {{
+                            text-align: center;
+                            vertical-align: top;
+                            padding: 6px;
+                        }}
+                    </style>
+                    {styled_html}
+                    """
+            
+                    st.markdown(styled_html, unsafe_allow_html=True)
+            
+                        
                     # --- Pareto Table from Recurring Issues ---
                     pareto_df = recurring_df.copy()
                     pareto_df["Percent"] = (pareto_df["Occurrences"] / pareto_df["Occurrences"].sum() * 100).round(2)
