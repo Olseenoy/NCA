@@ -1217,7 +1217,7 @@ def main():
             
                     # ✅ Add these lines before displaying the table
                     recurring_df["Issue"] = recurring_df["Issue"].apply(
-                        lambda x: "<br>".join(textwrap.wrap(x, width=40))
+                        lambda x: "<br>".join(textwrap.wrap(x, width=80))
                     )
                     # ✅ Use markdown to allow wrapped HTML display
                     st.markdown(recurring_df.to_html(escape=False, index=True), unsafe_allow_html=True)
