@@ -1852,17 +1852,17 @@ def main():
 
                                 
                 # =====================
-                # Title and Issue
+                # Root Cause Analysis (RCA) Title & Issue
                 # =====================
                 elements.append(Paragraph("Root Cause Analysis (RCA) Report", styles['Heading1']))
-                elements.append(Paragraph(
-                    "Issue: Vertical perforation on lanes 1, 2, and 3 of MC 602 on 2024-03-11 at 11:00 AM and 2:00 PM.",
-                    styles['Normal']
-                ))
-                elements.append(Spacer(1, 20))
+                
+                # The issue text is dynamically generated elsewhere and stored in session_state
+                if "issue_statement" in st.session_state and st.session_state["issue_statement"]:
+                    elements.append(Paragraph(f"Issue: {st.session_state['issue_statement']}", styles['Normal']))
+                    elements.append(Spacer(1, 20))
                 
                 # =====================
-                # Fishbone Diagram (moved here)
+                # Fishbone Diagram (moved here — right after issue)
                 # =====================
                 if "fishbone_img" in st.session_state:
                     elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
@@ -1870,13 +1870,14 @@ def main():
                     elements.append(Spacer(1, 20))
                 
                 # =====================
-                # Root Cause Analysis (RCA)
+                # Root Cause Analysis (RCA) Content
                 # =====================
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
                     for para in st.session_state["rca_pdf_content"]:
                         elements.append(para)
                     elements.append(Spacer(1, 20))
+
 
 
                 
