@@ -1196,7 +1196,7 @@ def main():
             # --- Recurring Issues & Pareto ---
             # --- Recurring Issues & Pareto ---
             from PIL import Image as PILImage
-            import textwrap  # <-- make sure this is imported
+            import textwrap  # <-- add this import near your other imports
             
             st.subheader("Recurring Issues & Pareto Analysis")
             
@@ -1215,42 +1215,13 @@ def main():
             
                     st.markdown(" ")
             
-                    # ✅ Wrap long text in Issue column
+                    # ✅ Add these lines before displaying the table
                     recurring_df["Issue"] = recurring_df["Issue"].apply(
                         lambda x: "<br>".join(textwrap.wrap(x, width=40))
                     )
             
-                    # ✅ Convert to HTML with centered headers and cells
-                    styled_html = recurring_df.to_html(
-                        escape=False,
-                        index=True,
-                        justify="center"
-                    )
-            
-                    # ✅ Apply CSS for neat alignment
-                    styled_html = f"""
-                    <style>
-                        table {{
-                            width: 100%;
-                            border-collapse: collapse;
-                            text-align: center;
-                        }}
-                        th {{
-                            text-align: center !important;
-                            vertical-align: middle !important;
-                            background-color: #f2f2f2;
-                            padding: 8px;
-                        }}
-                        td {{
-                            text-align: center;
-                            vertical-align: top;
-                            padding: 6px;
-                        }}
-                    </style>
-                    {styled_html}
-                    """
-            
-                    st.markdown(styled_html, unsafe_allow_html=True)
+                  
+
             
                         
                     # --- Pareto Table from Recurring Issues ---
