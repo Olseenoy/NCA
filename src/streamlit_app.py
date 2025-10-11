@@ -1905,7 +1905,7 @@ def main():
                 
                     # Convert DataFrame to ReportLab Table
                     from reportlab.platypus import Table, TableStyle
-
+                    
                     recurring_df = st.session_state["recurring_issues_df"]
                     
                     # Include index name in header
@@ -1913,15 +1913,25 @@ def main():
                     
                     tbl = Table(table_data, hAlign='LEFT')
                     tbl.setStyle(TableStyle([
+                        # --- Header Styling ---
                         ('BACKGROUND', (0,0), (-1,0), colors.grey),
-                        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-                        ('ALIGN',(0,0),(-1,-1),'CENTER'),
+                        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                        ('ALIGN', (0,0), (-1,0), 'CENTER'),        # Header centered
                         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
                         ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                        
+                        # --- Body Styling ---
+                        ('ALIGN', (0,1), (0,-1), 'CENTER'),        # S/N column center
+                        ('ALIGN', (1,1), (1,-1), 'LEFT'),          # Issue column left
+                        ('ALIGN', (2,1), (2,-1), 'CENTER'),        # Occurrences column center
+                    
+                        # --- Borders and Grid ---
                         ('GRID', (0,0), (-1,-1), 1, colors.black),
                     ]))
+                    
                     elements.append(tbl)
                     elements.append(Spacer(1, 20))
+
 
 
                 # =====================
