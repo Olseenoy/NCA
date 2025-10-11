@@ -407,7 +407,20 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             # Capture Action Plan items
             if in_action_plan and (line.startswith("-") or line[0].isdigit()):
                 action = line.lstrip("•-0123456789. ").strip()
+            
+                # ❌ Skip generic / placeholder items
+                skip_phrases = [
+                    "implement the corrective actions",
+                    "develop a preventive action",
+                    "corrective actions (cas)",
+                    "preventive action (pa)",
+                ]
+                if any(phrase in action.lower() for phrase in skip_phrases):
+                    continue  # Skip this line entirely
+            
+                # 🔧 Auto-fill Owner and Timeline
                 owner, timeline = infer_owner_and_timeline(action)
+            
                 action_rows.append([
                     Paragraph(md_to_html(action), normal_style),
                     Paragraph(owner, normal_style),
@@ -415,6 +428,7 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                     Paragraph("Open", normal_style),
                 ])
                 continue
+
         
             # Detect end of Action Plan section if next heading appears
             if in_action_plan and line.startswith("**") and not line.lower().startswith("**action plan"):
