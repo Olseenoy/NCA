@@ -1904,29 +1904,48 @@ def main():
                     recurring_df = st.session_state["recurring_issues_df"]
                 
                     # Convert DataFrame to ReportLab Table
-                    from reportlab.platypus import Table, TableStyle
+                    from reportlab.platypus import Table, TableStyle, Paragraph
+                    from reportlab.lib.styles import ParagraphStyle
+                    
+                    # --- Define paragraph style for wrapping ---
+                    wrap_style = ParagraphStyle(
+                        name='WrapStyle',
+                        fontName='Helvetica',
+                        fontSize=9,
+                        leading=11,
+                        alignment=0,   # 0 = left
+                    )
                     
                     recurring_df = st.session_state["recurring_issues_df"]
                     
-                    # Include index name in header
-                    table_data = [[recurring_df.index.name] + recurring_df.columns.tolist()] + recurring_df.reset_index().values.tolist()
+                    # Convert "Issue" column values into Paragraphs (for word wrapping)
+                    recurring_df_wrapped = recurring_df.copy()
+                    recurring_df_wrapped["Issue"] = recurring_df_wrapped["Issue"].apply(
+                        lambda txt: Paragraph(str(txt), wrap_style)
+                    )
                     
-                    tbl = Table(table_data, hAlign='LEFT')
+                    # Include index name in header
+                    table_data = [[recurring_df_wrapped.index.name] + recurring_df_wrapped.columns.tolist()] + recurring_df_wrapped.reset_index().values.tolist()
+                    
+                    tbl = Table(table_data, hAlign='LEFT', colWidths=[40, 250, 80])  # Adjust widths to suit your layout
+                    
                     tbl.setStyle(TableStyle([
                         # --- Header Styling ---
                         ('BACKGROUND', (0,0), (-1,0), colors.grey),
                         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-                        ('ALIGN', (0,0), (-1,0), 'CENTER'),        # Header centered
+                        ('ALIGN', (0,0), (-1,0), 'CENTER'),
                         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
                         ('BOTTOMPADDING', (0,0), (-1,0), 12),
-                        
-                        # --- Body Styling ---
-                        ('ALIGN', (0,1), (0,-1), 'CENTER'),        # S/N column center
-                        ('ALIGN', (1,1), (1,-1), 'LEFT'),          # Issue column left
-                        ('ALIGN', (2,1), (2,-1), 'CENTER'),        # Occurrences column center
                     
-                        # --- Borders and Grid ---
+                        # --- Body Alignment ---
+                        ('ALIGN', (0,1), (0,-1), 'CENTER'),   # S/N column center
+                        ('VALIGN', (1,1), (1,-1), 'TOP'),     # Issue column top-align (helps long text look neat)
+                        ('ALIGN', (2,1), (2,-1), 'CENTER'),   # Occurrences column center
+                    
+                        # --- Grid & Padding ---
                         ('GRID', (0,0), (-1,-1), 1, colors.black),
+                        ('LEFTPADDING', (1,1), (1,-1), 4),
+                        ('RIGHTPADDING', (1,1), (1,-1), 4),
                     ]))
                     
                     elements.append(tbl)
