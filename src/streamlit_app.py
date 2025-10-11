@@ -1837,13 +1837,6 @@ def main():
             
 
             # Helper to fix black & white issue
-            import io
-            from reportlab.platypus import SimpleDocTemplate as RLTemplate, Paragraph, Spacer, Table, TableStyle
-            from reportlab.lib import colors
-            from reportlab.lib import pagesizes
-            from reportlab.lib.styles import getSampleStyleSheet
-
-
             from PIL import Image as PILImage
 
 
@@ -1858,7 +1851,7 @@ def main():
             # Main PDF generator
             def generate_pdf():
                 buffer = io.BytesIO()
-                doc = RLTemplate(buffer, pagesize=pagesizes.A4)
+                doc = SimpleDocTemplate(buffer, pagesize=A4)
                 styles = getSampleStyleSheet()
                 elements = []
    
@@ -1912,83 +1905,25 @@ def main():
                 # =====================
                 # Recurring Issues Table
                 # =====================
-                # =====================
-                # Recurring Issues Table
-                # =====================
+
                 if "recurring_issues_df" in st.session_state:
                     elements.append(Paragraph("Top Recurring Issues", styles['Heading2']))
                     recurring_df = st.session_state["recurring_issues_df"]
                 
-                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-                    from reportlab.lib import pagesizes
-                    doc = SimpleDocTemplate(buffer, pagesize=pagesizes.A4)
-
-                    from reportlab.lib import colors
-                    from reportlab.lib.pagesizes import A4  # ✅ Add this line
-                    from reportlab.lib.styles import getSampleStyleSheet
-
-                
-                    # --- make index a column named 'S/N' (safe regardless of how it was saved)
-                    df = recurring_df.reset_index()
-                    if df.columns[0] != "S/N":
-                        df.columns = ["S/N"] + list(df.columns[1:])
-                
-                    # --- sanitize possible <br> used earlier in Streamlit HTML (make XML-compliant)
-                    df['Issue'] = df['Issue'].astype(str).apply(lambda t: t.replace("<br>", "<br/>"))
-                
-                    # --- Paragraph styles (headers centered; Issue left-aligned and wrap-capable)
-                    header_style = ParagraphStyle('table_header', parent=styles['Normal'],
-                                                  alignment=1, fontName='Helvetica-Bold', fontSize=10)
-                    sn_style     = ParagraphStyle('sn', parent=styles['Normal'], alignment=1, fontSize=9)
-                    occ_style    = ParagraphStyle('occ', parent=styles['Normal'], alignment=1, fontSize=9)
-                    issue_style  = ParagraphStyle('issue', parent=styles['Normal'], alignment=0,
-                                                  fontSize=9, leading=11, wordWrap='CJK')  # CJK allows breaking long words
-                
-                    # --- build table data using Paragraphs so ReportLab will wrap text
-                    cols = list(df.columns)  # should be ['S/N', 'Issue', 'Occurrences']
-                    header_row = [Paragraph(c, header_style) for c in cols]
-                    table_data = [header_row]
-                
-                    for _, r in df.iterrows():
-                        row_cells = [
-                            Paragraph(str(r[cols[0]]), sn_style),
-                            Paragraph(r[cols[1]].replace("\n", "<br/>"), issue_style),  # keep explicit line breaks as <br/>
-                            Paragraph(str(r[cols[2]]), occ_style),
-                        ]
-                        table_data.append(row_cells)
-                
-                    # --- determine available width (use doc.width if available, otherwise fall back to A4)
-                    try:
-                        avail_width = doc.width
-                    except NameError:
-                        page_w, page_h = A4
-                        left_margin = 36
-                        right_margin = 36
-                        avail_width = page_w - left_margin - right_margin
-                
-                    # sensible column widths: small S/N, wide Issue, small Occurrences
-                    sn_w = 40
-                    occ_w = 60
-                    issue_w = max(avail_width - sn_w - occ_w, 100)
-                    colWidths = [sn_w, issue_w, occ_w]
-                
-                    # --- create table and style it
-                    tbl = Table(table_data, colWidths=colWidths, hAlign='LEFT')
+                    # Convert DataFrame to ReportLab Table
+                    from reportlab.platypus import Table, TableStyle
+                    table_data = [recurring_df.columns.tolist()] + recurring_df.reset_index().values.tolist()
+                    tbl = Table(table_data, hAlign='LEFT')
                     tbl.setStyle(TableStyle([
                         ('BACKGROUND', (0,0), (-1,0), colors.grey),
-                        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-                        ('ALIGN', (0,0), (0,-1), 'CENTER'),   # S/N centered
-                        ('ALIGN', (1,0), (1,-1), 'LEFT'),     # Issue left-aligned (and will wrap)
-                        ('ALIGN', (2,0), (2,-1), 'CENTER'),   # Occurrences centered
+                        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+                        ('ALIGN',(0,0),(-1,-1),'CENTER'),
                         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
                         ('BOTTOMPADDING', (0,0), (-1,0), 12),
-                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+                        ('GRID', (0,0), (-1,-1), 1, colors.black),
                     ]))
-                
                     elements.append(tbl)
                     elements.append(Spacer(1, 20))
-                
 
                 # =====================
                 # Pareto
