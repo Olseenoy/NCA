@@ -376,20 +376,41 @@ def convert_markdown_to_pdf_content(raw_text, styles):
         action_rows = []
         
         # --- Function to infer Owner & Timeline ---
+        # --- Smarter Auto Owner & Timeline Mapping ---
         def infer_owner_and_timeline(action_text):
             action_lower = action_text.lower()
-            if "train" in action_lower or "orientation" in action_lower:
+        
+            # Keyword-based mapping (more coverage)
+            if any(word in action_lower for word in ["train", "orientation", "educate", "instruct"]):
                 return "HR / QA", "2 weeks"
-            elif "inspect" in action_lower or "check" in action_lower:
+        
+            elif any(word in action_lower for word in ["inspect", "check", "verify", "examine", "ensure"]):
                 return "QA", "3 days"
-            elif "clean" in action_lower or "sanitize" in action_lower:
+        
+            elif any(word in action_lower for word in ["clean", "sanitize", "wash", "housekeep"]):
                 return "Production", "Daily"
-            elif "repair" in action_lower or "fix" in action_lower or "maintenance" in action_lower:
+        
+            elif any(word in action_lower for word in ["repair", "fix", "maintain", "maintenance", "service", "adjust"]):
                 return "Maintenance", "1 week"
-            elif "review" in action_lower or "audit" in action_lower:
+        
+            elif any(word in action_lower for word in ["review", "audit", "evaluate", "analyze", "analysis", "monitor"]):
                 return "QA Manager", "Monthly"
-            else:
-                return "Assigned Dept", "To be defined"
+        
+            elif any(word in action_lower for word in ["root cause", "investigate", "improve", "prevent"]):
+                return "QA / Production", "2 weeks"
+        
+            elif any(word in action_lower for word in ["implement", "apply", "execute", "enforce"]):
+                return "Production", "1 week"
+        
+            elif any(word in action_lower for word in ["schedule", "plan"]):
+                return "Maintenance", "1 week"
+        
+            elif any(word in action_lower for word in ["document", "record", "report"]):
+                return "QA", "Weekly"
+        
+            # Default fallback (only if nothing fits)
+            return "QA / Production", "To be confirmed"
+
         
         # --- Main line loop ---
         for line in lines:
