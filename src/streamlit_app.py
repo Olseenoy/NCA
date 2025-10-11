@@ -363,62 +363,52 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             flush_bullets()
             continue
 
-        # Detect Action Plan heading
-        # --- Skip redundant 'Timeline:' section ---
-        if line.lower().startswith("timeline:"):
-            # Skip everything until a blank line or new heading
-            while lines and not lines[0].strip().startswith("**") and lines[0].strip():
-                lines.pop(0)
-            continue
-
         # --- Initialize before loop ---
         in_action_plan = False
         action_rows = []
         
         # --- Function to infer Owner & Timeline ---
-        # --- Smarter Auto Owner & Timeline Mapping ---
         def infer_owner_and_timeline(action_text):
             action_lower = action_text.lower()
         
             # Keyword-based mapping (more coverage)
             if any(word in action_lower for word in ["train", "orientation", "educate", "instruct"]):
                 return "HR / QA", "2 weeks"
-        
             elif any(word in action_lower for word in ["inspect", "check", "verify", "examine", "ensure"]):
                 return "QA", "3 days"
-        
             elif any(word in action_lower for word in ["clean", "sanitize", "wash", "housekeep"]):
                 return "Production", "Daily"
-        
             elif any(word in action_lower for word in ["repair", "fix", "maintain", "maintenance", "service", "adjust"]):
                 return "Maintenance", "1 week"
-        
             elif any(word in action_lower for word in ["review", "audit", "evaluate", "analyze", "analysis", "monitor"]):
                 return "QA Manager", "Monthly"
-        
             elif any(word in action_lower for word in ["root cause", "investigate", "improve", "prevent"]):
                 return "QA / Production", "2 weeks"
-        
             elif any(word in action_lower for word in ["implement", "apply", "execute", "enforce"]):
                 return "Production", "1 week"
-        
             elif any(word in action_lower for word in ["schedule", "plan"]):
                 return "Maintenance", "1 week"
-        
             elif any(word in action_lower for word in ["document", "record", "report"]):
                 return "QA", "Weekly"
-        
             # Default fallback (only if nothing fits)
             return "QA / Production", "To be confirmed"
-
+        
         
         # --- Main line loop ---
-        for line in lines:
+        for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
         
-            # Detect Action Plan heading
+            # --- Skip redundant 'Timeline:' section (no mutation of lines) ---
+            if line.lower().startswith("timeline:"):
+                # Skip subsequent bullet lines until next heading or blank line
+                j = i + 1
+                while j < len(lines) and (lines[j].startswith("*") or lines[j].startswith("-")):
+                    j += 1
+                continue
+        
+            # --- Detect Action Plan heading ---
             if line.lower().startswith("**action plan"):
                 flush_bullets()
                 in_action_plan = True
@@ -432,10 +422,10 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                 ]]
                 continue
         
-            # Capture Action Plan items
+            # --- Capture Action Plan items ---
             if in_action_plan and (line.startswith("-") or line[0].isdigit()):
                 action = line.lstrip("•-0123456789. ").strip()
-            
+        
                 # ❌ Skip generic / placeholder items
                 skip_phrases = [
                     "implement the corrective actions",
@@ -444,11 +434,11 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                     "preventive action (pa)",
                 ]
                 if any(phrase in action.lower() for phrase in skip_phrases):
-                    continue  # Skip this line entirely
-            
+                    continue
+        
                 # 🔧 Auto-fill Owner and Timeline
                 owner, timeline = infer_owner_and_timeline(action)
-            
+        
                 action_rows.append([
                     Paragraph(md_to_html(action), normal_style),
                     Paragraph(owner, normal_style),
@@ -456,24 +446,23 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                     Paragraph("Open", normal_style),
                 ])
                 continue
-
         
-            # Detect end of Action Plan section if next heading appears
+            # --- Detect end of Action Plan section if next heading appears ---
             if in_action_plan and line.startswith("**") and not line.lower().startswith("**action plan"):
                 in_action_plan = False
         
-            # Headings
+            # --- Headings ---
             if line.startswith("**") and line.endswith("**"):
                 flush_bullets()
                 flowables.append(Paragraph(md_to_html(line), styles["Heading2"]))
                 flowables.append(Spacer(1, 6))
         
-            # Numbered / bulleted list
+            # --- Numbered / bulleted list ---
             elif line.startswith("•") or line[0].isdigit() or line.startswith("-"):
                 clean_line = re.sub(r"^[\d\.\-\•\s]+", "", line).strip()
                 bullet_buffer.append(md_to_html(clean_line))
         
-            # Normal paragraph
+            # --- Normal paragraph ---
             else:
                 flush_bullets()
                 flowables.append(Paragraph(md_to_html(line), normal_style))
@@ -494,11 +483,8 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             ]))
             flowables.append(table)
             flowables.append(Spacer(1, 12))
-
-
-    return flowables
-
-
+        
+        return flowables
 
 
 
