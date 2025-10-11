@@ -364,6 +364,7 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             continue
 
         # Detect Action Plan heading
+        # Detect Action Plan heading
         if line.lower().startswith("**action plan"):
             flush_bullets()
             in_action_plan = True
@@ -376,51 +377,72 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                 Paragraph("<b>Status</b>", normal_style),
             ]]
             continue
-
+        
+        # --- Auto Owner & Timeline Inference Function ---
+        def infer_owner_and_timeline(action_text):
+            action_lower = action_text.lower()
+        
+            if "train" in action_lower or "orientation" in action_lower:
+                return "HR / QA", "2 weeks"
+            elif "inspect" in action_lower or "check" in action_lower:
+                return "QA", "3 days"
+            elif "clean" in action_lower or "sanitize" in action_lower:
+                return "Production", "Daily"
+            elif "repair" in action_lower or "fix" in action_lower or "maintenance" in action_lower:
+                return "Maintenance", "1 week"
+            elif "review" in action_lower or "audit" in action_lower:
+                return "QA Manager", "Monthly"
+            else:
+                return "Assigned Dept", "To be defined"
+        # ------------------------------------------------
+        
         if in_action_plan and (line.startswith("-") or line[0].isdigit()):
             action = line.lstrip("•-0123456789. ").strip()
+        
+            # 🔧 Auto-fill Owner and Timeline
+            owner, timeline = infer_owner_and_timeline(action)
+        
             action_rows.append([
                 Paragraph(md_to_html(action), normal_style),
-                Paragraph(" ", normal_style),
-                Paragraph(" ", normal_style),
-                Paragraph(" ", normal_style),
+                Paragraph(owner, normal_style),
+                Paragraph(timeline, normal_style),
+                Paragraph("Open", normal_style),
             ])
             continue
-
+        
         # Headings
         if line.startswith("**") and line.endswith("**"):
             flush_bullets()
             flowables.append(Paragraph(md_to_html(line), styles["Heading2"]))
             flowables.append(Spacer(1, 6))
-
+        
         # Numbered / bulleted list
         elif line.startswith("•") or line[0].isdigit() or line.startswith("-"):
-            # Remove bullets AND numbers like "1.", "2." at the start
             clean_line = re.sub(r"^[\d\.\-\•\s]+", "", line).strip()
             bullet_buffer.append(md_to_html(clean_line))
-
-
+        
         # Normal paragraph
         else:
             flush_bullets()
             flowables.append(Paragraph(md_to_html(line), normal_style))
             flowables.append(Spacer(1, 6))
+        
+        flush_bullets()
+        
+        # Action Plan table
+        if action_rows:
+            table = Table(action_rows, colWidths=[250, 80, 80, 60])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+                ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ]))
+            flowables.append(table)
+            flowables.append(Spacer(1, 12))
 
-    flush_bullets()
-
-    # Action Plan table
-    if action_rows:
-        table = Table(action_rows, colWidths=[250, 80, 80, 60])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.black),
-            ('ALIGN', (1,0), (-1,-1), 'CENTER'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ]))
-        flowables.append(table)
-        flowables.append(Spacer(1, 12))
 
     return flowables
 
