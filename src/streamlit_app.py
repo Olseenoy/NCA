@@ -1837,11 +1837,12 @@ def main():
             
 
             # Helper to fix black & white issue
-            import io
+           import io
             from reportlab.platypus import SimpleDocTemplate as RLTemplate, Paragraph, Spacer, Table, TableStyle
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import getSampleStyleSheet
             from reportlab.lib import colors
+            from reportlab.lib import pagesizes
+            from reportlab.lib.styles import getSampleStyleSheet
+
 
             from PIL import Image as PILImage
 
@@ -1857,9 +1858,10 @@ def main():
             # Main PDF generator
             def generate_pdf():
                 buffer = io.BytesIO()
-                doc = RLTemplate(buffer, pagesize=A4)
+                doc = RLTemplate(buffer, pagesize=pagesizes.A4)
                 styles = getSampleStyleSheet()
                 elements = []
+   
                
               
             
