@@ -1937,7 +1937,7 @@ def main():
                     # Include index name in header
                     table_data = [[recurring_df_wrapped.index.name] + recurring_df_wrapped.columns.tolist()] + recurring_df_wrapped.reset_index().values.tolist()
                     
-                    tbl = Table(table_data, hAlign='LEFT', colWidths=[40, 250, 80])  # Adjust widths to suit your layout
+                    tbl = Table(table_data, hAlign='LEFT', colWidths=[40, 340, 80])  # Adjust widths to suit your layout
                     
                     tbl.setStyle(TableStyle([
                         # --- Header Styling ---
