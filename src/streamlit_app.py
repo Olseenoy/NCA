@@ -1905,7 +1905,12 @@ def main():
                 
                     # Convert DataFrame to ReportLab Table
                     from reportlab.platypus import Table, TableStyle
-                    table_data = [recurring_df.columns.tolist()] + recurring_df.reset_index().values.tolist()
+
+                    recurring_df = st.session_state["recurring_issues_df"]
+                    
+                    # Include index name in header
+                    table_data = [[recurring_df.index.name] + recurring_df.columns.tolist()] + recurring_df.reset_index().values.tolist()
+                    
                     tbl = Table(table_data, hAlign='LEFT')
                     tbl.setStyle(TableStyle([
                         ('BACKGROUND', (0,0), (-1,0), colors.grey),
@@ -1917,6 +1922,7 @@ def main():
                     ]))
                     elements.append(tbl)
                     elements.append(Spacer(1, 20))
+
 
                 # =====================
                 # Pareto
