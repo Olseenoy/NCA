@@ -1230,38 +1230,57 @@ def main():
 
             
                     # --- Plot Pareto using Plotly ---
+                    # --- Plot Pareto using Plotly ---
                     import plotly.graph_objects as go
+                    import textwrap
+                    
+                    # --- Wrap long x-axis labels (Issue names) ---
+                    pareto_df["Issue"] = pareto_df["Issue"].apply(
+                        lambda x: "<br>".join(textwrap.wrap(str(x), width=15))
+                    )
+                    
+                    # --- Create figure ---
                     fig = go.Figure()
+                    
+                    # Bar for Occurrences
                     fig.add_bar(
-                        x=pareto_df['Issue'],
-                        y=pareto_df['Occurrences'],
-                        name='Occurrences',
-                        marker_color='teal'
+                        x=pareto_df["Issue"],
+                        y=pareto_df["Occurrences"],
+                        name="Occurrences",
+                        marker_color="teal"
                     )
+                    
+                    # Line for Cumulative %
                     fig.add_scatter(
-                        x=pareto_df['Issue'],
-                        y=pareto_df['Cumulative %'],
-                        name='Cumulative %',
-                        yaxis='y2',
-                        marker_color='crimson'
+                        x=pareto_df["Issue"],
+                        y=pareto_df["Cumulative %"],
+                        name="Cumulative %",
+                        yaxis="y2",
+                        marker_color="crimson",
+                        mode="lines+markers"
                     )
-            
+                    
+                    # --- Layout adjustments ---
                     fig.update_layout(
                         title="Pareto Chart of Top Recurring Issues",
-                        width=1400,   # wider chart
-                        height=800,   # taller chart
-                        margin=dict(l=80, r=80, t=100, b=250),  # extra bottom margin for long labels
-                        yaxis=dict(title='Occurrences'),
-                        yaxis2=dict(title='Cumulative %', overlaying='y', side='right'),
+                        width=1400,   # wide chart for reports
+                        height=800,   # taller chart for readability
+                        margin=dict(l=80, r=80, t=100, b=300),  # extra bottom space for wrapped labels
+                        yaxis=dict(title="Occurrences"),
+                        yaxis2=dict(title="Cumulative %", overlaying="y", side="right"),
                         xaxis=dict(
-                            tickangle=-45,
+                            tickangle=0,  # keep labels horizontal since they now wrap
                             tickfont=dict(size=12),
                             automargin=True
                         ),
-                        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+                        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
                     )
-            
+                    
+                    # --- Display chart in Streamlit ---
                     st.plotly_chart(fig, use_container_width=True)
+
+
+
             
                     # --- Save chart for PDF ---
                     pareto_chart_path = "pareto_rgb.png"
