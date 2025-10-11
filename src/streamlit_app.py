@@ -1837,7 +1837,7 @@ def main():
             
 
             # Helper to fix black & white issue
-           import io
+            import io
             from reportlab.platypus import SimpleDocTemplate as RLTemplate, Paragraph, Spacer, Table, TableStyle
             from reportlab.lib import colors
             from reportlab.lib import pagesizes
