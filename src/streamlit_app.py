@@ -364,24 +364,13 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             continue
 
         # Detect Action Plan heading
-        # Detect Action Plan heading
-        if line.lower().startswith("**action plan"):
-            flush_bullets()
-            in_action_plan = True
-            flowables.append(Paragraph("<b>Action Plan</b>", styles["Heading2"]))
-            flowables.append(Spacer(1, 6))
-            action_rows = [[
-                Paragraph("<b>Action</b>", normal_style),
-                Paragraph("<b>Owner</b>", normal_style),
-                Paragraph("<b>Timeline</b>", normal_style),
-                Paragraph("<b>Status</b>", normal_style),
-            ]]
-            continue
+        # --- Initialize before loop ---
+        in_action_plan = False
+        action_rows = []
         
-        # --- Auto Owner & Timeline Inference Function ---
+        # --- Function to infer Owner & Timeline ---
         def infer_owner_and_timeline(action_text):
             action_lower = action_text.lower()
-        
             if "train" in action_lower or "orientation" in action_lower:
                 return "HR / QA", "2 weeks"
             elif "inspect" in action_lower or "check" in action_lower:
@@ -394,43 +383,64 @@ def convert_markdown_to_pdf_content(raw_text, styles):
                 return "QA Manager", "Monthly"
             else:
                 return "Assigned Dept", "To be defined"
-        # ------------------------------------------------
         
-        if in_action_plan and (line.startswith("-") or line[0].isdigit()):
-            action = line.lstrip("•-0123456789. ").strip()
+        # --- Main line loop ---
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
         
-            # 🔧 Auto-fill Owner and Timeline
-            owner, timeline = infer_owner_and_timeline(action)
+            # Detect Action Plan heading
+            if line.lower().startswith("**action plan"):
+                flush_bullets()
+                in_action_plan = True
+                flowables.append(Paragraph("<b>Action Plan</b>", styles["Heading2"]))
+                flowables.append(Spacer(1, 6))
+                action_rows = [[
+                    Paragraph("<b>Action</b>", normal_style),
+                    Paragraph("<b>Owner</b>", normal_style),
+                    Paragraph("<b>Timeline</b>", normal_style),
+                    Paragraph("<b>Status</b>", normal_style),
+                ]]
+                continue
         
-            action_rows.append([
-                Paragraph(md_to_html(action), normal_style),
-                Paragraph(owner, normal_style),
-                Paragraph(timeline, normal_style),
-                Paragraph("Open", normal_style),
-            ])
-            continue
+            # Capture Action Plan items
+            if in_action_plan and (line.startswith("-") or line[0].isdigit()):
+                action = line.lstrip("•-0123456789. ").strip()
+                owner, timeline = infer_owner_and_timeline(action)
+                action_rows.append([
+                    Paragraph(md_to_html(action), normal_style),
+                    Paragraph(owner, normal_style),
+                    Paragraph(timeline, normal_style),
+                    Paragraph("Open", normal_style),
+                ])
+                continue
         
-        # Headings
-        if line.startswith("**") and line.endswith("**"):
-            flush_bullets()
-            flowables.append(Paragraph(md_to_html(line), styles["Heading2"]))
-            flowables.append(Spacer(1, 6))
+            # Detect end of Action Plan section if next heading appears
+            if in_action_plan and line.startswith("**") and not line.lower().startswith("**action plan"):
+                in_action_plan = False
         
-        # Numbered / bulleted list
-        elif line.startswith("•") or line[0].isdigit() or line.startswith("-"):
-            clean_line = re.sub(r"^[\d\.\-\•\s]+", "", line).strip()
-            bullet_buffer.append(md_to_html(clean_line))
+            # Headings
+            if line.startswith("**") and line.endswith("**"):
+                flush_bullets()
+                flowables.append(Paragraph(md_to_html(line), styles["Heading2"]))
+                flowables.append(Spacer(1, 6))
         
-        # Normal paragraph
-        else:
-            flush_bullets()
-            flowables.append(Paragraph(md_to_html(line), normal_style))
-            flowables.append(Spacer(1, 6))
+            # Numbered / bulleted list
+            elif line.startswith("•") or line[0].isdigit() or line.startswith("-"):
+                clean_line = re.sub(r"^[\d\.\-\•\s]+", "", line).strip()
+                bullet_buffer.append(md_to_html(clean_line))
+        
+            # Normal paragraph
+            else:
+                flush_bullets()
+                flowables.append(Paragraph(md_to_html(line), normal_style))
+                flowables.append(Spacer(1, 6))
         
         flush_bullets()
         
-        # Action Plan table
-        if action_rows:
+        # --- Add Action Plan table only once at the end ---
+        if len(action_rows) > 1:  # means there are actual actions
             table = Table(action_rows, colWidths=[250, 80, 80, 60])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
