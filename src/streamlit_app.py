@@ -1837,6 +1837,12 @@ def main():
             
 
             # Helper to fix black & white issue
+            import io
+            from reportlab.platypus import SimpleDocTemplate as RLTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.lib import colors
+
             from PIL import Image as PILImage
 
 
