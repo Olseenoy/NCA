@@ -1843,18 +1843,28 @@ def main():
 
             # Main PDF generator
             def generate_pdf():
+                import io
+                import datetime
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.styles import getSampleStyleSheet
+            
+                # --- Initialize PDF ---
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4)
                 styles = getSampleStyleSheet()
                 elements = []
-   
-               
-              
             
-                # Title
+                # --- Title Section ---
                 elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles['Title']))
-                elements.append(Paragraph(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+                elements.append(Paragraph(
+                    f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    styles['Normal']
+                ))
                 elements.append(Spacer(1, 20))
+
+
+
 
                                 
 
