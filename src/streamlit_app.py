@@ -1851,9 +1851,11 @@ def main():
             # Main PDF generator
             def generate_pdf():
                 buffer = io.BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                doc = RLTemplate(buffer, pagesize=A4)
                 styles = getSampleStyleSheet()
                 elements = []
+               
+              
             
                 # Title
                 elements.append(Paragraph("Smart Non-Conformance Analyzer Report", styles['Title']))
@@ -1980,10 +1982,6 @@ def main():
                     elements.append(Spacer(1, 20))
                 
 
-                
-                # =====================
-                # Pareto
-                # =====================
                 # =====================
                 # Pareto
                 # =====================
