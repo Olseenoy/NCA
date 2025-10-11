@@ -364,6 +364,13 @@ def convert_markdown_to_pdf_content(raw_text, styles):
             continue
 
         # Detect Action Plan heading
+        # --- Skip redundant 'Timeline:' section ---
+        if line.lower().startswith("timeline:"):
+            # Skip everything until a blank line or new heading
+            while lines and not lines[0].strip().startswith("**") and lines[0].strip():
+                lines.pop(0)
+            continue
+
         # --- Initialize before loop ---
         in_action_plan = False
         action_rows = []
