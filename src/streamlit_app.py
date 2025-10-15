@@ -1950,24 +1950,29 @@ def main():
                 # =====================
                 # Root Cause Analysis (RCA)
                 # =====================
+                # =====================
+                # Root Cause Analysis (RCA)
+                # =====================
                 if "rca_pdf_content" in st.session_state and st.session_state["rca_pdf_content"]:
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
+                    
+                    fishbone_added = False  # <-- flag to ensure we add only one Fishbone Diagram
                 
                     for para in st.session_state["rca_pdf_content"]:
                         # Add each paragraph
                         elements.append(para)
-                
+                    
                         # Check if this paragraph contains "Issue" (case-insensitive)
-                        if hasattr(para, 'text') and "issue" in para.text.lower():
-                            # Immediately insert the Fishbone Diagram after the Issue
+                        if hasattr(para, 'text') and "issue" in para.text.lower() and not fishbone_added:
                             # =====================
-                            # Fishbone Diagram
+                            # Fishbone Diagram (only once)
                             # =====================
                             if "fishbone_img" in st.session_state:
                                 elements.append(Spacer(1, 10))
                                 elements.append(Paragraph("Fishbone Diagram", styles['Heading2']))
                                 elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
                                 elements.append(Spacer(1, 20))
+                                fishbone_added = True  # <-- mark as added so it doesn't repeat
                 
                     elements.append(Spacer(1, 20))
 
