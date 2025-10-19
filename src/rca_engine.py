@@ -14,11 +14,12 @@ import re
 import requests
 import google.generativeai as genai
 from sentence_transformers import SentenceTransformer
+# ✅ Updated for LangChain v0.3+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.chains import LLMChain
+from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_community.llms import Ollama
-from langchain_community.chat_models import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
 from transformers import pipeline
 from docx import Document
 from pypdf import PdfReader
