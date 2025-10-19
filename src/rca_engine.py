@@ -16,7 +16,7 @@ import google.generativeai as genai
 from sentence_transformers import SentenceTransformer
 # ✅ Updated for LangChain v0.3+
 from langchain_core.prompts import PromptTemplate
-from langchain_core.chains import LLMChain
+from langchain_core.runnables import RunnableSequence
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_community.llms import Ollama
@@ -24,8 +24,10 @@ from transformers import pipeline
 from docx import Document
 from pypdf import PdfReader
 
+
 # --- Load embedding model once ---
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 # --- Utility: Load files recursively from reference folder ---
 def load_reference_files(reference_folder):
@@ -111,11 +113,10 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
                 if not os.getenv("GROQ_API_KEY"):
                     return {"error": f"Gemini failed ({e}), and Groq API key not set."}
                 llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
-                chain = LLMChain(
-                    llm=llm,
-                    prompt=PromptTemplate(input_variables=["issue"], template=prompt)
-                )
-                response_text = chain.run(issue=issue_text)
+                prompt_template = PromptTemplate(input_variables=["issue"], template=prompt)
+                chain = RunnableSequence(prompt_template | llm)
+                response = chain.invoke({"issue": issue_text})
+                response_text = response.content if hasattr(response, "content") else str(response)
                 backend_used = "groq (fallback)"
             except Exception as e2:
                 return {"error": f"Gemini failed ({e}), Groq failed ({e2})"}
@@ -126,11 +127,10 @@ def ai_rca_with_fallback(record, processed_df=None, sop_library=None, qc_logs=No
             if not os.getenv("GROQ_API_KEY"):
                 return {"error": "Groq API key not set. Please set GROQ_API_KEY."}
             llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
-            chain = LLMChain(
-                llm=llm,
-                prompt=PromptTemplate(input_variables=["issue"], template=prompt)
-            )
-            response_text = chain.run(issue=issue_text)
+            prompt_template = PromptTemplate(input_variables=["issue"], template=prompt)
+            chain = RunnableSequence(prompt_template | llm)
+            response = chain.invoke({"issue": issue_text})
+            response_text = response.content if hasattr(response, "content") else str(response)
             backend_used = "groq"
         except Exception as e:
             return {"error": f"Groq failed: {e}"}
@@ -223,4 +223,3 @@ def visualize_fishbone_plotly(fishbone_dict):
             ))
     fig.update_layout(title="Fishbone Diagram", showlegend=False)
     return fig
-
