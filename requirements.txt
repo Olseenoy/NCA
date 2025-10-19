@@ -19,23 +19,24 @@ pydantic
 sqlalchemy
 alembic
 openai
-psycopg2-binary  # if you use Postgres
+psycopg2-binary
 openpyxl
 python-dotenv
 streamlit-option-menu
 hdbscan
-langchain==0.0.350
 ollama
 faiss-cpu
 sentence-transformers
 pypdf
 python-docx
-unstructured 
-langchain-experimental 
+unstructured
+langchain-core
 langchain-community
-google-generativeai 
-groq  
+langchain-experimental
+langchain-openai
 langchain-groq
+google-generativeai
+groq
 reportlab
 kaleido==0.2.1
 fuzzywuzzy
@@ -43,3 +44,4 @@ plotly[kaleido]
 python-Levenshtein
 markdown2
 beautifulsoup4
+
