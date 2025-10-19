@@ -24,7 +24,7 @@ openpyxl
 python-dotenv
 streamlit-option-menu
 hdbscan
-langchain
+langchain==0.0.350
 ollama
 faiss-cpu
 sentence-transformers
