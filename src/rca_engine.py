@@ -26,7 +26,6 @@ from pypdf import PdfReader
 # --- Load embedding model once ---
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-
 # --- Utility: Load files recursively from reference folder ---
 def load_reference_files(reference_folder):
     docs = []
