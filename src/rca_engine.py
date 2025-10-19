@@ -18,7 +18,7 @@ from langchain_groq import ChatGroq
 from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
-from langchain_core.chains import LLMChain
+from langchain.chains.llm import LLMChain
 from transformers import pipeline
 from docx import Document
 from pypdf import PdfReader
