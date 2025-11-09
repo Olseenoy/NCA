@@ -2037,12 +2037,27 @@ def main():
 
                     elements.append(Spacer(1, 20))
 
-                # --- Add Layman Interpretation Text ---
+                # --------------------
+                # Layman Interpretation
+                # --------------------
                 if "layman_interpretation" in st.session_state:
-                    elements.append(Paragraph("Layman Interpretation", styles['Heading2']))
-                    elements.append(Paragraph(st.session_state["layman_interpretation"], styles['Normal']))
-                    elements.append(Spacer(1, 12))
-
+                    layman_text = st.session_state["layman_interpretation"]
+                    # Split into paragraphs by double newlines
+                    paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
+            
+                    elements.append(Paragraph("Layman Interpretation", heading2_style))
+                    for para in paragraphs:
+                        # Optional: make subheadings bold
+                        if para.startswith("**Summary of this analysis:**"):
+                            elements.append(Paragraph("Summary of this analysis:", heading3_style))
+                        elif para.startswith("In plain English:"):
+                            elements.append(Paragraph("In plain English:", heading3_style))
+                        else:
+                            elements.append(Paragraph(para, normal_style))
+                        elements.append(Spacer(1, 6))  # small spacing between paragraphs
+                    elements.append(Spacer(1, 12))  # extra space after section
+        
+        
 
 
                 # =====================
