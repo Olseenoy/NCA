@@ -1166,11 +1166,17 @@ def main():
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
 
             # --- Simple Layman Interpretation ---
+            # --- Simple Layman Interpretation ---
             st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
             
-            best_k = best.get('k', best.get('n_clusters', 'N/A'))
-            silhouette = best.get("Silhouette Score", 0)
-            db_score = best.get("Davies-Bouldin Score", 0)
+            # Safely extract metrics
+            if isinstance(best, dict):
+                best_k = best.get('k') or best.get('n_clusters') or 'N/A'
+                silhouette = best.get("Silhouette Score", 0.0)
+                db_score = best.get("Davies-Bouldin Score", 0.0)
+            else:
+                st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
+                best_k, silhouette, db_score = 'N/A', 0.0, 0.0
             
             st.write("""
             Each **dot** in the chart represents one data point (for example, a product issue or record).  
@@ -1190,6 +1196,7 @@ def main():
                 silhouette=silhouette,
                 db=db_score
             ))
+
 
 
           
