@@ -1,15 +1,15 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# User credentials
+# --- User credentials (plain text, classic version) ---
 users = {
     "usernames": {
-        "admin": {"name": "Admin User", "password": "hashed_passwords[0]"},
+        "admin": {"name": "Admin User", "password": "admin123"},
         "user1": {"name": "User One", "password": "pass123"}
     }
 }
 
-# Create authenticator
+# --- Create authenticator ---
 authenticator = stauth.Authenticate(
     credentials=users,
     cookie_name="snca_cookie",
@@ -17,30 +17,25 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- LOGIN FORM ---
-login_info = authenticator.login(location="main")  # returns tuple or None
+# --- Login form ---
+name, authentication_status, username = authenticator.login("Login", "main")
 
-if login_info is not None:
-    name, authentication_status, username = login_info  # safe unpack
-
-    # --- CONTROL ACCESS ---
-    if authentication_status:
-        st.success(f"Welcome {name}")
-        
-        # --- LOGOUT BUTTON ---
-        if st.button("Logout"):
-            authenticator.logout(location="main")
-            st.experimental_rerun()
-        
-        # --- RUN SNCA MAIN APP ---
-        run_snca_app()  # your existing SNCA code goes here
-        
-    elif authentication_status == False:
-        st.error("Username/password is incorrect")
-    else:
-        st.warning("Please enter your username and password")
+# --- Control access ---
+if authentication_status:
+    st.success(f"Welcome {name}")
+    
+    # --- Logout button ---
+    if st.button("Logout"):
+        authenticator.logout("Logout", "main")
+        st.experimental_rerun()
+    
+    # --- Run SNCA main app ---
+    run_snca_app()  # your existing SNCA code goes here
+    
+elif authentication_status == False:
+    st.error("Username/password is incorrect")
 else:
-    st.error("Login failed. Check your credentials and library version.")
+    st.warning("Please enter your username and password")
 
 
 def run_snca_app():
