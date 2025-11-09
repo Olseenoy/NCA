@@ -2040,10 +2040,67 @@ def main():
                 # =====================
                 # Layman Interpretation in PDF
                 # =====================
+                       # --- Prepare Layman Interpretation for PDF ---
                 if "layman_interpretation" in st.session_state:
-                    elements.append(Paragraph("Layman Interpretation", styles['Heading2']))
-                    elements.append(Paragraph(st.session_state["layman_interpretation"], styles['Normal']))
-                    elements.append(Spacer(1, 12))
+                    from reportlab.platypus import Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    
+                    styles = getSampleStyleSheet()
+                    normal_style = styles['Normal']
+                    heading2_style = styles['Heading2']
+                    heading3_style = styles['Heading3'] if 'Heading3' in styles else normal_style
+                
+                    # Add section title
+                    elements.append(Paragraph("Layman Interpretation", heading2_style))
+                    elements.append(Spacer(1, 6))
+                
+                    # Get text and split by double newlines to separate paragraphs
+                    layman_text = st.session_state["layman_interpretation"]
+                    paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
+                
+                    for para in paragraphs:
+                        # Optional: make subheadings for key parts
+                        if para.startswith("**Summary of this analysis:**"):
+                            elements.append(Paragraph("Summary of this analysis:", heading3_style))
+                        elif para.startswith("In plain English:"):
+                            elements.append(Paragraph("In plain English:", heading3_style))
+                        else:
+                            elements.append(Paragraph(para, normal_style))
+                        
+                        elements.append(Spacer(1, 6))  # space after each paragraph
+                
+                    elements.append(Spacer(1, 12))  # extra space after the whole section
+                # --- Prepare Layman Interpretation for PDF ---
+                if "layman_interpretation" in st.session_state:
+                    from reportlab.platypus import Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    
+                    styles = getSampleStyleSheet()
+                    normal_style = styles['Normal']
+                    heading2_style = styles['Heading2']
+                    heading3_style = styles['Heading3'] if 'Heading3' in styles else normal_style
+                
+                    # Add section title
+                    elements.append(Paragraph("Layman Interpretation", heading2_style))
+                    elements.append(Spacer(1, 6))
+                
+                    # Get text and split by double newlines to separate paragraphs
+                    layman_text = st.session_state["layman_interpretation"]
+                    paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
+                
+                    for para in paragraphs:
+                        # Optional: make subheadings for key parts
+                        if para.startswith("**Summary of this analysis:**"):
+                            elements.append(Paragraph("Summary of this analysis:", heading3_style))
+                        elif para.startswith("In plain English:"):
+                            elements.append(Paragraph("In plain English:", heading3_style))
+                        else:
+                            elements.append(Paragraph(para, normal_style))
+                        
+                        elements.append(Spacer(1, 6))  # space after each paragraph
+                
+                    elements.append(Spacer(1, 12))  # extra space after the whole section
+
         
         
 
