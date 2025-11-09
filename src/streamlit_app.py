@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# --- User credentials (plain text, classic version) ---
+# --- User credentials ---
 users = {
     "usernames": {
         "admin": {"name": "Admin User", "password": "admin123"},
@@ -17,8 +17,8 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form ---
-name, authentication_status, username = authenticator.login("Login", "main")
+# --- Login form (corrected) ---
+name, authentication_status, username = authenticator.login(location="main")
 
 # --- Control access ---
 if authentication_status:
@@ -26,7 +26,7 @@ if authentication_status:
     
     # --- Logout button ---
     if st.button("Logout"):
-        authenticator.logout("Logout", "main")
+        authenticator.logout(location="main")
         st.experimental_rerun()
     
     # --- Run SNCA main app ---
@@ -36,6 +36,7 @@ elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
     st.warning("Please enter your username and password")
+
 
 
 def run_snca_app():
