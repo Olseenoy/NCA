@@ -1177,38 +1177,28 @@ def main():
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
             
             # --- Simple Layman Interpretation ---
+            # --- Simple Layman Interpretation ---
+            best_k = best.get('k') or best.get('n_clusters') or 'N/A'
+            silhouette = best.get("Silhouette Score", 0.0)
+            db_score = best.get("Davies-Bouldin Score", 0.0)
+    
+            layman_text = f"""
+    Each **dot** in the chart represents one data point (for example, a product issue or record).  
+    Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
+    
+    **Summary of this analysis:**
+    - **Best number of clusters (K):** {best_k} — the data naturally forms about {best_k} distinct groups.
+    - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
+    - **Davies–Bouldin Score:** {db_score:.3f} → Lower means less overlap between groups.
+    
+    In plain English:
+    - The system automatically grouped similar data points together.
+    - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
+    - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
+    """
+            st.session_state["layman_interpretation"] = layman_text
             st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
-            
-            # ✅ Safely load 'best' from session_state if not available in memory
-            best = locals().get("best", st.session_state.get("best_result", {}))
-            
-            if isinstance(best, dict):
-                best_k = best.get('k') or best.get('n_clusters') or 'N/A'
-                silhouette = best.get("Silhouette Score", 0.0)
-                db_score = best.get("Davies-Bouldin Score", 0.0)
-            else:
-                st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
-                best_k, silhouette, db_score = 'N/A', 0.0, 0.0
-            
-            st.write("""
-            Each **dot** in the chart represents one data point (for example, a product issue or record).  
-            Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
-            
-            **Summary of this analysis:**
-            - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
-            - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
-            - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
-            
-            In plain English:
-            - The system automatically grouped similar data points together.
-            - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
-            - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
-            """.format(
-                k=best_k,
-                silhouette=silhouette,
-                db=db_score
-            ))
-
+            st.write(layman_text)
 
 
           
