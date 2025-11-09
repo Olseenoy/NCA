@@ -6,6 +6,7 @@ transformers
 torch
 faiss-cpu
 streamlit
+streamlit-authenticator
 plotly
 matplotlib
 seaborn
@@ -44,4 +45,3 @@ plotly[kaleido]
 python-Levenshtein
 markdown2
 beautifulsoup4
-
