@@ -17,25 +17,26 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# Login form
-name, authentication_status, username = authenticator.login("Login", "main")
+# --- LOGIN FORM ---
+name, authentication_status, username = authenticator.login(location="main")
 
-# Control access
+# --- CONTROL ACCESS ---
 if authentication_status:
     st.success(f"Welcome {name}")
     
-    # Optional: Logout button
+    # --- LOGOUT BUTTON ---
     if st.button("Logout"):
-        authenticator.logout("Logout", "main")
-        st.experimental_rerun()
+        authenticator.logout(location="main")  # correct logout call
+        st.experimental_rerun()               # refresh app to show login form again
     
-    # Run SNCA main app
-    run_snca_app()
+    # --- RUN SNCA MAIN APP ---
+    run_snca_app()  # your existing SNCA code goes here
     
 elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
     st.warning("Please enter your username and password")
+
 def run_snca_app():
     # ================================
     # File: src/streamlit_app.py
