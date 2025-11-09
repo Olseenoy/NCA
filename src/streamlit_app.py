@@ -1113,22 +1113,21 @@ def main():
                     # --- Automatically run clustering ---
                     from PIL import Image as PILImage
                     st.subheader("Clustering & Visualization")
-                    
                     valid_p = isinstance(p, pd.DataFrame) and not p.empty
                     valid_embeddings = embeddings is not None and len(embeddings) > 0
-                    
+            
                     if valid_p and valid_embeddings:
                         try:
                             from config import RANDOM_STATE
                             with st.spinner("Evaluating optimal clusters..."):
                                 best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
-                    
+            
                             metrics_summary = {
                                 "Silhouette Score": best["Silhouette Score"],
                                 "Davies-Bouldin Score": best["Davies-Bouldin Score"],
                                 "interpretation": best["interpretation"],
                             }
-                    
+            
                             st.session_state['cluster_metrics'] = metrics_summary
                             st.session_state['cluster_labels'] = best["labels"]
                             st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
@@ -1136,11 +1135,6 @@ def main():
                                 f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
                                 f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
                             )
-                    
-                            # --- Display Results ---
-                            st.write(st.session_state['cluster_text'])
-                            st.pyplot(st.session_state['cluster_fig'])
-                    
                             # --- Simple Layman Interpretation ---
                             st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
                             st.write(f"""
@@ -1157,10 +1151,6 @@ def main():
                     - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
                     - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
                     """)
-                    
-                     
-
-            
                             # Save cluster chart as PNG
                             clusters_chart_path = "clusters_rgb.png"
                             st.session_state['cluster_fig'].write_image(
