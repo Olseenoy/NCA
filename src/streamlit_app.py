@@ -1178,9 +1178,6 @@ def main():
             
             # --- Simple Layman Interpretation ---
             # --- Simple Layman Interpretation ---
-            st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
-            
-            # Safely load 'best'
             best = locals().get("best", st.session_state.get("best_result", {}))
             
             if isinstance(best, dict):
@@ -1188,29 +1185,34 @@ def main():
                 silhouette = best.get("Silhouette Score", 0.0)
                 db_score = best.get("Davies-Bouldin Score", 0.0)
             else:
-                st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
                 best_k, silhouette, db_score = 'N/A', 0.0, 0.0
             
-            layman_text = """
+            layman_text = f"""
             Each **dot** in the chart represents one data point (for example, a product issue or record).  
             Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
             
             **Summary of this analysis:**
-            - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
+            - **Best number of clusters (K):** {best_k} — the data naturally forms about {best_k} distinct groups.
             - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
-            - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
+            - **Davies–Bouldin Score:** {db_score:.3f} → Lower means less overlap between groups.
             
             In plain English:
             - The system automatically grouped similar data points together.
             - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
             - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
-            """.format(k=best_k, silhouette=silhouette, db=db_score)
+            """
             
-            # Display on UI
+            # Split into paragraphs and convert to Paragraph objects
+            from reportlab.platypus import Paragraph
+            styles = getSampleStyleSheet()
+            normal_style = styles['Normal']
+            
+            layman_paragraphs = [Paragraph(p.strip(), normal_style) for p in layman_text.split("\n\n") if p.strip()]
+            st.session_state["layman_pdf_content"] = layman_paragraphs
+            
+            # Also display on UI
+            st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
             st.write(layman_text)
-            
-            # ✅ Save for PDF
-            st.session_state["layman_interpretation"] = layman_text
 
 
           
@@ -2037,25 +2039,18 @@ def main():
 
                     elements.append(Spacer(1, 20))
 
-                # --------------------
-                # Layman Interpretation
-                # --------------------
-                if "layman_interpretation" in st.session_state:
-                    layman_text = st.session_state["layman_interpretation"]
-                    # Split into paragraphs by double newlines
-                    paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
-            
-                    elements.append(Paragraph("Layman Interpretation", heading2_style))
-                    for para in paragraphs:
-                        # Optional: make subheadings bold
-                        if para.startswith("**Summary of this analysis:**"):
-                            elements.append(Paragraph("Summary of this analysis:", heading3_style))
-                        elif para.startswith("In plain English:"):
-                            elements.append(Paragraph("In plain English:", heading3_style))
-                        else:
-                            elements.append(Paragraph(para, normal_style))
+                # =====================
+                # Layman Interpretation in PDF
+                # =====================
+                if "layman_pdf_content" in st.session_state and st.session_state["layman_pdf_content"]:
+                    elements.append(Paragraph("Layman Interpretation", styles['Heading2']))
+                    
+                    for para in st.session_state["layman_pdf_content"]:
+                        elements.append(para)
                         elements.append(Spacer(1, 6))  # small spacing between paragraphs
-                    elements.append(Spacer(1, 12))  # extra space after section
+                    
+                    elements.append(Spacer(1, 20))  # extra space after section
+
         
         
 
