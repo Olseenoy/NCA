@@ -2006,12 +2006,19 @@ def main():
                     elements.append(Paragraph("Root Cause Analysis (RCA)", styles['Heading2']))
                     
                     fishbone_added = False  # <-- flag to ensure we add only one Fishbone Diagram
+                    first_issue_replaced = False  # <-- flag to replace only the first "Issue"
                 
                     for para in st.session_state["rca_pdf_content"]:
+                        # Replace the first "Issue" with "Problem Statement" in the first paragraph that contains it
+                        if not first_issue_replaced and hasattr(para, 'text') and "issue" in para.text.lower():
+                            new_text = para.text.replace("Issue", "Problem Statement", 1)  # Replace first occurrence
+                            para = Paragraph(new_text, para.style)  # create new Paragraph object
+                            first_issue_replaced = True
+                
                         # Add each paragraph
                         elements.append(para)
                     
-                        # Check if this paragraph contains "Issue" (case-insensitive)
+                        # Check if this paragraph contains "Issue" (case-insensitive) and add Fishbone Diagram only once
                         if hasattr(para, 'text') and "issue" in para.text.lower() and not fishbone_added:
                             # =====================
                             # Fishbone Diagram (only once)
@@ -2022,8 +2029,9 @@ def main():
                                 elements.append(Image(st.session_state["fishbone_img"], width=500, height=300))
                                 elements.append(Spacer(1, 20))
                                 fishbone_added = True  # <-- mark as added so it doesn't repeat
-                
+                    
                     elements.append(Spacer(1, 20))
+
 
 
                 # =====================
