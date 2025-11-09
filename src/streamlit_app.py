@@ -1,3 +1,42 @@
+import streamlit as st
+import streamlit_authenticator as stauth
+
+# User credentials
+users = {
+    "usernames": {
+        "admin": {"name": "Admin User", "password": "admin123"},
+        "user1": {"name": "User One", "password": "pass123"}
+    }
+}
+
+# Create authenticator
+authenticator = stauth.Authenticate(
+    credentials=users,
+    cookie_name="snca_cookie",
+    key="snca_key",
+    cookie_expiry_days=1
+)
+
+# Login form
+name, authentication_status, username = authenticator.login("Login", "main")
+
+# Control access
+if authentication_status:
+    st.success(f"Welcome {name}")
+    
+    # Optional: Logout button
+    if st.button("Logout"):
+        authenticator.logout("Logout", "main")
+        st.experimental_rerun()
+    
+    # Run SNCA main app
+    run_snca_app()
+    
+elif authentication_status == False:
+    st.error("Username/password is incorrect")
+else:
+    st.warning("Please enter your username and password")
+def run_snca_app():
 # ================================
 # File: src/streamlit_app.py
 # ================================
