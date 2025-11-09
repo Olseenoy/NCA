@@ -6,7 +6,7 @@ transformers
 torch
 faiss-cpu
 streamlit
-streamlit-authenticator==0.3.0
+streamlit-authenticator
 plotly
 matplotlib
 seaborn
