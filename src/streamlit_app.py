@@ -2284,7 +2284,7 @@ if authentication_status:
     # --- Logout button ---
     if st.button("Logout"):
         authenticator.logout(location="main")
-        st.experimental_rerun()
+        
 
     # --- Run main SNCA app ---
     run_snca_app()
