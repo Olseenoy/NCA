@@ -1111,31 +1111,38 @@ def main():
             
                     # --- Automatically run clustering ---
                     # --- Automatically run clustering ---
+                    # --- Automatically run clustering ---
                     from PIL import Image as PILImage
                     st.subheader("Clustering & Visualization")
+                    
                     valid_p = isinstance(p, pd.DataFrame) and not p.empty
                     valid_embeddings = embeddings is not None and len(embeddings) > 0
-            
+                    
                     if valid_p and valid_embeddings:
                         try:
                             from config import RANDOM_STATE
                             with st.spinner("Evaluating optimal clusters..."):
                                 best, results = evaluate_kmeans(embeddings, k_values=list(range(2, 8)))
-            
+                    
+                            # ✅ Store best and results safely for later use (e.g., PDF generation)
+                            st.session_state["best_result"] = best
+                            st.session_state["cluster_results"] = results
+                    
                             metrics_summary = {
                                 "Silhouette Score": best["Silhouette Score"],
                                 "Davies-Bouldin Score": best["Davies-Bouldin Score"],
                                 "interpretation": best["interpretation"],
                             }
-            
+                    
                             st.session_state['cluster_metrics'] = metrics_summary
                             st.session_state['cluster_labels'] = best["labels"]
                             st.session_state['cluster_fig'] = cluster_scatter(embeddings, best["labels"])
                             st.session_state['cluster_text'] = (
-                                f"Best K={best['k']} | Silhouette={best['Silhouette Score']:.3f} | "
+                                f"Best K={best.get('k', best.get('n_clusters', 'N/A'))} | "
+                                f"Silhouette={best['Silhouette Score']:.3f} | "
                                 f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}"
                             )
-
+                    
                             # Save cluster chart as PNG
                             clusters_chart_path = "clusters_rgb.png"
                             st.session_state['cluster_fig'].write_image(
@@ -1144,32 +1151,37 @@ def main():
                             img = PILImage.open(clusters_chart_path).convert("RGB")
                             img.save(clusters_chart_path)
                             st.session_state["clusters_chart"] = clusters_chart_path
-            
+                    
                             # Save cluster summary text
                             clusters_summary = (
-                                f"Best K={best['k']}, Silhouette={best['Silhouette Score']:.3f}, "
+                                f"Best K={best.get('k', best.get('n_clusters', 'N/A'))}, "
+                                f"Silhouette={best['Silhouette Score']:.3f}, "
                                 f"Davies-Bouldin={best['Davies-Bouldin Score']:.3f}. "
                                 f"Interpretation: {best['interpretation']}"
                             )
                             st.session_state["clusters_summary"] = clusters_summary
-                         
+                    
                         except Exception as e:
                             st.error(f"Clustering failed: {e}")
-            
+
+
+
             # --- Persistent display of clusters ---
-            if "cluster_text" in st.session_state and \
-               "cluster_metrics" in st.session_state and \
-               "cluster_fig" in st.session_state:
-                
+            if (
+                "cluster_text" in st.session_state
+                and "cluster_metrics" in st.session_state
+                and "cluster_fig" in st.session_state
+            ):
                 st.success(st.session_state['cluster_text'])
                 st.info(st.session_state['cluster_metrics']["interpretation"])
                 st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
-
-            # --- Simple Layman Interpretation ---
+            
             # --- Simple Layman Interpretation ---
             st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
             
-            # Safely extract metrics
+            # ✅ Safely load 'best' from session_state if not available in memory
+            best = locals().get("best", st.session_state.get("best_result", {}))
+            
             if isinstance(best, dict):
                 best_k = best.get('k') or best.get('n_clusters') or 'N/A'
                 silhouette = best.get("Silhouette Score", 0.0)
