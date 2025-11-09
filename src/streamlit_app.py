@@ -2037,6 +2037,13 @@ def main():
 
                     elements.append(Spacer(1, 20))
 
+                # --- Add Layman Interpretation Text ---
+                if "layman_interpretation" in st.session_state:
+                    elements.append(Paragraph("Layman Interpretation", styles['Heading2']))
+                    elements.append(Paragraph(st.session_state["layman_interpretation"], styles['Normal']))
+                    elements.append(Spacer(1, 12))
+
+
 
                 # =====================
                 # Recurring Issues Table
