@@ -1178,6 +1178,9 @@ def main():
             
             # --- Simple Layman Interpretation ---
             # --- Simple Layman Interpretation ---
+            st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
+            
+            # Safely load 'best'
             best = locals().get("best", st.session_state.get("best_result", {}))
             
             if isinstance(best, dict):
@@ -1185,31 +1188,29 @@ def main():
                 silhouette = best.get("Silhouette Score", 0.0)
                 db_score = best.get("Davies-Bouldin Score", 0.0)
             else:
+                st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
                 best_k, silhouette, db_score = 'N/A', 0.0, 0.0
             
-            layman_text = f"""
+            layman_text = """
             Each **dot** in the chart represents one data point (for example, a product issue or record).  
             Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
             
             **Summary of this analysis:**
-            - **Best number of clusters (K):** {best_k} — the data naturally forms about {best_k} distinct groups.
+            - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
             - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
-            - **Davies–Bouldin Score:** {db_score:.3f} → Lower means less overlap between groups.
+            - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
             
             In plain English:
             - The system automatically grouped similar data points together.
             - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
             - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
-            """
+            """.format(k=best_k, silhouette=silhouette, db=db_score)
             
-    
-            
-            layman_paragraphs = [Paragraph(p.strip(), normal_style) for p in layman_text.split("\n\n") if p.strip()]
-            st.session_state["layman_pdf_content"] = layman_paragraphs
-            
-            # Also display on UI
-            st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
+            # Display on UI
             st.write(layman_text)
+            
+            # ✅ Save for PDF
+            st.session_state["layman_interpretation"] = layman_text
 
 
           
@@ -2039,15 +2040,10 @@ def main():
                 # =====================
                 # Layman Interpretation in PDF
                 # =====================
-                if "layman_pdf_content" in st.session_state and st.session_state["layman_pdf_content"]:
+                if "layman_interpretation" in st.session_state:
                     elements.append(Paragraph("Layman Interpretation", styles['Heading2']))
-                    
-                    for para in st.session_state["layman_pdf_content"]:
-                        elements.append(para)
-                        elements.append(Spacer(1, 6))  # small spacing between paragraphs
-                    
-                    elements.append(Spacer(1, 20))  # extra space after section
-
+                    elements.append(Paragraph(st.session_state["layman_interpretation"], styles['Normal']))
+                    elements.append(Spacer(1, 12))
         
         
 
