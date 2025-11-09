@@ -18,24 +18,30 @@ authenticator = stauth.Authenticate(
 )
 
 # --- LOGIN FORM ---
-name, authentication_status, username = authenticator.login(location="main")
+login_info = authenticator.login(location="main")  # returns tuple or None
 
-# --- CONTROL ACCESS ---
-if authentication_status:
-    st.success(f"Welcome {name}")
-    
-    # --- LOGOUT BUTTON ---
-    if st.button("Logout"):
-        authenticator.logout(location="main")  # correct logout call
-        st.experimental_rerun()               # refresh app to show login form again
-    
-    # --- RUN SNCA MAIN APP ---
-    run_snca_app()  # your existing SNCA code goes here
-    
-elif authentication_status == False:
-    st.error("Username/password is incorrect")
+if login_info is not None:
+    name, authentication_status, username = login_info  # safe unpack
+
+    # --- CONTROL ACCESS ---
+    if authentication_status:
+        st.success(f"Welcome {name}")
+        
+        # --- LOGOUT BUTTON ---
+        if st.button("Logout"):
+            authenticator.logout(location="main")
+            st.experimental_rerun()
+        
+        # --- RUN SNCA MAIN APP ---
+        run_snca_app()  # your existing SNCA code goes here
+        
+    elif authentication_status == False:
+        st.error("Username/password is incorrect")
+    else:
+        st.warning("Please enter your username and password")
 else:
-    st.warning("Please enter your username and password")
+    st.error("Login failed. Check your credentials and library version.")
+
 
 def run_snca_app():
     # ================================
