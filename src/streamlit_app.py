@@ -2,10 +2,13 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # --- User credentials ---
+passwords = ["admin123", "pass123"]
+hashed_passwords = stauth.Hasher(passwords).generate()  # hash passwords
+
 users = {
     "usernames": {
-        "admin": {"name": "Admin User", "password": "admin123"},
-        "user1": {"name": "User One", "password": "pass123"}
+        "admin": {"name": "Admin User", "password": hashed_passwords[0]},
+        "user1": {"name": "User One", "password": hashed_passwords[1]}
     }
 }
 
@@ -17,29 +20,30 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form ---
-authenticator.login(location="main")
+# --- Login form (capture login info) ---
+login_info = authenticator.login("Login", location="main")  # returns (name, auth_status, username) or None
 
-# --- Access the state ---
-name = st.session_state.get("name")
-authentication_status = st.session_state.get("authentication_status")
-username = st.session_state.get("username")
+if login_info is not None:
+    name, authentication_status, username = login_info
 
-# --- Control access ---
-if authentication_status:
-    st.success(f"Welcome {name}")
+    if authentication_status:
+        st.success(f"Welcome {name}")
 
-    if st.button("Logout"):
-        authenticator.logout(location="main")
-        st.experimental_rerun()
+        # --- Logout ---
+        if st.button("Logout"):
+            authenticator.logout("Logout", "main")
+            st.experimental_rerun()
 
-    # Run SNCA main app
-    run_snca_app()
-    
-elif authentication_status == False:
-    st.error("Username/password is incorrect")
+        # --- Run SNCA main app ---
+        run_snca_app()
+
+    elif authentication_status == False:
+        st.error("Username/password is incorrect")
+    else:
+        st.warning("Please enter your username and password")
 else:
-    st.warning("Please enter your username and password")
+    st.warning("Login required or check your credentials")
+
 
 
 
