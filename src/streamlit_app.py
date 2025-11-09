@@ -2,13 +2,10 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # --- User credentials ---
-passwords = ["admin123", "pass123"]
-hashed_passwords = stauth.Hasher(passwords).generate()  # hash passwords
-
 users = {
     "usernames": {
-        "admin": {"name": "Admin User", "password": hashed_passwords[0]},
-        "user1": {"name": "User One", "password": hashed_passwords[1]}
+        "admin": {"name": "Admin User", "password": "admin123"},
+        "user1": {"name": "User One", "password": "pass123"}
     }
 }
 
@@ -20,29 +17,30 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form (capture login info) ---
-login_info = authenticator.login("Login", location="main")  # returns (name, auth_status, username) or None
+# --- Login form ---
+authenticator.login("Login", location="main")
 
-if login_info is not None:
-    name, authentication_status, username = login_info
+# --- Access the state ---
+name = st.session_state.get("name", "")
+authentication_status = st.session_state.get("authentication_status", None)
+username = st.session_state.get("username", "")
 
-    if authentication_status:
-        st.success(f"Welcome {name}")
+# --- Control access ---
+if authentication_status:
+    st.success(f"Welcome {name}")
 
-        # --- Logout ---
-        if st.button("Logout"):
-            authenticator.logout("Logout", "main")
-            st.experimental_rerun()
+    # --- Logout button ---
+    if st.button("Logout"):
+        authenticator.logout("Logout", location="main")
+        st.experimental_rerun()
 
-        # --- Run SNCA main app ---
-        run_snca_app()
-
-    elif authentication_status == False:
-        st.error("Username/password is incorrect")
-    else:
-        st.warning("Please enter your username and password")
+    # --- Run SNCA main app ---
+    run_snca_app()
+    
+elif authentication_status is False:
+    st.error("Username/password is incorrect")
 else:
-    st.warning("Login required or check your credentials")
+    st.warning("Please enter your username and password")
 
 
 
