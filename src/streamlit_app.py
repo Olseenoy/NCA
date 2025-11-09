@@ -2281,9 +2281,6 @@ username = st.session_state.get("username")
 if authentication_status:
     st.success(f"Welcome {name}")
 
-    # --- Logout button ---
-    if st.button("Logout"):
-        authenticator.logout(location="main")
         
 
     # --- Run main SNCA app ---
