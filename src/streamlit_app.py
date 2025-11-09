@@ -4,7 +4,7 @@ import streamlit_authenticator as stauth
 # User credentials
 users = {
     "usernames": {
-        "admin": {"name": "Admin User", "password": "admin123"},
+        "admin": {"name": "Admin User", "password": "hashed_passwords[0]"},
         "user1": {"name": "User One", "password": "pass123"}
     }
 }
