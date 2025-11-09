@@ -18,25 +18,25 @@ authenticator = stauth.Authenticate(
 )
 
 # --- Login form ---
-authenticator.login("Login")  # <- v0.2.x syntax, no location keyword
+authenticator.login(location="main")
 
-# --- Access session state ---
-name = st.session_state.get("name", "")
-authentication_status = st.session_state.get("authentication_status", None)
-username = st.session_state.get("username", "")
+# --- Access the state ---
+name = st.session_state.get("name")
+authentication_status = st.session_state.get("authentication_status")
+username = st.session_state.get("username")
 
 # --- Control access ---
 if authentication_status:
     st.success(f"Welcome {name}")
 
     if st.button("Logout"):
-        authenticator.logout("Logout")  # <- v0.2.x syntax, no location keyword
+        authenticator.logout(location="main")
         st.experimental_rerun()
 
     # Run SNCA main app
     run_snca_app()
     
-elif authentication_status is False:
+elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
     st.warning("Please enter your username and password")
