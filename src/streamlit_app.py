@@ -1202,10 +1202,7 @@ def main():
             - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
             """
             
-            # Split into paragraphs and convert to Paragraph objects
-            from reportlab.platypus import Paragraph
-            styles = getSampleStyleSheet()
-            normal_style = styles['Normal']
+    
             
             layman_paragraphs = [Paragraph(p.strip(), normal_style) for p in layman_text.split("\n\n") if p.strip()]
             st.session_state["layman_pdf_content"] = layman_paragraphs
