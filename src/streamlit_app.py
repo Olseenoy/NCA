@@ -1167,6 +1167,11 @@ def main():
 
             # --- Simple Layman Interpretation ---
             st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
+            
+            best_k = best.get('k', best.get('n_clusters', 'N/A'))
+            silhouette = best.get("Silhouette Score", 0)
+            db_score = best.get("Davies-Bouldin Score", 0)
+            
             st.write("""
             Each **dot** in the chart represents one data point (for example, a product issue or record).  
             Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
@@ -1181,10 +1186,11 @@ def main():
             - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
             - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
             """.format(
-                k=best['k'],
-                silhouette=best["Silhouette Score"],
-                db=best["Davies-Bouldin Score"]
+                k=best_k,
+                silhouette=silhouette,
+                db=db_score
             ))
+
 
           
             # --- NLTK & Utilities ---
