@@ -2049,36 +2049,54 @@ def run_snca_app():
                     # =====================
                     # Layman Interpretation in PDF
                     # =====================
-                           # --- Prepare Layman Interpretation for PDF ---
                     if "layman_interpretation" in st.session_state:
                         from reportlab.platypus import Paragraph, Spacer
-                        from reportlab.lib.styles import getSampleStyleSheet
-                        
+                        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                        from reportlab.lib.enums import TA_LEFT
+                    
                         styles = getSampleStyleSheet()
                         normal_style = styles['Normal']
-                        heading2_style = styles['Heading2']
-                        heading3_style = styles['Heading3'] if 'Heading3' in styles else normal_style
+                        normal_style.fontSize = 10
+                        normal_style.leading = 14
                     
-                        # Add section title
-                        elements.append(Paragraph("Layman Interpretation", heading2_style))
-                        elements.append(Spacer(1, 6))
+                        heading2_style = ParagraphStyle(
+                            name="Heading2",
+                            parent=styles['Heading2'],
+                            fontSize=13,
+                            spaceAfter=8,
+                            textColor="#1F4E79"
+                        )
                     
-                        # Get text and split by double newlines to separate paragraphs
-                        layman_text = st.session_state["layman_interpretation"]
+                        heading3_style = ParagraphStyle(
+                            name="Heading3",
+                            parent=styles['Heading3'] if 'Heading3' in styles else styles['Normal'],
+                            fontSize=11,
+                            spaceAfter=6,
+                            textColor="#2E75B6"
+                        )
+                    
+                        # Add section title with emoji
+                        elements.append(Paragraph("🗂 Cluster Summary (Easy Explanation)", heading2_style))
+                        elements.append(Spacer(1, 8))
+                    
+                        # Get text and clean up markdown syntax
+                        layman_text = st.session_state["layman_interpretation"].replace("**", "")
                         paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
                     
                         for para in paragraphs:
-                            # Optional: make subheadings for key parts
-                            if para.startswith("**Summary of this analysis:**"):
+                            if para.lower().startswith("summary of this analysis"):
+                                elements.append(Spacer(1, 6))
                                 elements.append(Paragraph("Summary of this analysis:", heading3_style))
-                            elif para.startswith("In plain English:"):
+                            elif para.lower().startswith("in plain english"):
+                                elements.append(Spacer(1, 6))
                                 elements.append(Paragraph("In plain English:", heading3_style))
                             else:
+                                # Normal paragraph
                                 elements.append(Paragraph(para, normal_style))
-                            
                             elements.append(Spacer(1, 6))  # space after each paragraph
                     
                         elements.append(Spacer(1, 12))  # extra space after the whole section
+
                     # --- Prepare Layman Interpretation for PDF ---
                     if "layman_interpretation" in st.session_state:
                         from reportlab.platypus import Paragraph, Spacer
