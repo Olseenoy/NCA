@@ -2293,6 +2293,9 @@ name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
+# Create columns for positioning
+left_col, center_col, right_col = st.columns([1, 2, 1])
+
 # --- Control access ---
 if authentication_status:
     st.success(f"Welcome {name}")
@@ -2300,11 +2303,12 @@ if authentication_status:
     # --- Run main SNCA app ---
     run_snca_app()
 
-left_col, center_col, right_col = st.columns([1, 2, 1])
-
 elif authentication_status == False:
-    st.error("Username/password is incorrect")
+    # Show error in the center column
+    with center_col:
+        st.error("Username/password is incorrect")
 
 else:
+    # Show warning in the center column
     with center_col:
         st.warning("Please enter your username and password")
