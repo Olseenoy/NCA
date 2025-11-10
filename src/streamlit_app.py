@@ -2251,6 +2251,21 @@ def run_snca_app():
 import streamlit as st
 import streamlit_authenticator as stauth
 
+# --- Page setup and header ---
+st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+
+col1, col2 = st.columns([2, 12])
+with col1:
+    st.image(
+        "https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png",
+        width=200
+    )
+
+with col2:
+    st.title('Smart Non-Conformance Analyzer')
+
+st.markdown("---")  # Optional: thin separator line before login form
+
 # --- User credentials ---
 users = {
     "usernames": {
@@ -2279,11 +2294,9 @@ username = st.session_state.get("username")
 if authentication_status:
     st.success(f"Welcome {name}")
 
-        
-
     # --- Run main SNCA app ---
     run_snca_app()
-    
+
 elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
