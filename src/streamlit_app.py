@@ -1178,39 +1178,44 @@ def run_snca_app():
                 
             
                 # --- Simple Layman Interpretation ---
-                st.markdown("### 🗂 Cluster Summary ")
-                
-                # Safely load 'best'
-                best = locals().get("best", st.session_state.get("best_result", {}))
-                
-                if isinstance(best, dict):
-                    best_k = best.get('k') or best.get('n_clusters') or 'N/A'
-                    silhouette = best.get("Silhouette Score", 0.0)
-                    db_score = best.get("Davies-Bouldin Score", 0.0)
-                else:
-                    st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
-                    best_k, silhouette, db_score = 'N/A', 0.0, 0.0
-                
-                layman_text = """
-                Each **dot** in the chart represents one data point (for example, a product issue or record).  
-                Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
-                
-                **Summary of this analysis:**
-                - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
-                - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
-                - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
-                
-                In plain Term:
-                - The system automatically grouped similar data points together.
-                - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
-                - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
-                """.format(k=best_k, silhouette=silhouette, db=db_score)
-                
-                # Display on UI
-                st.write(layman_text)
-                
-                # ✅ Save for PDF
-                st.session_state["layman_interpretation"] = layman_text
+                if (
+                    "embeddings" in st.session_state 
+                    and st.session_state["embeddings"] is not None 
+                    and len(st.session_state["embeddings"]) > 0
+                ):
+                    st.markdown("### 🗂 Cluster Summary ")
+                    
+                    # Safely load 'best'
+                    best = locals().get("best", st.session_state.get("best_result", {}))
+                    
+                    if isinstance(best, dict):
+                        best_k = best.get('k') or best.get('n_clusters') or 'N/A'
+                        silhouette = best.get("Silhouette Score", 0.0)
+                        db_score = best.get("Davies-Bouldin Score", 0.0)
+                    else:
+                        st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
+                        best_k, silhouette, db_score = 'N/A', 0.0, 0.0
+                    
+                    layman_text = """
+                    Each **dot** in the chart represents one data point (for example, a product issue or record).  
+                    Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
+                    
+                    **Summary of this analysis:**
+                    - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
+                    - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
+                    - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
+                    
+                    In plain Term:
+                    - The system automatically grouped similar data points together.
+                    - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
+                    - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
+                    """.format(k=best_k, silhouette=silhouette, db=db_score)
+                    
+                    # Display on UI
+                    st.write(layman_text)
+                    
+                    # ✅ Save for PDF
+                    st.session_state["layman_interpretation"] = layman_text
 
     
               
