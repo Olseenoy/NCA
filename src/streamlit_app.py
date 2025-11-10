@@ -2248,7 +2248,6 @@ def run_snca_app():
     if __name__ == "__main__":
         main()
 
-
 import streamlit as st
 import streamlit_authenticator as stauth
 
@@ -2286,12 +2285,12 @@ def inject_custom_css():
 
     /* ===== Titles & Headers ===== */
     h1, .stMarkdown h1, div[data-testid="stMarkdownContainer"] h1 {
-        color: #011d6f !important; /* Promasidor Blue */
+        color: #011d6f !important;
         font-size: 40px !important;
         font-weight: 700 !important;
         text-transform: uppercase !important;
         letter-spacing: 1px !important;
-        border-bottom: 3px solid #F58220 !important; /* Orange underline */
+        border-bottom: 3px solid #F58220 !important;
         padding-bottom: 5px !important;
         margin-bottom: 20px !important;
     }
@@ -2343,6 +2342,21 @@ def inject_custom_css():
         background-color: #fff;
     }
 
+    /* ===== Login Card ===== */
+    .login-card {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        padding: 40px 30px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        text-align: center;
+        margin-top: 60px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .login-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
     /* ===== Metrics ===== */
     div[data-testid="stMetricValue"] {
         font-size: 22px;
@@ -2379,7 +2393,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form only (show header before login) ---
+# --- Display header only before login ---
 if "authentication_status" not in st.session_state or not st.session_state["authentication_status"]:
     col1, col2 = st.columns([2, 12])
     with col1:
@@ -2391,17 +2405,19 @@ if "authentication_status" not in st.session_state or not st.session_state["auth
         st.title('Smart Non-Conformance Analyzer')
     st.markdown("---")
 
-# --- Center the login form (adjustable width) ---
+# --- Center the login form inside a card ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
     authenticator.login(location="main")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # --- Access the state ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
-# Create columns for positioning messages
+# Create columns for positioning
 left_col, center_col, right_col = st.columns([1, 2, 1])
 
 # --- Control access ---
@@ -2416,4 +2432,5 @@ elif authentication_status == False:
 else:
     with center_col:
         st.warning("Please enter your username and password")
+
 
