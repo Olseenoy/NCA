@@ -2300,7 +2300,11 @@ if authentication_status:
     # --- Run main SNCA app ---
     run_snca_app()
 
+left_col, center_col, right_col = st.columns([1, 2, 1])
+
 elif authentication_status == False:
     st.error("Username/password is incorrect")
+
 else:
-    st.warning("Please enter your username and password")
+    with center_col:
+        st.warning("Please enter your username and password")
