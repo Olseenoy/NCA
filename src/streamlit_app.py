@@ -2284,7 +2284,7 @@ authenticator = stauth.Authenticate(
 )
 
 # --- Center the login form (adjustable width) ---
-left_col, center_col, right_col = st.columns([5, 2, 5])
+left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
     authenticator.login(location="main")
 
