@@ -2045,7 +2045,7 @@ def run_snca_app():
                             elements.append(rgb_image_for_pdf(st.session_state["clusters_chart"]))
     
                         elements.append(Spacer(1, 20))
-    
+
                     # =====================
                     # Layman Interpretation in PDF
                     # =====================
@@ -2076,26 +2076,35 @@ def run_snca_app():
                         )
                     
                         # Add section title with emoji
-                        elements.append(Paragraph("🗂 Cluster Summary (Easy Explanation)", heading2_style))
+                        elements.append(Paragraph("■ Cluster Summary (Easy Explanation)", heading2_style))
                         elements.append(Spacer(1, 8))
                     
                         # Get text and clean up markdown syntax
                         layman_text = st.session_state["layman_interpretation"].replace("**", "")
+                        
+                        # Replace dash bullets with proper line breaks for clean formatting
+                        layman_text = layman_text.replace(". -", ".<br/>-")
+                        layman_text = layman_text.replace(" - ", "<br/>- ")
+                    
                         paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
                     
                         for para in paragraphs:
                             if para.lower().startswith("summary of this analysis"):
-                                elements.append(Spacer(1, 6))
+                                elements.append(Spacer(1, 8))
                                 elements.append(Paragraph("Summary of this analysis:", heading3_style))
+                                elements.append(Spacer(1, 4))
                             elif para.lower().startswith("in plain english"):
-                                elements.append(Spacer(1, 6))
+                                elements.append(Spacer(1, 8))
                                 elements.append(Paragraph("In plain English:", heading3_style))
+                                elements.append(Spacer(1, 4))
                             else:
-                                # Normal paragraph
-                                elements.append(Paragraph(para, normal_style))
-                            elements.append(Spacer(1, 6))  # space after each paragraph
+                                # Add paragraph text with line breaks
+                                elements.append(Paragraph(para.replace("\n", "<br/>"), normal_style))
+                                elements.append(Spacer(1, 8))  # space after each block
                     
                         elements.append(Spacer(1, 12))  # extra space after the whole section
+                    
+                        
 
                     # --- Prepare Layman Interpretation for PDF ---
                     if "layman_interpretation" in st.session_state:
