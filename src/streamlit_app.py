@@ -1110,8 +1110,7 @@ def run_snca_app():
                             st.error(f"Embedding failed: {e}")
                             st.stop()
                 
-                        # --- Automatically run clustering ---
-                        # --- Automatically run clustering ---
+                       
                         # --- Automatically run clustering ---
                         from PIL import Image as PILImage
                         st.subheader("Clustering & Visualization")
@@ -1177,41 +1176,41 @@ def run_snca_app():
                     st.info(st.session_state['cluster_metrics']["interpretation"])
                     st.plotly_chart(st.session_state['cluster_fig'], use_container_width=True)
                 
-                # --- Simple Layman Interpretation ---
-                # --- Simple Layman Interpretation ---
-                st.markdown("### 🗂 Cluster Summary (Easy Explanation)")
-                
-                # Safely load 'best'
-                best = locals().get("best", st.session_state.get("best_result", {}))
-                
-                if isinstance(best, dict):
-                    best_k = best.get('k') or best.get('n_clusters') or 'N/A'
-                    silhouette = best.get("Silhouette Score", 0.0)
-                    db_score = best.get("Davies-Bouldin Score", 0.0)
-                else:
-                    st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
-                    best_k, silhouette, db_score = 'N/A', 0.0, 0.0
-                
-                layman_text = """
-                Each **dot** in the chart represents one data point (for example, a product issue or record).  
-                Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
-                
-                **Summary of this analysis:**
-                - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
-                - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
-                - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
-                
-                In plain English:
-                - The system automatically grouped similar data points together.
-                - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
-                - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
-                """.format(k=best_k, silhouette=silhouette, db=db_score)
-                
-                # Display on UI
-                st.write(layman_text)
-                
-                # ✅ Save for PDF
-                st.session_state["layman_interpretation"] = layman_text
+            
+                                # --- Simple Layman Interpretation ---
+                                st.markdown("### 🗂 Cluster Summary ")
+                                
+                                # Safely load 'best'
+                                best = locals().get("best", st.session_state.get("best_result", {}))
+                                
+                                if isinstance(best, dict):
+                                    best_k = best.get('k') or best.get('n_clusters') or 'N/A'
+                                    silhouette = best.get("Silhouette Score", 0.0)
+                                    db_score = best.get("Davies-Bouldin Score", 0.0)
+                                else:
+                                    st.warning("⚠️ Could not interpret clustering results. Displaying defaults.")
+                                    best_k, silhouette, db_score = 'N/A', 0.0, 0.0
+                                
+                                layman_text = """
+                                Each **dot** in the chart represents one data point (for example, a product issue or record).  
+                                Dots with the **same color** belong to the same group, meaning they are **similar in behavior or cause**.
+                                
+                                **Summary of this analysis:**
+                                - **Best number of clusters (K):** {k} — the data naturally forms about {k} distinct groups.
+                                - **Silhouette Score:** {silhouette:.3f} → Higher means clearer group separation.
+                                - **Davies–Bouldin Score:** {db:.3f} → Lower means less overlap between groups.
+                                
+                                In plain Term:
+                                - The system automatically grouped similar data points together.
+                                - A **high silhouette** and **low Davies–Bouldin** means your clusters are well-separated and meaningful.
+                                - Each color group in the plot likely represents a **different pattern or root cause** in your dataset.
+                                """.format(k=best_k, silhouette=silhouette, db=db_score)
+                                
+                                # Display on UI
+                                st.write(layman_text)
+                                
+                                # ✅ Save for PDF
+                                st.session_state["layman_interpretation"] = layman_text
     
     
               
@@ -2101,39 +2100,6 @@ def run_snca_app():
                                 # Add paragraph text with line breaks
                                 elements.append(Paragraph(para.replace("\n", "<br/>"), normal_style))
                                 elements.append(Spacer(1, 8))  # space after each block
-                    
-                        elements.append(Spacer(1, 12))  # extra space after the whole section
-                    
-                        
-
-                    # --- Prepare Layman Interpretation for PDF ---
-                    if "layman_interpretation" in st.session_state:
-                        from reportlab.platypus import Paragraph, Spacer
-                        from reportlab.lib.styles import getSampleStyleSheet
-                        
-                        styles = getSampleStyleSheet()
-                        normal_style = styles['Normal']
-                        heading2_style = styles['Heading2']
-                        heading3_style = styles['Heading3'] if 'Heading3' in styles else normal_style
-                    
-                        # Add section title
-                        elements.append(Paragraph("Layman Interpretation", heading2_style))
-                        elements.append(Spacer(1, 6))
-                    
-                        # Get text and split by double newlines to separate paragraphs
-                        layman_text = st.session_state["layman_interpretation"]
-                        paragraphs = [p.strip() for p in layman_text.split("\n\n") if p.strip()]
-                    
-                        for para in paragraphs:
-                            # Optional: make subheadings for key parts
-                            if para.startswith("**Summary of this analysis:**"):
-                                elements.append(Paragraph("Summary of this analysis:", heading3_style))
-                            elif para.startswith("In plain English:"):
-                                elements.append(Paragraph("In plain English:", heading3_style))
-                            else:
-                                elements.append(Paragraph(para, normal_style))
-                            
-                            elements.append(Spacer(1, 6))  # space after each paragraph
                     
                         elements.append(Spacer(1, 12))  # extra space after the whole section
     
