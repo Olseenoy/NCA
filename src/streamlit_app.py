@@ -2274,7 +2274,7 @@ def inject_custom_css():
         color: white;
     }
 
-    /* ===== Sidebar Toggle (collapse/expand arrow) ===== */
+    /* ===== Sidebar Toggle ===== */
     button[kind="header"] {
         background-color: transparent !important;
         color: white !important;
@@ -2297,20 +2297,20 @@ def inject_custom_css():
     }
 
     h2 {
-        color: #F58220; /* Orange */
+        color: #F58220;
         font-size: 28px;
         font-weight: 600;
         margin-top: 25px;
     }
     h3 {
-        color: #007AC2; /* Blue */
+        color: #007AC2;
         font-size: 22px;
         font-weight: 500;
     }
 
     /* ===== Buttons ===== */
     div.stButton > button {
-        background-color: #011d6f;  /* Strong blue */
+        background-color: #011d6f;
         color: white;
         border-radius: 6px;
         border: none;
@@ -2347,7 +2347,7 @@ def inject_custom_css():
     div[data-testid="stMetricValue"] {
         font-size: 22px;
         font-weight: bold;
-        color: #007AC2; /* Blue */
+        color: #007AC2;
     }
 
     /* ===== Hide Streamlit Branding ===== */
@@ -2360,20 +2360,8 @@ def inject_custom_css():
 # --- Call CSS styling ---
 inject_custom_css()
 
-# --- Page setup and header ---
+# --- Page setup ---
 st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
-
-col1, col2 = st.columns([2, 12])
-with col1:
-    st.image(
-        "https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png",
-        width=200
-    )
-
-with col2:
-    st.title('Smart Non-Conformance Analyzer')
-
-st.markdown("---")  # Optional: thin separator line before login form
 
 # --- User credentials ---
 users = {
@@ -2391,6 +2379,18 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
+# --- Login form only (show header before login) ---
+if "authentication_status" not in st.session_state or not st.session_state["authentication_status"]:
+    col1, col2 = st.columns([2, 12])
+    with col1:
+        st.image(
+            "https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png",
+            width=200
+        )
+    with col2:
+        st.title('Smart Non-Conformance Analyzer')
+    st.markdown("---")
+
 # --- Center the login form (adjustable width) ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
@@ -2401,7 +2401,7 @@ name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
-# Create columns for positioning
+# Create columns for positioning messages
 left_col, center_col, right_col = st.columns([1, 2, 1])
 
 # --- Control access ---
@@ -2416,3 +2416,4 @@ elif authentication_status == False:
 else:
     with center_col:
         st.warning("Please enter your username and password")
+
