@@ -2248,6 +2248,7 @@ def run_snca_app():
     if __name__ == "__main__":
         main()
 
+
 import streamlit as st
 import streamlit_authenticator as stauth
 
@@ -2282,8 +2283,10 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form ---
-authenticator.login(location="main")
+# --- Center the login form (adjustable width) ---
+left_col, center_col, right_col = st.columns([3, 2, 3])
+with center_col:
+    authenticator.login(location="main")
 
 # --- Access the state ---
 name = st.session_state.get("name")
