@@ -2252,6 +2252,114 @@ def run_snca_app():
 import streamlit as st
 import streamlit_authenticator as stauth
 
+# --- Custom CSS Styling ---
+def inject_custom_css():
+    css = """
+    <style>
+    /* ===== App Background ===== */
+    .stApp {
+        background: linear-gradient(135deg, #f5f7fa, #ffffff);
+        font-family: "Segoe UI", "Inter", sans-serif;
+        color: #1E1E2D;
+    }
+
+    /* ===== Sidebar ===== */
+    section[data-testid="stSidebar"] {
+        background-color: #ff9742; /* orange sidebar */
+        color: black;
+    }
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: white;
+    }
+
+    /* ===== Sidebar Toggle (collapse/expand arrow) ===== */
+    button[kind="header"] {
+        background-color: transparent !important;
+        color: white !important;
+        border: none !important;
+    }
+    [data-testid="stSidebarCollapseControl"] {
+        color: white !important;
+    }
+
+    /* ===== Titles & Headers ===== */
+    h1, .stMarkdown h1, div[data-testid="stMarkdownContainer"] h1 {
+        color: #011d6f !important; /* Promasidor Blue */
+        font-size: 40px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        border-bottom: 3px solid #F58220 !important; /* Orange underline */
+        padding-bottom: 5px !important;
+        margin-bottom: 20px !important;
+    }
+
+    h2 {
+        color: #F58220; /* Orange */
+        font-size: 28px;
+        font-weight: 600;
+        margin-top: 25px;
+    }
+    h3 {
+        color: #007AC2; /* Blue */
+        font-size: 22px;
+        font-weight: 500;
+    }
+
+    /* ===== Buttons ===== */
+    div.stButton > button {
+        background-color: #011d6f;  /* Strong blue */
+        color: white;
+        border-radius: 6px;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+    }
+    div.stButton > button:hover {
+        background-color: #005a91;
+        cursor: pointer;
+    }
+
+    /* ===== DataFrames & Tables ===== */
+    .stDataFrame, .stTable {
+        background-color: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #1E1E2D;
+    }
+
+    /* ===== Inputs ===== */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select,
+    .stTextArea textarea {
+        border: 1px solid #D1D5DB;
+        border-radius: 4px;
+        padding: 6px;
+        color: #1E1E2D;
+        background-color: #fff;
+    }
+
+    /* ===== Metrics ===== */
+    div[data-testid="stMetricValue"] {
+        font-size: 22px;
+        font-weight: bold;
+        color: #007AC2; /* Blue */
+    }
+
+    /* ===== Hide Streamlit Branding ===== */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+# --- Call CSS styling ---
+inject_custom_css()
+
 # --- Page setup and header ---
 st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
 
@@ -2266,42 +2374,6 @@ with col2:
     st.title('Smart Non-Conformance Analyzer')
 
 st.markdown("---")  # Optional: thin separator line before login form
-
-# --- Animated Cloud Background + Modern Login Styling ---
-st.markdown("""
-<style>
-/* Animated gradient sky background */
-body {
-    background: linear-gradient(135deg, #a8dadc, #457b9d, #1d3557);
-    background-size: 400% 400%;
-    animation: skyMove 18s ease infinite;
-    overflow: hidden;
-}
-@keyframes skyMove { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-
-/* Cloud animations */
-.cloud { position: absolute; background: rgba(255, 255, 255, 0.8); border-radius: 50%; filter: blur(20px); animation: floatClouds linear infinite; }
-.cloud::before, .cloud::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.8); border-radius: 50%; }
-.cloud1 { width: 180px; height: 60px; top: 15%; left: -200px; animation-duration: 55s; }
-.cloud2 { width: 140px; height: 50px; top: 40%; left: -250px; animation-duration: 70s; }
-.cloud3 { width: 200px; height: 65px; top: 70%; left: -300px; animation-duration: 85s; }
-@keyframes floatClouds { from { transform: translateX(0); } to { transform: translateX(120vw); } }
-
-/* Glassy floating login card */
-.cloud-box { background-color: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); padding: 2rem; border-radius: 20px; box-shadow: 0 4px 30px rgba(0,0,0,0.15); width: 320px; margin: 10% auto; text-align: center; animation: float 6s ease-in-out infinite; z-index: 10; position: relative; }
-@keyframes float { 0% { transform: translatey(0px); } 50% { transform: translatey(-10px); } 100% { transform: translatey(0px); } }
-.login-title { font-size: 1.6rem; color: #0d47a1; font-weight: 600; margin-bottom: 1rem; }
-input { border-radius: 10px !important; }
-.stTextInput > div > div > input { text-align: center; background-color: rgba(255,255,255,0.9); border: none; color: #0d47a1; font-size: 1rem; }
-.stButton>button { width: 100%; background-color: #1565c0; color: white; border-radius: 10px; padding: 0.6rem 0; font-size: 1rem; font-weight: 500; transition: 0.3s; border: none; }
-.stButton>button:hover { background-color: #0d47a1; transform: scale(1.05); }
-.forgot-pass { color: #0d47a1; font-size: 0.85rem; text-decoration: none; }
-</style>
-
-<div class="cloud cloud1"></div>
-<div class="cloud cloud2"></div>
-<div class="cloud cloud3"></div>
-""", unsafe_allow_html=True)
 
 # --- User credentials ---
 users = {
@@ -2319,24 +2391,17 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Center the login form in glassy card ---
-with st.container():
-    st.markdown('<div class="cloud-box">', unsafe_allow_html=True)
-    st.markdown('<div class="login-title">User Login</div>', unsafe_allow_html=True)
-    
-    # --- Original login form inside the styled card ---
-    left_col, center_col, right_col = st.columns([1, 2, 1])
-    with center_col:
-        authenticator.login(location="main")
-    
-    st.markdown("</div>", unsafe_allow_html=True)
+# --- Center the login form (adjustable width) ---
+left_col, center_col, right_col = st.columns([1, 2, 1])
+with center_col:
+    authenticator.login(location="main")
 
 # --- Access the state ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
-# Create columns for positioning messages
+# Create columns for positioning
 left_col, center_col, right_col = st.columns([1, 2, 1])
 
 # --- Control access ---
@@ -2351,4 +2416,3 @@ elif authentication_status == False:
 else:
     with center_col:
         st.warning("Please enter your username and password")
-
