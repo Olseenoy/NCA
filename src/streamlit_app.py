@@ -2267,6 +2267,42 @@ with col2:
 
 st.markdown("---")  # Optional: thin separator line before login form
 
+# --- Animated Cloud Background + Modern Login Styling ---
+st.markdown("""
+<style>
+/* Animated gradient sky background */
+body {
+    background: linear-gradient(135deg, #a8dadc, #457b9d, #1d3557);
+    background-size: 400% 400%;
+    animation: skyMove 18s ease infinite;
+    overflow: hidden;
+}
+@keyframes skyMove { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
+
+/* Cloud animations */
+.cloud { position: absolute; background: rgba(255, 255, 255, 0.8); border-radius: 50%; filter: blur(20px); animation: floatClouds linear infinite; }
+.cloud::before, .cloud::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.8); border-radius: 50%; }
+.cloud1 { width: 180px; height: 60px; top: 15%; left: -200px; animation-duration: 55s; }
+.cloud2 { width: 140px; height: 50px; top: 40%; left: -250px; animation-duration: 70s; }
+.cloud3 { width: 200px; height: 65px; top: 70%; left: -300px; animation-duration: 85s; }
+@keyframes floatClouds { from { transform: translateX(0); } to { transform: translateX(120vw); } }
+
+/* Glassy floating login card */
+.cloud-box { background-color: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); padding: 2rem; border-radius: 20px; box-shadow: 0 4px 30px rgba(0,0,0,0.15); width: 320px; margin: 10% auto; text-align: center; animation: float 6s ease-in-out infinite; z-index: 10; position: relative; }
+@keyframes float { 0% { transform: translatey(0px); } 50% { transform: translatey(-10px); } 100% { transform: translatey(0px); } }
+.login-title { font-size: 1.6rem; color: #0d47a1; font-weight: 600; margin-bottom: 1rem; }
+input { border-radius: 10px !important; }
+.stTextInput > div > div > input { text-align: center; background-color: rgba(255,255,255,0.9); border: none; color: #0d47a1; font-size: 1rem; }
+.stButton>button { width: 100%; background-color: #1565c0; color: white; border-radius: 10px; padding: 0.6rem 0; font-size: 1rem; font-weight: 500; transition: 0.3s; border: none; }
+.stButton>button:hover { background-color: #0d47a1; transform: scale(1.05); }
+.forgot-pass { color: #0d47a1; font-size: 0.85rem; text-decoration: none; }
+</style>
+
+<div class="cloud cloud1"></div>
+<div class="cloud cloud2"></div>
+<div class="cloud cloud3"></div>
+""", unsafe_allow_html=True)
+
 # --- User credentials ---
 users = {
     "usernames": {
@@ -2283,32 +2319,36 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Center the login form (adjustable width) ---
-left_col, center_col, right_col = st.columns([1, 2, 1])
-with center_col:
-    authenticator.login(location="main")
+# --- Center the login form in glassy card ---
+with st.container():
+    st.markdown('<div class="cloud-box">', unsafe_allow_html=True)
+    st.markdown('<div class="login-title">User Login</div>', unsafe_allow_html=True)
+    
+    # --- Original login form inside the styled card ---
+    left_col, center_col, right_col = st.columns([1, 2, 1])
+    with center_col:
+        authenticator.login(location="main")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # --- Access the state ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
-# Create columns for positioning
+# Create columns for positioning messages
 left_col, center_col, right_col = st.columns([1, 2, 1])
 
 # --- Control access ---
 if authentication_status:
     st.success(f"Welcome {name}")
-
-    # --- Run main SNCA app ---
     run_snca_app()
 
 elif authentication_status == False:
-    # Show error in the center column
     with center_col:
         st.error("Username/password is incorrect")
 
 else:
-    # Show warning in the center column
     with center_col:
         st.warning("Please enter your username and password")
+
