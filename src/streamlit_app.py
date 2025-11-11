@@ -2308,16 +2308,21 @@ if not authentication_status:
             animation-duration: 25s;         
         }
 
-        /* --- Center everything vertically --- */
+        /* --- Center everything vertically & horizontally --- */
         .main > div {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            align-items: center;      /* Centers horizontally */
+            justify-content: center;  /* Centers vertically */
+            position: absolute;       /* Allow true screen centering */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);  /* Move back half of width & height */
             width: 100%;
+            height: 100%;
             box-sizing: border-box;
         }
+
 
         /* --- Floating logo animation --- */
         @keyframes floatLogo {
