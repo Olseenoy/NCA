@@ -2254,12 +2254,16 @@ import streamlit_authenticator as stauth
 # --- Page setup ---
 st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
 
+# --- Position of the login card (0% = left, 50% = center, 100% = right) ---
+card_position_percent = 50  # change this value to shift the card horizontally
+
+
 # --- Custom CSS Styling ---
-def inject_custom_css():
-    css = """
+def inject_custom_css(card_position_percent=50):
+    css = f"""
     <style>
     /* ===== Full container & background ===== */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {{
         width: 100% !important;
         height: 100% !important;
         margin: 0;
@@ -2267,19 +2271,20 @@ def inject_custom_css():
         overflow: hidden;
         font-family: "Segoe UI", "Inter", sans-serif;
         color: #1E1E2D;
-    }
-    [data-testid="stAppViewContainer"] {
+    }}
+
+    [data-testid="stAppViewContainer"] {{
         background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
         display: flex;
-        justify-content: center; /* horizontal center */
-        align-items: center;     /* vertical center */
+        justify-content: flex-start;  /* we control position manually */
+        align-items: center;
         position: relative;
         min-height: 100vh;
-    }
+    }}
 
     /* ===== Waves ===== */
-    @keyframes waveMove {0% { background-position-x:0; } 100% { background-position-x:1000px; }}
-    .wave {
+    @keyframes waveMove {{0% {{ background-position-x:0; }} 100% {{ background-position-x:1000px; }}}}
+    .wave {{
         position: absolute;
         left: 0;
         bottom: 0;
@@ -2290,21 +2295,21 @@ def inject_custom_css():
         opacity: 0.5;
         animation: waveMove 20s linear infinite;
         z-index: 0;
-    }
-    .wave1 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%); animation-duration: 35s; }
-    .wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); animation-duration: 25s; bottom:20px; }
+    }}
+    .wave1 {{ background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%); animation-duration: 35s; }}
+    .wave2 {{ background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); animation-duration: 25s; bottom:20px; }}
 
     /* ===== Center content ===== */
-    .main > div {
+    .main > div {{
         display: flex;
         justify-content: center;
         align-items: center;
         width: 100%;
         height: 100%;
-    }
+    }}
 
     /* ===== Login card ===== */
-    div[data-testid="stForm"] {
+    div[data-testid="stForm"] {{
         background-color: rgba(255, 255, 255, 0.35);
         border-radius: 1.2rem;
         padding: 2.5rem;
@@ -2315,36 +2320,39 @@ def inject_custom_css():
         border: 1px solid rgba(255,255,255,0.3);
         text-align: center;
         z-index: 2;
-    }
+        position: absolute;
+        left: {card_position_percent}%;
+        transform: translateX(-50%);
+    }}
 
     /* ===== Logo & Title ===== */
-    .login-header {
+    .login-header {{
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 10px;
         margin-bottom: 20px;
-    }
-    .login-header img {
+    }}
+    .login-header img {{
         height: 60px;
         max-width: 100%;
         animation: floatLogo 6s ease-in-out infinite;
-    }
-    @keyframes floatLogo {
-        0% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
-        100% { transform: translateY(0); }
-    }
-    .title-text {
+    }}
+    @keyframes floatLogo {{
+        0% {{ transform: translateY(0); }}
+        50% {{ transform: translateY(-8px); }}
+        100% {{ transform: translateY(0); }}
+    }}
+    .title-text {{
         font-size: 1.4rem;
         font-weight: 800;
         color: #000;
         text-align: center;
-    }
+    }}
 
     /* ===== Buttons ===== */
-    button[kind="primary"] {
+    button[kind="primary"] {{
         background: linear-gradient(90deg, #004aad, #007bff);
         color: white !important;
         border: none;
@@ -2352,22 +2360,22 @@ def inject_custom_css():
         padding: 0.7rem 1.2rem !important;
         transition: all 0.3s ease;
         width: 100%;
-    }
-    button[kind="primary"]:hover {
+    }}
+    button[kind="primary"]:hover {{
         transform: scale(1.03);
         background: linear-gradient(90deg, #005ce6, #339cff);
-    }
-    input, label { color: #003366 !important; }
+    }}
+    input, label {{ color: #003366 !important; }}
 
     /* ===== Responsive ===== */
-    @media (max-width: 768px) {
-        div[data-testid="stForm"] { max-width: 320px; padding: 2rem; }
-        .title-text { font-size: 1.2rem; }
-    }
-    @media (max-width: 480px) {
-        div[data-testid="stForm"] { max-width: 280px; padding: 1.5rem; }
-        .title-text { font-size: 1rem; }
-    }
+    @media (max-width: 768px) {{
+        div[data-testid="stForm"] {{ max-width: 320px; padding: 2rem; }}
+        .title-text {{ font-size: 1.2rem; }}
+    }}
+    @media (max-width: 480px) {{
+        div[data-testid="stForm"] {{ max-width: 280px; padding: 1.5rem; }}
+        .title-text {{ font-size: 1rem; }}
+    }}
     </style>
 
     <div class="wave wave1"></div>
@@ -2375,8 +2383,10 @@ def inject_custom_css():
     """
     st.markdown(css, unsafe_allow_html=True)
 
+
 # --- Apply CSS ---
-inject_custom_css()
+inject_custom_css(card_position_percent)
+
 
 # --- User credentials ---
 users = {
@@ -2422,8 +2432,11 @@ if authentication_status:
     </style>
     """, unsafe_allow_html=True)
     st.success(f"Welcome {name}")
-    run_snca_app()
+    # 🔹 Uncomment your main app when ready
+    # run_snca_app()
+
 elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
     st.warning("Please enter your username and password")
+
