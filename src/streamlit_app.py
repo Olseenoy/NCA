@@ -2260,7 +2260,7 @@ authentication_status = st.session_state.get("authentication_status")
 # --- Apply styling ---
 st.markdown("""
 <style>
-/* Remove horizontal scroll, make page full-width */
+/* Prevent horizontal scroll and fit screen */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
     overflow-x: hidden !important;
     width: 100% !important;
@@ -2268,16 +2268,16 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     padding: 0;
 }
 
-/* Gradient background with waves */
+/* Gradient background */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
+    color: #003366;
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
     min-height: 100vh;
+    flex-direction: column;
     position: relative;
-    color: #003366;
 }
 
 /* Waves */
@@ -2310,7 +2310,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     z-index: 1;
 }
 
-/* Glass-style login card */
+/* Login card */
 div[data-testid="stForm"] {
     background-color: rgba(255, 255, 255, 0.35);
     border-radius: 1rem;
@@ -2371,10 +2371,9 @@ button[kind="primary"]:hover {
     background: linear-gradient(90deg, #005ce6, #339cff);
 }
 
-/* Inputs and labels */
 input, label { color: #003366 !important; }
 
-/* Responsive */
+/* Responsive text and card */
 @media (max-width: 600px) {
     .title-text { font-size: 1rem; }
     div[data-testid="stForm"] { padding: 1.5rem; }
@@ -2408,7 +2407,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form ---
+# --- Centered login form ---
 authenticator.login(location="main")
 
 # --- Access state ---
@@ -2419,13 +2418,13 @@ username = st.session_state.get("username")
 # --- Control access ---
 if authentication_status:
     st.markdown("""
-    <style>
-    [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
-        background: white;
-        color: black;
-        overflow: auto !important;
-    }
-    </style>
+        <style>
+        [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
+            background: white;
+            color: black;
+            overflow: auto !important;
+        }
+        </style>
     """, unsafe_allow_html=True)
     st.success(f"Welcome {name}")
     # run_snca_app()
@@ -2434,6 +2433,5 @@ elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
     st.warning("Please enter your username and password")
-
 
 
