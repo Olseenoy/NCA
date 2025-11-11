@@ -628,7 +628,7 @@ def run_snca_app():
     
     # ----------------- Main App -----------------
     def main():
-        st.set_page_config(page_title='Smart NC Analyzer', layout='centered')
+        st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
         col1, col2 = st.columns([2, 12])
     
         with col1:
@@ -2255,7 +2255,7 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # --- Page Config ---
-st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")  
+st.set_page_config(page_title="Smart Non-Conformance Login", layout="wide")  
 
 # --- User credentials ---
 users = {
