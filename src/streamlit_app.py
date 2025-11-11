@@ -2369,48 +2369,54 @@ if not authentication_status:
         <div class="wave wave2"></div>
     """, unsafe_allow_html=True)
 
-    # --- Logo and Title above login form ---
-
-   # --- Centered Logo and Title with Animation ---
-st.markdown("""
-    <style>
-        @keyframes slideIn {
-            0% {
-                opacity: 0;
-                transform: translateY(-20px);
+    # --- Centered Logo and Title with Animation ---
+    st.markdown("""
+        <style>
+            @keyframes slideIn {
+                0% { opacity: 0; transform: translateY(-20px); }
+                100% { opacity: 1; transform: translateY(0); }
             }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
+
+            .login-header {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+                margin-bottom: 30px;
+                animation: slideIn 1s ease-out forwards;
             }
-        }
+            .login-header img {
+                height: 60px;
+                animation: slideIn 1s ease-out forwards;
+            }
+            .login-header .title-text {
+                font-size: 1.4rem;
+                font-weight: 800;
+                color: #00000;
+                margin-bottom: 0.8rem;
+                text-align: center;
+            }
+        </style>
+        <div class="login-header">
+            <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+            <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-        .login-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px; /* Space between logo and text */
-            margin-bottom: 30px;
-            animation: slideIn 1s ease-out forwards;
-        }
-        .login-header img {
-            height: 60px; /* Adjust logo size */
-            animation: slideIn 1s ease-out forwards;
-        }
-        .login-header .title-text {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #00000;
-            margin-bottom: 0.8rem;
-            text-align: center;
-        }
-    </style>
-    <div class="login-header">
-        <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
-        <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
-    </div>
-""", unsafe_allow_html=True)
+# --- Authenticator Setup (added fix) ---
+users = {
+    "usernames": {
+        "admin": {"name": "Admin User", "password": "admin123"},
+        "user1": {"name": "User One", "password": "pass123"}
+    }
+}
 
+authenticator = stauth.Authenticate(
+    credentials=users,
+    cookie_name="snca_cookie",
+    key="snca_key",
+    cookie_expiry_days=1
+)
 
 # --- Login form ---
 authenticator.login(location="main")
@@ -2437,6 +2443,8 @@ if authentication_status:
 
 elif authentication_status == False:
     st.error("Username/password is incorrect")
+
 else:
     st.warning("Please enter your username and password")
+
 
