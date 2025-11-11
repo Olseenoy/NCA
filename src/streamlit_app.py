@@ -2248,6 +2248,10 @@ def run_snca_app():
     if __name__ == "__main__":
         main()
 
+rewrite fix with entire code..
+
+
+
 import streamlit as st
 import streamlit_authenticator as stauth
 
@@ -2273,7 +2277,7 @@ authenticator = stauth.Authenticate(
 # --- Access authentication state early ---
 authentication_status = st.session_state.get("authentication_status")  
 
-# --- LOGIN PAGE UI (show header only before login) ---
+# --- LOGIN PAGE UI ---
 if not authentication_status:
 
     # --- Background & styling ---
@@ -2344,16 +2348,13 @@ if not authentication_status:
         <div class="wave wave2"></div>
     """, unsafe_allow_html=True)
 
-    # --- Logo and title (show only before login) ---
-    col1, col2 = st.columns([2, 12])
-    with col1:
-        st.image(
-            "https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png",
-            width=200
-        )
-    with col2:
-        st.title('Smart Non-Conformance Analyzer')
-    st.markdown("---")
+    # --- Logo and title ---
+    st.markdown("""
+        <div class="login-header" style="display: flex; flex-direction: column; align-items: center;">
+            <img class="logo-img" src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+            <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # --- Center the login form horizontally ---
     left_col, center_col, right_col = st.columns([1, 2, 1])
