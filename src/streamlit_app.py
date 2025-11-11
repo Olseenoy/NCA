@@ -2313,7 +2313,7 @@ if not authentication_status:
         .logo-img { height: 60px; max-width: 100%; animation: floatLogo 6s ease-in-out infinite; }
         .title-text { font-size: 1.4rem; font-weight: 800; color: #000; margin: 15px 0 25px 0; text-align: center; }
         div[data-testid="stForm"] {
-            background-color: #ff9741;
+            background-color: rgba(255, 255, 255, 0.35);
             border-radius: 1.2rem;
             padding: 2.5rem;
             width: 90%;
@@ -2329,7 +2329,7 @@ if not authentication_status:
         @keyframes fadeSlideIn { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
         button[kind="primary"] {
             background: linear-gradient(90deg, #004aad, #007bff);
-            color: #ff9741 !important;
+            color: white !important;
             border: none;
             border-radius: 0.5rem !important;
             padding: 0.5rem 1rem !important;
