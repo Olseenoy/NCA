@@ -2422,7 +2422,7 @@ if authentication_status:
         </style>
     """, unsafe_allow_html=True)
     st.success(f"Welcome {name}")
-    # run_snca_app()
+    run_snca_app()
 elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
