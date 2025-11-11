@@ -2356,26 +2356,31 @@ if not authentication_status:
     """, unsafe_allow_html=True)
 
     # --- Center the login form horizontally ---
-    left_col, center_col, right_col = st.columns([1, 2, 1])
-    with center_col:
-        authenticator.login(location="main")
+left_col, center_col, right_col = st.columns([1, 2, 1])
+with center_col:
+    authenticator.login(location="main")
 
-    # --- STATE AFTER LOGIN ---
-    name = st.session_state.get("name")
-    authentication_status = st.session_state.get("authentication_status")
-    username = st.session_state.get("username")
-    
-    # --- Centered messages for access control ---
-    left_col, center_col, right_col = st.columns([1, 2, 1])
-    if authentication_status:     
-            st.success(f"Welcome {name}")
-            run_snca_app()  
-    elif authentication_status == False:     
-        with center_col:
-            st.error("Username/password is incorrect") 
-    else:     
-        with center_col:
-            st.warning("Please enter your username and password")
+# --- STATE AFTER LOGIN ---
+name = st.session_state.get("name")
+authentication_status = st.session_state.get("authentication_status")
+username = st.session_state.get("username")
+
+# --- Centered messages for access control ---
+left_col, center_col, right_col = st.columns([1, 2, 1])
+
+if authentication_status:     
+    with center_col:
+        st.success(f"Welcome {name}")
+        run_snca_app()  
+
+elif authentication_status == False:     
+    with center_col:
+        st.error("Username/password is incorrect") 
+
+else:     
+    with center_col:
+        st.warning("Please enter your username and password")
+
 
 
 
