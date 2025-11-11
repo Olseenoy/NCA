@@ -2254,6 +2254,22 @@ import streamlit_authenticator as stauth
 # --- Page Config ---
 st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")  
 
+# --- User credentials ---
+users = {
+    "usernames": {
+        "admin": {"name": "Admin User", "password": "admin123"},
+        "user1": {"name": "User One", "password": "pass123"}
+    }
+}
+
+# --- Create authenticator ---
+authenticator = stauth.Authenticate(
+    credentials=users,
+    cookie_name="snca_cookie",
+    key="snca_key",
+    cookie_expiry_days=1
+)
+
 # --- Access authentication state early ---
 authentication_status = st.session_state.get("authentication_status")  
 
@@ -2390,18 +2406,7 @@ st.markdown("""
 # --- Center the login form horizontally with adjustable columns ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
-    try:
-        authenticator.login(location="main")
-    except Exception:
-        with st.form("login_form"):
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            st.form_submit_button("Login")
-
-# --- Access the state (after login) ---
-name = st.session_state.get("name")  
-authentication_status = st.session_state.get("authentication_status")  
-username = st.session_state.get("username")  
+    name, authentication_status, username = authenticator.login("Login", "main")
 
 # --- Centered messages for access control ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
@@ -2415,6 +2420,7 @@ elif authentication_status == False:
 else:     
     with center_col:
         st.warning("Please enter your username and password")
+
 
 
 
