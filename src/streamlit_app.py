@@ -2404,7 +2404,7 @@ authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")  
 
 # --- Centered messages for access control ---
-left_col, center_col, right_col = st.columns([1, 200, 1])
+left_col, center_col, right_col = st.columns([1, 1, 4])
 if authentication_status:     
     with center_col:
         st.success(f"Welcome {name}")
@@ -2413,7 +2413,7 @@ elif authentication_status == False:
     with center_col:
         st.error("Username/password is incorrect") 
 else:     
-    with center_col:
+    with right_col:
         st.warning("Please enter your username and password")
 
 
