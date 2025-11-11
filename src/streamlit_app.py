@@ -2308,17 +2308,6 @@ if not authentication_status:
             animation-duration: 25s;         
         }
 
-        /* --- Center everything vertically & move horizontally --- */
-        [data-testid="stAppViewContainer"] > .main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            box-sizing: border-box;
-            padding-left: 500%; /* 👈 adjust this to move right or left (0% = center, 20% = right, -10% = left) */
-        }
-
         /* --- Floating logo animation --- */
         @keyframes floatLogo {
             0% { transform: translateY(0px); }
@@ -2386,9 +2375,6 @@ if not authentication_status:
 
         /* --- Responsive adjustments --- */
         @media (max-width: 600px) {
-            [data-testid="stAppViewContainer"] > .main {
-                padding-left: 0%; /* Auto-center on smaller screens */
-            }
             div[data-testid="stForm"] {
                 width: 95%;
                 padding: 1.5rem;
@@ -2404,7 +2390,7 @@ if not authentication_status:
         <div class="wave wave2"></div>
     """, unsafe_allow_html=True)
 
-# --- Logo, title, then login form ---
+# --- Logo and title ---
 st.markdown("""
     <div class="login-header" style="display: flex; flex-direction: column; align-items: center;">
         <img class="logo-img" src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
@@ -2412,14 +2398,18 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- Ensure login form displays ---
-try:
-    authenticator.login(location="main")
-except Exception:
-    with st.form("login_form"):
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        st.form_submit_button("Login")
+# --- Center the login form horizontally with adjustable columns ---
+# Adjust the numbers to move the login card left or right
+# [1,2,1] = center, [1,3,1] = slightly right, [2,1,1] = left
+left_col, center_col, right_col = st.columns([1, 2, 1])
+with center_col:
+    try:
+        authenticator.login(location="main")
+    except Exception:
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            st.form_submit_button("Login")
 
 # --- Access the state (after login) ---
 name = st.session_state.get("name")  
@@ -2442,6 +2432,7 @@ elif authentication_status == False:
     st.error("Username/password is incorrect") 
 else:     
     st.warning("Please enter your username and password")
+
 
 
 
