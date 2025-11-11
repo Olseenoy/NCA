@@ -2266,13 +2266,13 @@ if not authentication_status:
             overflow-x: hidden !important;
             max-width: 100vw !important;
             width: 100vw !important;
+            padding: 0 !important;
         }
 
         /* Sky blue gradient base */
         [data-testid="stAppViewContainer"] {
             background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
             position: relative;
-            overflow: hidden;
             color: #003366;
         }
 
@@ -2315,15 +2315,17 @@ if not authentication_status:
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 0 10px; /* responsive padding */
         }
 
         /* Modern glass-style login form */
         div[data-testid="stForm"] {
             background-color: rgba(255, 255, 255, 0.3);
             border-radius: 1.2rem;
-            padding: 2.5rem;
-            width: 500px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px; /* responsive max width */
             height: auto;
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
             backdrop-filter: blur(15px);
@@ -2360,6 +2362,8 @@ if not authentication_status:
 
         img {
             animation: floatLogo 6s ease-in-out infinite;
+            max-width: 100%; /* responsive logo */
+            height: auto;
         }
 
         /* Title text single line */
@@ -2370,6 +2374,15 @@ if not authentication_status:
             margin-bottom: 0.8rem;
             text-align: center;
             white-space: nowrap;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .title-text {
+                font-size: 1.1rem; /* smaller title on small screens */
+            }
+            div[data-testid="stForm"] {
+                padding: 1.5rem; /* smaller padding */
+            }
         }
         </style>
         <div class="wave wave1"></div>
