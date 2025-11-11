@@ -2248,7 +2248,6 @@ def run_snca_app():
     if __name__ == "__main__":
         main()
 
-rewrite fix with entire code..
 
 
 
