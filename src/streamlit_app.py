@@ -2413,7 +2413,7 @@ elif authentication_status == False:
     with center_col:
         st.error("Username/password is incorrect") 
 else:     
-    with center_col:
+    with right_col:
         st.warning("Please enter your username and password")
 
 
