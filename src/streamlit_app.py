@@ -2251,190 +2251,194 @@ def run_snca_app():
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# --- Page setup ---
-st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+# --- Page Config ---
+st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")  
 
-# --- Custom CSS Styling ---
-def inject_custom_css():
-    css = """
-    <style>
-    /* ===== Full container & background ===== */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
-        width: 100% !important;
-        height: 100% !important;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: "Segoe UI", "Inter", sans-serif;
-        color: #1E1E2D;
-    }
+# --- Access authentication state early ---
+authentication_status = st.session_state.get("authentication_status")  
 
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
-        display: flex;
-        justify-content: center; /* horizontally center content */
-        align-items: center;     /* vertically center content */
-        position: relative;
-        min-height: 100vh;       /* ensure full viewport height */
-        width: 100vw;            /* ensure full viewport width */
-        box-sizing: border-box;
-        overflow: hidden;
-    }
+# --- Apply styling only when NOT logged in ---
+if not authentication_status:     
+    st.markdown("""         
+        <style>         
 
-    /* ===== Waves animation ===== */
-    @keyframes waveMove {
-        0% { background-position-x: 0; }
-        100% { background-position-x: 1000px; }
-    }
-    .wave {
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 200%;
-        height: 180px;
-        background-repeat: repeat-x;
-        background-size: 1000px 180px;
-        opacity: 0.5;
-        animation: waveMove 20s linear infinite;
-        z-index: 0;
-    }
-    .wave1 {
-        background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%);
-        animation-duration: 35s;
-    }
-    .wave2 {
-        background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%);
-        animation-duration: 25s;
-        bottom: 20px;
-    }
+        /* --- Prevent horizontal dragging --- */
+        html, body, [data-testid="stAppViewContainer"] {
+            overflow-x: hidden !important;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
 
-    /* ===== Login card (centered) ===== */
-    div[data-testid="stForm"] {
-        background-color: rgba(255, 255, 255, 0.35);
-        border-radius: 1.2rem;
-        padding: 2.5rem;
-        width: 90%;
-        max-width: 400px;
-        box-shadow: 0 8px 32px rgba(31,38,135,0.3);
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255,255,255,0.3);
-        text-align: center;
-        z-index: 2;
-        position: relative;
-    }
+        /* --- Background gradient --- */
+        [data-testid="stAppViewContainer"] {             
+            background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);             
+            position: relative;             
+            overflow: hidden;             
+            color: #003366;         
+        }
 
-    /* ===== Logo & Title ===== */
-    .login-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    .login-header img {
-        height: 60px;
-        max-width: 100%;
-        animation: floatLogo 6s ease-in-out infinite;
-    }
-    @keyframes floatLogo {
-        0% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
-        100% { transform: translateY(0); }
-    }
-    .title-text {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #000;
-        text-align: center;
-    }
+        /* --- Waves animation --- */
+        @keyframes waveMove {             
+            0% { background-position-x: 0; }             
+            100% { background-position-x: 1000px; }         
+        }
 
-    /* ===== Buttons ===== */
-    button[kind="primary"] {
-        background: linear-gradient(90deg, #004aad, #007bff);
-        color: white !important;
-        border: none;
-        border-radius: 0.5rem !important;
-        padding: 0.7rem 1.2rem !important;
-        transition: all 0.3s ease;
-        width: 100%;
-    }
-    button[kind="primary"]:hover {
-        transform: scale(1.03);
-        background: linear-gradient(90deg, #005ce6, #339cff);
-    }
-    input, label { color: #003366 !important; }
+        .wave {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 180px;
+            background-repeat: repeat-x;
+            background-size: 1000px 180px;
+            opacity: 0.5;
+            animation: waveMove 20s linear infinite;
+            transform: translate3d(0, 0, 0);
+        }
 
-    /* ===== Responsive ===== */
-    @media (max-width: 768px) {
-        div[data-testid="stForm"] { max-width: 320px; padding: 2rem; }
-        .title-text { font-size: 1.2rem; }
-    }
-    @media (max-width: 480px) {
-        div[data-testid="stForm"] { max-width: 280px; padding: 1.5rem; }
-        .title-text { font-size: 1rem; }
-    }
-    </style>
+        .wave1 {             
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%);             
+            animation-duration: 35s;         
+        }
 
-    <div class="wave wave1"></div>
-    <div class="wave wave2"></div>
-    """
-    st.markdown(css, unsafe_allow_html=True)
+        .wave2 {             
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%);             
+            bottom: 20px;
+            animation-duration: 25s;         
+        }
 
+        /* --- Center everything vertically --- */
+        .main > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
-# --- Apply CSS ---
-inject_custom_css()
+        /* --- Floating logo animation --- */
+        @keyframes floatLogo {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
 
-# --- User credentials ---
-users = {
-    "usernames": {
-        "admin": {"name": "Admin User", "password": "admin123"},
-        "user1": {"name": "User One", "password": "pass123"}
-    }
-}
+        .logo-img {
+            height: 60px;
+            max-width: 100%;
+            animation: floatLogo 6s ease-in-out infinite;
+        }
 
-# --- Create authenticator ---
-authenticator = stauth.Authenticate(
-    credentials=users,
-    cookie_name="snca_cookie",
-    key="snca_key",
-    cookie_expiry_days=1
-)
+        /* --- Title below logo --- */
+        .title-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #000;
+            margin: 15px 0 25px 0;
+            text-align: center;
+        }
 
-# --- Logo & Header before login ---
-if "authentication_status" not in st.session_state or not st.session_state["authentication_status"]:
-    st.markdown("""
-    <div class="login-header">
-        <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+        /* --- Login form styling --- */
+        div[data-testid="stForm"] {
+            background-color: rgba(255, 255, 255, 0.35);
+            border-radius: 1.2rem;
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 500px;
+            height: auto;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            text-align: center;
+            animation: fadeSlideIn 1s ease-out;
+        }
+
+        /* --- Fade-in + slide animation --- */
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Buttons --- */
+        button[kind="primary"] {
+            background: linear-gradient(90deg, #004aad, #007bff);
+            color: white !important;
+            border: none;
+            border-radius: 0.5rem !important;
+            padding: 0.5rem 1rem !important;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        button[kind="primary"]:hover {
+            transform: scale(1.03);
+            background: linear-gradient(90deg, #005ce6, #339cff);
+        }
+
+        /* --- Inputs and labels --- */
+        input, label {
+            color: #003366 !important;
+        }
+
+        /* --- Responsive adjustments --- */
+        @media (max-width: 600px) {
+            div[data-testid="stForm"] {
+                width: 95%;
+                padding: 1.5rem;
+            }
+            .title-text {
+                font-size: 1.1rem;
+            }
+        }
+
+        </style>
+
+        <div class="wave wave1"></div>
+        <div class="wave wave2"></div>
+    """, unsafe_allow_html=True)
+
+# --- Logo, title, then login form ---
+st.markdown("""
+    <div class="login-header" style="display: flex; flex-direction: column; align-items: center;">
+        <img class="logo-img" src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
         <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
     </div>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- Centered login form ---
-authenticator.login(location="main")
+# --- Ensure login form displays ---
+try:
+    authenticator.login(location="main")
+except Exception:
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        st.form_submit_button("Login")
 
-# --- Access state ---
-name = st.session_state.get("name")
-authentication_status = st.session_state.get("authentication_status")
-username = st.session_state.get("username")
+# --- Access the state (after login) ---
+name = st.session_state.get("name")  
+authentication_status = st.session_state.get("authentication_status")  
+username = st.session_state.get("username")  
 
 # --- Control access ---
-if authentication_status:
+if authentication_status:     
     st.markdown("""
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background: white;
-        color: black;
-    }
-    </style>
+        <style>
+        [data-testid="stAppViewContainer"] {
+            background: white;
+            color: black;
+        }
+        </style>
     """, unsafe_allow_html=True)
-    st.success(f"Welcome {name}")
-    # run_snca_app()  # Uncomment when ready
-
-elif authentication_status == False:
-    st.error("Username/password is incorrect")
-else:
+    st.success(f"Welcome {name}")     
+    run_snca_app()  
+elif authentication_status == False:     
+    st.error("Username/password is incorrect") 
+else:     
     st.warning("Please enter your username and password")
+        
 
 
