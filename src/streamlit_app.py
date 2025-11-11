@@ -2261,8 +2261,6 @@ authentication_status = st.session_state.get("authentication_status")
 if not authentication_status:     
     st.markdown("""         
         <style>         
-
-        /* --- Prevent horizontal dragging --- */
         html, body, [data-testid="stAppViewContainer"] {
             overflow-x: hidden !important;
             width: 100%;
@@ -2270,7 +2268,6 @@ if not authentication_status:
             padding: 0;
         }
 
-        /* --- Background gradient --- */
         [data-testid="stAppViewContainer"] {             
             background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);             
             position: relative;             
@@ -2278,7 +2275,6 @@ if not authentication_status:
             color: #003366;         
         }
 
-        /* --- Waves animation --- */
         @keyframes waveMove {             
             0% { background-position-x: 0; }             
             100% { background-position-x: 1000px; }         
@@ -2308,7 +2304,6 @@ if not authentication_status:
             animation-duration: 25s;         
         }
 
-        /* --- Floating logo animation --- */
         @keyframes floatLogo {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
@@ -2321,7 +2316,6 @@ if not authentication_status:
             animation: floatLogo 6s ease-in-out infinite;
         }
 
-        /* --- Title below logo --- */
         .title-text {
             font-size: 1.4rem;
             font-weight: 800;
@@ -2330,7 +2324,6 @@ if not authentication_status:
             text-align: center;
         }
 
-        /* --- Login form styling --- */
         div[data-testid="stForm"] {
             background-color: rgba(255, 255, 255, 0.35);
             border-radius: 1.2rem;
@@ -2346,13 +2339,11 @@ if not authentication_status:
             animation: fadeSlideIn 1s ease-out;
         }
 
-        /* --- Fade-in + slide animation --- */
         @keyframes fadeSlideIn {
             0% { opacity: 0; transform: translateY(30px); }
             100% { opacity: 1; transform: translateY(0); }
         }
 
-        /* --- Buttons --- */
         button[kind="primary"] {
             background: linear-gradient(90deg, #004aad, #007bff);
             color: white !important;
@@ -2368,12 +2359,10 @@ if not authentication_status:
             background: linear-gradient(90deg, #005ce6, #339cff);
         }
 
-        /* --- Inputs and labels --- */
         input, label {
             color: #003366 !important;
         }
 
-        /* --- Responsive adjustments --- */
         @media (max-width: 600px) {
             div[data-testid="stForm"] {
                 width: 95%;
@@ -2399,8 +2388,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Center the login form horizontally with adjustable columns ---
-# Adjust the numbers to move the login card left or right
-# [1,2,1] = center, [1,3,1] = slightly right, [2,1,1] = left
 left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
     try:
@@ -2416,22 +2403,18 @@ name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")  
 username = st.session_state.get("username")  
 
-# --- Control access ---
+# --- Centered messages for access control ---
+left_col, center_col, right_col = st.columns([1, 2, 1])
 if authentication_status:     
-    st.markdown("""
-        <style>
-        [data-testid="stAppViewContainer"] {
-            background: white;
-            color: black;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    st.success(f"Welcome {name}")     
-    run_snca_app()  
+    with center_col:
+        st.success(f"Welcome {name}")
+        run_snca_app()  
 elif authentication_status == False:     
-    st.error("Username/password is incorrect") 
+    with center_col:
+        st.error("Username/password is incorrect") 
 else:     
-    st.warning("Please enter your username and password")
+    with center_col:
+        st.warning("Please enter your username and password")
 
 
 
