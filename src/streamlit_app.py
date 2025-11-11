@@ -2366,7 +2366,7 @@ authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
 # --- Centered messages for access control ---
-left_col, center_col, right_col = st.columns([1, 2, 1])
+left_col, center_col, right_col = st.columns([5, 2, 1])
 if authentication_status:     
     with left_col:
         st.success(f"Welcome {name}")
