@@ -628,7 +628,7 @@ def run_snca_app():
     
     # ----------------- Main App -----------------
     def main():
-        st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+        st.set_page_config(page_title='Smart NC Analyzer', layout='centered')
         col1, col2 = st.columns([2, 12])
     
         with col1:
