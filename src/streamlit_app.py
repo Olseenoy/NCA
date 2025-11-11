@@ -2369,41 +2369,43 @@ if not authentication_status:
         <div class="wave wave2"></div>
     """, unsafe_allow_html=True)
 
-    # --- Centered Logo and Title with Animation ---
-    st.markdown("""
-        <style>
-            @keyframes slideIn {
-                0% { opacity: 0; transform: translateY(-20px); }
-                100% { opacity: 1; transform: translateY(0); }
-            }
+    # --- Adjustable positioning for header ---
+    left_col, center_col, right_col = st.columns([1, 2, 1])
+    with center_col:
+        st.markdown("""
+            <style>
+                @keyframes slideIn {
+                    0% { opacity: 0; transform: translateY(-20px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                }
 
-            .login-header {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                margin-bottom: 30px;
-                animation: slideIn 1s ease-out forwards;
-            }
-            .login-header img {
-                height: 60px;
-                animation: slideIn 1s ease-out forwards;
-            }
-            .login-header .title-text {
-                font-size: 1.4rem;
-                font-weight: 800;
-                color: #00000;
-                margin-bottom: 0.8rem;
-                text-align: center;
-            }
-        </style>
-        <div class="login-header">
-            <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
-            <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
-        </div>
-    """, unsafe_allow_html=True)
+                .login-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 15px;
+                    margin-bottom: 30px;
+                    animation: slideIn 1s ease-out forwards;
+                }
+                .login-header img {
+                    height: 60px;
+                    animation: slideIn 1s ease-out forwards;
+                }
+                .login-header .title-text {
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    color: #00000;
+                    margin-bottom: 0.8rem;
+                    text-align: center;
+                }
+            </style>
+            <div class="login-header">
+                <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+                <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
+            </div>
+        """, unsafe_allow_html=True)
 
-# --- Authenticator Setup (added fix) ---
+# --- Authenticator Setup ---
 users = {
     "usernames": {
         "admin": {"name": "Admin User", "password": "admin123"},
@@ -2418,13 +2420,18 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Login form ---
-authenticator.login(location="main")
+# --- Center the login form (adjustable width) ---
+left_col, center_col, right_col = st.columns([1, 2, 1])
+with center_col:
+    authenticator.login(location="main")
 
-# --- Access the state (after login) ---
+# --- Access the state ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
+
+# Create columns for positioning messages
+left_col, center_col, right_col = st.columns([1, 2, 1])
 
 # --- Control access ---
 if authentication_status:
@@ -2442,9 +2449,12 @@ if authentication_status:
     run_snca_app()
 
 elif authentication_status == False:
-    st.error("Username/password is incorrect")
+    with center_col:
+        st.error("Username/password is incorrect")
 
 else:
-    st.warning("Please enter your username and password")
+    with center_col:
+        st.warning("Please enter your username and password")
+
 
 
