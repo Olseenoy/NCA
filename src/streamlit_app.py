@@ -2329,7 +2329,7 @@ if not authentication_status:
         @keyframes fadeSlideIn { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
         button[kind="primary"] {
             background: linear-gradient(90deg, #004aad, #007bff);
-            color: white !important;
+            color: #ff9741 !important;
             border: none;
             border-radius: 0.5rem !important;
             padding: 0.5rem 1rem !important;
