@@ -2308,21 +2308,16 @@ if not authentication_status:
             animation-duration: 25s;         
         }
 
-        /* --- Center everything vertically & horizontally --- */
-        .main > div {
+        /* --- Center everything vertically & move horizontally --- */
+        [data-testid="stAppViewContainer"] > .main {
             display: flex;
             flex-direction: column;
-            align-items: center;      /* Centers horizontally */
-            justify-content: center;  /* Centers vertically */
-            position: absolute;       /* Allow true screen centering */
-            top: 50%;
-            left: 80%;
-            transform: translate(-50%, -50%);  /* Move back half of width & height */
-            width: 100%;
-            height: 100%;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
             box-sizing: border-box;
+            padding-left: 20%; /* 👈 adjust this to move right or left (0% = center, 20% = right, -10% = left) */
         }
-
 
         /* --- Floating logo animation --- */
         @keyframes floatLogo {
@@ -2391,6 +2386,9 @@ if not authentication_status:
 
         /* --- Responsive adjustments --- */
         @media (max-width: 600px) {
+            [data-testid="stAppViewContainer"] > .main {
+                padding-left: 0%; /* Auto-center on smaller screens */
+            }
             div[data-testid="stForm"] {
                 width: 95%;
                 padding: 1.5rem;
@@ -2444,6 +2442,6 @@ elif authentication_status == False:
     st.error("Username/password is incorrect") 
 else:     
     st.warning("Please enter your username and password")
-        
+
 
 
