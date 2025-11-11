@@ -2261,6 +2261,12 @@ authentication_status = st.session_state.get("authentication_status")
 if not authentication_status:
     st.markdown("""
         <style>
+        /* Prevent horizontal scrolling */
+        html, body, [data-testid="stAppViewContainer"] {
+            overflow-x: hidden !important;
+            width: 100% !important;
+        }
+
         /* Sky blue gradient base */
         [data-testid="stAppViewContainer"] {
             background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
