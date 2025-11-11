@@ -2252,15 +2252,15 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # --- Page Config ---
-st.set_page_config(page_title="Smart Non-Conformance Login", layout="wide")
+st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")
 
 # --- Access authentication state early ---
 authentication_status = st.session_state.get("authentication_status")
 
-# --- CSS Styling ---
+# --- Styling for responsive login card ---
 st.markdown("""
 <style>
-/* Remove horizontal scroll, full width, and padding */
+/* Remove horizontal scroll and padding */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
     overflow-x: hidden !important;
     width: 100% !important;
@@ -2268,37 +2268,34 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     padding: 0;
 }
 
-/* Background gradient */
+/* Gradient background & center content */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
+    color: #003366;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    flex-direction: column;
     position: relative;
-    color: #003366;
 }
 
 /* Waves */
-@keyframes waveMove {
-    0% { background-position-x: 0; }
-    100% { background-position-x: 1000px; }
-}
+@keyframes waveMove { 0% { background-position-x: 0; } 100% { background-position-x: 1000px; } }
 .wave {
     position: absolute;
     left: 0;
     bottom: 0;
-    width: 300%;
-    height: 150px;
+    width: 200%;
+    height: 120px;
     background-repeat: repeat-x;
-    background-size: 1000px 150px;
+    background-size: 1000px 120px;
     opacity: 0.5;
     animation: waveMove 20s linear infinite;
     z-index: 0;
 }
 .wave1 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%); animation-duration: 35s; }
-.wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); animation-duration: 25s; bottom: 20px; }
+.wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); animation-duration: 25s; bottom: 15px; }
 
 /* Center main content */
 [data-testid="stAppViewContainer"] > .main {
@@ -2307,17 +2304,16 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     align-items: center;
     flex-direction: column;
     min-height: 100vh;
-    padding: 1rem;
     z-index: 1;
 }
 
-/* Login card */
+/* Responsive Login Card */
 div[data-testid="stForm"] {
     background-color: rgba(255, 255, 255, 0.35);
     border-radius: 1rem;
     padding: 2rem;
-    width: 100%;
-    max-width: 360px; /* smaller max width for adaptive screens */
+    width: 95%;
+    max-width: 380px;   /* max width for desktop */
     box-shadow: 0 8px 32px rgba(31,38,135,0.3);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.25);
@@ -2326,7 +2322,7 @@ div[data-testid="stForm"] {
     z-index: 2;
 }
 
-/* Header (logo + title) */
+/* Header: logo + title */
 .login-header {
     display: flex;
     flex-direction: column;
@@ -2336,26 +2332,18 @@ div[data-testid="stForm"] {
     margin-bottom: 20px;
     animation: fadeIn 1s ease-out forwards;
 }
-@keyframes fadeIn {
-    from {opacity: 0; transform: translateY(-15px);}
-    to {opacity: 1; transform: translateY(0);}
-}
+@keyframes fadeIn { from {opacity:0; transform:translateY(-15px);} to {opacity:1; transform:translateY(0);} }
 .login-header img {
-    height: 50px; /* smaller logo for mobile */
+    height: 60px;
     max-width: 100%;
     animation: floatLogo 6s ease-in-out infinite;
 }
-@keyframes floatLogo {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
-    100% { transform: translateY(0px); }
-}
+@keyframes floatLogo { 0%{transform:translateY(0);} 50%{transform:translateY(-6px);} 100%{transform:translateY(0);} }
 .title-text {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 800;
     color: #002244;
     text-align: center;
-    word-wrap: break-word;
 }
 
 /* Buttons */
@@ -2372,19 +2360,16 @@ button[kind="primary"]:hover {
     transform: scale(1.03);
     background: linear-gradient(90deg, #005ce6, #339cff);
 }
-
 input, label { color: #003366 !important; }
 
-/* Responsive adjustments */
+/* Responsive adjustments for mobile/tablet */
 @media (max-width: 768px) {
-    div[data-testid="stForm"] { max-width: 90%; padding: 1.5rem; }
-    .title-text { font-size: 1rem; }
-    .login-header img { height: 45px; }
+    div[data-testid="stForm"] { max-width: 320px; padding: 1.5rem; }
+    .title-text { font-size: 1.1rem; }
 }
 @media (max-width: 480px) {
-    div[data-testid="stForm"] { max-width: 95%; padding: 1rem; }
-    .title-text { font-size: 0.95rem; }
-    .login-header img { height: 40px; }
+    div[data-testid="stForm"] { max-width: 280px; padding: 1.2rem; }
+    .title-text { font-size: 1rem; }
 }
 </style>
 
@@ -2436,7 +2421,6 @@ if authentication_status:
     """, unsafe_allow_html=True)
     st.success(f"Welcome {name}")
     # run_snca_app()
-
 elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
