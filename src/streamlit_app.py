@@ -2252,15 +2252,15 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # --- Page Config ---
-st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")
+st.set_page_config(page_title="Smart Non-Conformance Login", layout="wide")
 
 # --- Access authentication state early ---
 authentication_status = st.session_state.get("authentication_status")
 
-# --- Apply styling ---
+# --- CSS Styling ---
 st.markdown("""
 <style>
-/* Prevent horizontal scroll and fit screen */
+/* Remove horizontal scroll, full width, and padding */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
     overflow-x: hidden !important;
     width: 100% !important;
@@ -2268,16 +2268,16 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     padding: 0;
 }
 
-/* Gradient background */
+/* Background gradient */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
-    color: #003366;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    flex-direction: column;
     position: relative;
+    color: #003366;
 }
 
 /* Waves */
@@ -2289,16 +2289,16 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     position: absolute;
     left: 0;
     bottom: 0;
-    width: 200%;
-    height: 120px;
+    width: 300%;
+    height: 150px;
     background-repeat: repeat-x;
-    background-size: 1000px 120px;
+    background-size: 1000px 150px;
     opacity: 0.5;
     animation: waveMove 20s linear infinite;
     z-index: 0;
 }
 .wave1 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%); animation-duration: 35s; }
-.wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); animation-duration: 25s; bottom: 15px; }
+.wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); animation-duration: 25s; bottom: 20px; }
 
 /* Center main content */
 [data-testid="stAppViewContainer"] > .main {
@@ -2307,6 +2307,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     align-items: center;
     flex-direction: column;
     min-height: 100vh;
+    padding: 1rem;
     z-index: 1;
 }
 
@@ -2315,8 +2316,8 @@ div[data-testid="stForm"] {
     background-color: rgba(255, 255, 255, 0.35);
     border-radius: 1rem;
     padding: 2rem;
-    width: 90%;
-    max-width: 400px;
+    width: 100%;
+    max-width: 360px; /* smaller max width for adaptive screens */
     box-shadow: 0 8px 32px rgba(31,38,135,0.3);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.25);
@@ -2340,20 +2341,21 @@ div[data-testid="stForm"] {
     to {opacity: 1; transform: translateY(0);}
 }
 .login-header img {
-    height: 60px;
+    height: 50px; /* smaller logo for mobile */
     max-width: 100%;
     animation: floatLogo 6s ease-in-out infinite;
 }
 @keyframes floatLogo {
     0% { transform: translateY(0px); }
-    50% { transform: translateY(-6px); }
+    50% { transform: translateY(-5px); }
     100% { transform: translateY(0px); }
 }
 .title-text {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: #002244;
     text-align: center;
+    word-wrap: break-word;
 }
 
 /* Buttons */
@@ -2373,10 +2375,16 @@ button[kind="primary"]:hover {
 
 input, label { color: #003366 !important; }
 
-/* Responsive text and card */
-@media (max-width: 600px) {
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    div[data-testid="stForm"] { max-width: 90%; padding: 1.5rem; }
     .title-text { font-size: 1rem; }
-    div[data-testid="stForm"] { padding: 1.5rem; }
+    .login-header img { height: 45px; }
+}
+@media (max-width: 480px) {
+    div[data-testid="stForm"] { max-width: 95%; padding: 1rem; }
+    .title-text { font-size: 0.95rem; }
+    .login-header img { height: 40px; }
 }
 </style>
 
@@ -2433,5 +2441,3 @@ elif authentication_status == False:
     st.error("Username/password is incorrect")
 else:
     st.warning("Please enter your username and password")
-
-
