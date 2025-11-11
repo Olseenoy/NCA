@@ -2260,144 +2260,118 @@ authentication_status = st.session_state.get("authentication_status")
 # --- Apply styling only when NOT logged in ---
 if not authentication_status:
     st.markdown("""
-        <style>
-        /* Prevent horizontal scrolling and make content fit screen */
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
-            overflow-x: hidden !important;
-            max-width: 100vw !important;
-            width: 100vw !important;
-            padding: 0 !important;
-        }
+    <style>
+    /* Prevent horizontal scrolling and make content fit screen */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
 
-        /* Sky blue gradient base */
-        [data-testid="stAppViewContainer"] {
-            background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
-            position: relative;
-            color: #003366;
-        }
+    /* Sky blue gradient background */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
+        color: #003366;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        flex-direction: column;
+    }
 
-        /* Animated wave layers */
-        @keyframes waveMove {
-            0% { background-position-x: 0; }
-            100% { background-position-x: 1000px; }
-        }
+    /* Waves */
+    @keyframes waveMove {
+        0% { background-position-x: 0; }
+        100% { background-position-x: 1000px; }
+    }
+    .wave {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 200%;
+        height: 180px;
+        background-repeat: repeat-x;
+        background-size: 1000px 180px;
+        opacity: 0.5;
+        animation: waveMove 20s linear infinite;
+        transform: translate3d(0,0,0);
+    }
+    .wave1 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%); opacity:0.5; animation-duration:35s;}
+    .wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); opacity:0.7; bottom:20px; animation-duration:25s;}
 
-        .wave {
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 200%;
-            height: 180px;
-            background-repeat: repeat-x;
-            background-size: 1000px 180px;
-            opacity: 0.5;
-            animation: waveMove 20s linear infinite;
-            transform: translate3d(0, 0, 0);
-        }
+    /* Login header and form container */
+    .login-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap; /* ensures content wraps on small screens */
+    }
+    .login-header img {
+        height: 60px;
+        max-width: 40%; 
+        flex-shrink: 0;
+    }
+    .title-text {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #000000;
+        text-align: center;
+        white-space: nowrap;
+    }
 
-        .wave1 {
-            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%);
-            opacity: 0.5;
-            bottom: 0;
-            animation-duration: 35s;
-        }
+    div[data-testid="stForm"] {
+        background-color: rgba(255,255,255,0.3);
+        border-radius: 1.2rem;
+        padding: 2rem;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 8px 32px rgba(31,38,135,0.3);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255,255,255,0.3);
+        margin-bottom: 40px;
+    }
 
-        .wave2 {
-            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%);
-            opacity: 0.7;
-            bottom: 20px;
-            animation-duration: 25s;
-        }
+    button[kind="primary"] {
+        background: linear-gradient(90deg, #004aad, #007bff);
+        color: white !important;
+        border: none;
+        border-radius: 0.5rem !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.3s ease;
+    }
+    button[kind="primary"]:hover {
+        transform: scale(1.05);
+        background: linear-gradient(90deg, #005ce6, #339cff);
+    }
 
-        /* Center content */
-        .main > div {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 0 10px; /* responsive padding */
-        }
+    input, label { color: #003366 !important; }
 
-        /* Modern glass-style login form */
-        div[data-testid="stForm"] {
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 1.2rem;
-            padding: 2rem;
-            width: 100%;
-            max-width: 500px; /* responsive max width */
-            height: auto;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
+    img { animation: floatLogo 6s ease-in-out infinite; max-width:100%; height:auto; }
 
-        /* Button styling */
-        button[kind="primary"] {
-            background: linear-gradient(90deg, #004aad, #007bff);
-            color: white !important;
-            border: none;
-            border-radius: 0.5rem !important;
-            padding: 0.5rem 1rem !important;
-            transition: all 0.3s ease;
-        }
+    @media only screen and (max-width: 600px) {
+        .title-text { font-size: 1.1rem; }
+        div[data-testid="stForm"] { padding: 1.5rem; }
+        .login-header { flex-direction: column; gap: 10px; }
+    }
+    </style>
 
-        button[kind="primary"]:hover {
-            transform: scale(1.05);
-            background: linear-gradient(90deg, #005ce6, #339cff);
-        }
-
-        /* Inputs and labels */
-        input, label {
-            color: #003366 !important;
-        }
-
-        /* Floating logo animation */
-        @keyframes floatLogo {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
-        }
-
-        img {
-            animation: floatLogo 6s ease-in-out infinite;
-            max-width: 100%; /* responsive logo */
-            height: auto;
-        }
-
-        /* Title text single line */
-        .title-text {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #000000;
-            margin-bottom: 0.8rem;
-            text-align: center;
-            white-space: nowrap;
-        }
-
-        @media only screen and (max-width: 600px) {
-            .title-text {
-                font-size: 1.1rem; /* smaller title on small screens */
-            }
-            div[data-testid="stForm"] {
-                padding: 1.5rem; /* smaller padding */
-            }
-        }
-        </style>
-        <div class="wave wave1"></div>
-        <div class="wave wave2"></div>
+    <div class="wave wave1"></div>
+    <div class="wave wave2"></div>
     """, unsafe_allow_html=True)
 
-    # --- Adjustable positioning for header ---
-    left_col, center_col, right_col = st.columns([1, 2, 1])
-    with center_col:
-        st.markdown("""
-            <div class="login-header">
-                <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
-                <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
-            </div>
-        """, unsafe_allow_html=True)
+    # --- Header ---
+    st.markdown("""
+    <div class="login-header">
+        <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+        <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- Authenticator Setup ---
 users = {
@@ -2414,22 +2388,16 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# --- Center the login form (adjustable width) ---
-left_col, center_col, right_col = st.columns([1, 2, 1])
-with center_col:
-    authenticator.login(location="main")
+# --- Login Form ---
+authenticator.login(location="main")
 
 # --- Access the state ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
-# Create columns for positioning messages
-left_col, center_col, right_col = st.columns([1, 2, 1])
-
 # --- Control access ---
 if authentication_status:
-    # Reset to normal background post-login
     st.markdown("""
         <style>
         [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
@@ -2444,9 +2412,7 @@ if authentication_status:
     run_snca_app()
 
 elif authentication_status == False:
-    with center_col:
-        st.error("Username/password is incorrect")
-
+    st.error("Username/password is incorrect")
 else:
-    with center_col:
-        st.warning("Please enter your username and password")
+    st.warning("Please enter your username and password")
+
