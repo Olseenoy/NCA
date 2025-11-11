@@ -2368,8 +2368,12 @@ username = st.session_state.get("username")
 # --- Centered messages for access control ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
 if authentication_status:     
-    st.success(f"Welcome {name}")
-    run_snca_app()  
+   
+        st.success(f"Welcome {name}")
+        with st.spinner("Loading Smart Non-Conformance Analyzer..."):
+            time.sleep(1)  # Optional slight delay for smoother transition
+            run_snca_app()
+
 elif authentication_status == False:     
     with center_col:
         st.error("Username/password is incorrect") 
