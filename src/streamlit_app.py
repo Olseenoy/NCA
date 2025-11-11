@@ -2316,7 +2316,7 @@ if not authentication_status:
             justify-content: center;
             height: 100vh;
             box-sizing: border-box;
-            padding-left: 80%; /* 👈 adjust this to move right or left (0% = center, 20% = right, -10% = left) */
+            padding-left: 500%; /* 👈 adjust this to move right or left (0% = center, 20% = right, -10% = left) */
         }
 
         /* --- Floating logo animation --- */
