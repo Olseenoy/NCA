@@ -2408,6 +2408,11 @@ left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
     authenticator.login(location="main")
 
+# --- Access the state ---
+name = st.session_state.get("name")
+authentication_status = st.session_state.get("authentication_status")
+username = st.session_state.get("username")
+
 # --- Centered messages for access control ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
 if authentication_status:     
