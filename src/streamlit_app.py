@@ -2316,7 +2316,7 @@ if not authentication_status:
             justify-content: center;  /* Centers vertically */
             position: absolute;       /* Allow true screen centering */
             top: 50%;
-            left: 50%;
+            left: 20%;
             transform: translate(-50%, -50%);  /* Move back half of width & height */
             width: 100%;
             height: 100%;
