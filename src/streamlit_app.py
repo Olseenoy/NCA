@@ -2252,15 +2252,11 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # --- Page Config ---
-st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")
+st.set_page_config(page_title="Smart Non-Conformance Login", layout="wide")
 
-# --- Access authentication state early ---
-authentication_status = st.session_state.get("authentication_status")
-
-# --- Styling for responsive login card ---
+# --- Styling for responsive login card with position control ---
 st.markdown("""
 <style>
-/* Remove horizontal scroll and padding */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
     overflow-x: hidden !important;
     width: 100% !important;
@@ -2268,13 +2264,12 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
     padding: 0;
 }
 
-/* Gradient background & center content */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
     color: #003366;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;  /* Use flex-start for top positioning */
+    align-items: center;          /* horizontal centering */
     min-height: 100vh;
     flex-direction: column;
     position: relative;
@@ -2300,7 +2295,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] 
 /* Center main content */
 [data-testid="stAppViewContainer"] > .main {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;   /* adjust vertical position with margin-top */
     align-items: center;
     flex-direction: column;
     min-height: 100vh;
@@ -2313,13 +2308,14 @@ div[data-testid="stForm"] {
     border-radius: 1rem;
     padding: 2rem;
     width: 95%;
-    max-width: 380px;   /* max width for desktop */
+    max-width: 380px;   
     box-shadow: 0 8px 32px rgba(31,38,135,0.3);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.25);
     text-align: center;
     position: relative;
     z-index: 2;
+    margin-top: 120px; /* <-- adjust vertical position here */
 }
 
 /* Header: logo + title */
@@ -2362,13 +2358,13 @@ button[kind="primary"]:hover {
 }
 input, label { color: #003366 !important; }
 
-/* Responsive adjustments for mobile/tablet */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    div[data-testid="stForm"] { max-width: 320px; padding: 1.5rem; }
+    div[data-testid="stForm"] { max-width: 320px; padding: 1.5rem; margin-top: 80px; }
     .title-text { font-size: 1.1rem; }
 }
 @media (max-width: 480px) {
-    div[data-testid="stForm"] { max-width: 280px; padding: 1.2rem; }
+    div[data-testid="stForm"] { max-width: 280px; padding: 1.2rem; margin-top: 60px; }
     .title-text { font-size: 1rem; }
 }
 </style>
@@ -2401,7 +2397,9 @@ authenticator = stauth.Authenticate(
 )
 
 # --- Centered login form ---
-authenticator.login(location="main")
+left_col, center_col, right_col = st.columns([1, 2, 1])
+with center_col:
+    authenticator.login(location="main")
 
 # --- Access state ---
 name = st.session_state.get("name")
@@ -2409,19 +2407,15 @@ authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
 # --- Control access ---
+left_col, center_col, right_col = st.columns([1, 2, 1])
 if authentication_status:
-    st.markdown("""
-        <style>
-        [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
-            background: white;
-            color: black;
-            overflow: auto !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    st.success(f"Welcome {name}")
-    # run_snca_app()
+    with center_col:
+        st.success(f"Welcome {name}")
+        # run_snca_app()
 elif authentication_status == False:
-    st.error("Username/password is incorrect")
+    with center_col:
+        st.error("Username/password is incorrect")
 else:
-    st.warning("Please enter your username and password")
+    with center_col:
+        st.warning("Please enter your username and password")
+
