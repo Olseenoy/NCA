@@ -2261,10 +2261,11 @@ authentication_status = st.session_state.get("authentication_status")
 if not authentication_status:
     st.markdown("""
         <style>
-        /* Prevent horizontal scrolling */
-        html, body, [data-testid="stAppViewContainer"] {
+        /* Prevent horizontal scrolling and make content fit screen */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
             overflow-x: hidden !important;
-            width: 100% !important;
+            max-width: 100vw !important;
+            width: 100vw !important;
         }
 
         /* Sky blue gradient base */
@@ -2328,7 +2329,6 @@ if not authentication_status:
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            align:center;
         }
 
         /* Button styling */
@@ -2362,13 +2362,14 @@ if not authentication_status:
             animation: floatLogo 6s ease-in-out infinite;
         }
 
-        /* 'User Login' header styling */
-        .login-title {
+        /* Title text single line */
+        .title-text {
             font-size: 1.4rem;
             font-weight: 800;
-            color: #00000;
+            color: #000000;
             margin-bottom: 0.8rem;
             text-align: center;
+            white-space: nowrap;
         }
         </style>
         <div class="wave wave1"></div>
@@ -2379,33 +2380,6 @@ if not authentication_status:
     left_col, center_col, right_col = st.columns([1, 2, 1])
     with center_col:
         st.markdown("""
-            <style>
-                @keyframes slideIn {
-                    0% { opacity: 0; transform: translateY(-20px); }
-                    100% { opacity: 1; transform: translateY(0); }
-                }
-
-                .login-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 15px;
-                    margin-bottom: 30px;
-                    animation: slideIn 1s ease-out forwards;
-                }
-                .login-header img {
-                    height: 60px;
-                    animation: slideIn 1s ease-out forwards;
-                }
-                .login-header .title-text {
-                    font-size: 1.4rem;
-                    font-weight: 800;
-                    color: #00000;
-                    margin-bottom: 0.8rem;
-                    text-align: center;
-                    white-space: nowrap; /* ensures single-line title */
-                }
-            </style>
             <div class="login-header">
                 <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
                 <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
@@ -2445,9 +2419,10 @@ if authentication_status:
     # Reset to normal background post-login
     st.markdown("""
         <style>
-        [data-testid="stAppViewContainer"] {
+        [data-testid="stAppViewContainer"], [data-testid="stMainContainer"] {
             background: white;
             color: black;
+            overflow-x: hidden !important;
         }
         </style>
     """, unsafe_allow_html=True)
