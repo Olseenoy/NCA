@@ -2273,8 +2273,10 @@ authenticator = stauth.Authenticate(
 # --- Access authentication state early ---
 authentication_status = st.session_state.get("authentication_status")  
 
-# --- Apply styling only when NOT logged in ---
-if not authentication_status:     
+# --- LOGIN PAGE UI ---
+if not authentication_status:
+
+    # --- Background & styling ---
     st.markdown("""         
         <style>         
         html, body, [data-testid="stAppViewContainer"] {
@@ -2283,19 +2285,13 @@ if not authentication_status:
             margin: 0;
             padding: 0;
         }
-
         [data-testid="stAppViewContainer"] {             
             background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);             
             position: relative;             
             overflow: hidden;             
             color: #003366;         
         }
-
-        @keyframes waveMove {             
-            0% { background-position-x: 0; }             
-            100% { background-position-x: 1000px; }         
-        }
-
+        @keyframes waveMove { 0% { background-position-x: 0; } 100% { background-position-x: 1000px; } }
         .wave {
             position: absolute;
             left: 0;
@@ -2308,38 +2304,11 @@ if not authentication_status:
             animation: waveMove 20s linear infinite;
             transform: translate3d(0, 0, 0);
         }
-
-        .wave1 {             
-            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%);             
-            animation-duration: 35s;         
-        }
-
-        .wave2 {             
-            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%);             
-            bottom: 20px;
-            animation-duration: 25s;         
-        }
-
-        @keyframes floatLogo {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
-        }
-
-        .logo-img {
-            height: 60px;
-            max-width: 100%;
-            animation: floatLogo 6s ease-in-out infinite;
-        }
-
-        .title-text {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #000;
-            margin: 15px 0 25px 0;
-            text-align: center;
-        }
-
+        .wave1 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%); animation-duration: 35s; }
+        .wave2 { background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%); bottom: 20px; animation-duration: 25s; }
+        @keyframes floatLogo { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
+        .logo-img { height: 60px; max-width: 100%; animation: floatLogo 6s ease-in-out infinite; }
+        .title-text { font-size: 1.4rem; font-weight: 800; color: #000; margin: 15px 0 25px 0; text-align: center; }
         div[data-testid="stForm"] {
             background-color: rgba(255, 255, 255, 0.35);
             border-radius: 1.2rem;
@@ -2354,12 +2323,7 @@ if not authentication_status:
             text-align: center;
             animation: fadeSlideIn 1s ease-out;
         }
-
-        @keyframes fadeSlideIn {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
+        @keyframes fadeSlideIn { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
         button[kind="primary"] {
             background: linear-gradient(90deg, #004aad, #007bff);
             color: white !important;
@@ -2369,46 +2333,31 @@ if not authentication_status:
             transition: all 0.3s ease;
             width: 100%;
         }
-
-        button[kind="primary"]:hover {
-            transform: scale(1.03);
-            background: linear-gradient(90deg, #005ce6, #339cff);
-        }
-
-        input, label {
-            color: #003366 !important;
-        }
-
+        button[kind="primary"]:hover { transform: scale(1.03); background: linear-gradient(90deg, #005ce6, #339cff); }
+        input, label { color: #003366 !important; }
         @media (max-width: 600px) {
-            div[data-testid="stForm"] {
-                width: 95%;
-                padding: 1.5rem;
-            }
-            .title-text {
-                font-size: 1.1rem;
-            }
+            div[data-testid="stForm"] { width: 95%; padding: 1.5rem; }
+            .title-text { font-size: 1.1rem; }
         }
-
         </style>
-
         <div class="wave wave1"></div>
         <div class="wave wave2"></div>
     """, unsafe_allow_html=True)
 
-# --- Logo and title ---
-st.markdown("""
-    <div class="login-header" style="display: flex; flex-direction: column; align-items: center;">
-        <img class="logo-img" src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
-        <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
-    </div>
-""", unsafe_allow_html=True)
+    # --- Logo and title ---
+    st.markdown("""
+        <div class="login-header" style="display: flex; flex-direction: column; align-items: center;">
+            <img class="logo-img" src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+            <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- Center the login form horizontally with adjustable columns ---
-left_col, center_col, right_col = st.columns([1, 2, 1])
-with center_col:
-    authenticator.login(location="main")
+    # --- Center the login form horizontally ---
+    left_col, center_col, right_col = st.columns([1, 2, 1])
+    with center_col:
+        authenticator.login(location="main")
 
-# --- Access the state ---
+# --- STATE AFTER LOGIN ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
@@ -2425,6 +2374,7 @@ elif authentication_status == False:
 else:     
     with center_col:
         st.warning("Please enter your username and password")
+
 
 
 
