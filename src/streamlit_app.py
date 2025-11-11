@@ -2356,7 +2356,7 @@ if not authentication_status:
     """, unsafe_allow_html=True)
 
     # --- Center the login form horizontally ---
-left_col, center_col, right_col = st.columns([1, 3, 1])
+left_col, center_col, right_col = st.columns([1, 4, 1])
 with center_col:
     authenticator.login(location="main")
 
