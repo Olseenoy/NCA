@@ -2406,7 +2406,7 @@ st.markdown("""
 # --- Center the login form horizontally with adjustable columns ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
 with center_col:
-    name, authentication_status, username = authenticator.login("Login", "main")
+    authenticator.login(location="main")
 
 # --- Centered messages for access control ---
 left_col, center_col, right_col = st.columns([1, 2, 1])
