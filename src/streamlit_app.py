@@ -2397,6 +2397,7 @@ if not authentication_status:
                     color: #00000;
                     margin-bottom: 0.8rem;
                     text-align: center;
+                    white-space: nowrap; /* ensures single-line title */
                 }
             </style>
             <div class="login-header">
@@ -2455,6 +2456,3 @@ elif authentication_status == False:
 else:
     with center_col:
         st.warning("Please enter your username and password")
-
-
-
