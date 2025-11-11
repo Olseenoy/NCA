@@ -2251,169 +2251,192 @@ def run_snca_app():
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# --- Custom CSS Styling ---
-def inject_custom_css():
-    css = """
+# --- Page Config ---
+st.set_page_config(page_title="Smart Non-Conformance Login", layout="centered")
+
+# --- Access authentication state early ---
+authentication_status = st.session_state.get("authentication_status")
+
+# --- Apply styling only when NOT logged in ---
+if not authentication_status:
+    st.markdown("""
+        <style>
+        /* Sky blue gradient base */
+        [data-testid="stAppViewContainer"] {
+            background: linear-gradient(to bottom, #aee1fc, #6ec1e4, #4aa8e0);
+            position: relative;
+            overflow: hidden;
+            color: #003366;
+        }
+
+        /* Animated wave layers */
+        @keyframes waveMove {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1000px; }
+        }
+
+        .wave {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 200%;
+            height: 180px;
+            background-repeat: repeat-x;
+            background-size: 1000px 180px;
+            opacity: 0.5;
+            animation: waveMove 20s linear infinite;
+            transform: translate3d(0, 0, 0);
+        }
+
+        .wave1 {
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 25%, transparent 26%);
+            opacity: 0.5;
+            bottom: 0;
+            animation-duration: 35s;
+        }
+
+        .wave2 {
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 25%, transparent 26%);
+            opacity: 0.7;
+            bottom: 20px;
+            animation-duration: 25s;
+        }
+
+        /* Center content */
+        .main > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Modern glass-style login form */
+        div[data-testid="stForm"] {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 1.2rem;
+            padding: 2.5rem;
+            width: 500px;
+            height: auto;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            align:center;
+        }
+
+        /* Button styling */
+        button[kind="primary"] {
+            background: linear-gradient(90deg, #004aad, #007bff);
+            color: white !important;
+            border: none;
+            border-radius: 0.5rem !important;
+            padding: 0.5rem 1rem !important;
+            transition: all 0.3s ease;
+        }
+
+        button[kind="primary"]:hover {
+            transform: scale(1.05);
+            background: linear-gradient(90deg, #005ce6, #339cff);
+        }
+
+        /* Inputs and labels */
+        input, label {
+            color: #003366 !important;
+        }
+
+        /* Floating logo animation */
+        @keyframes floatLogo {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        img {
+            animation: floatLogo 6s ease-in-out infinite;
+        }
+
+        /* 'User Login' header styling */
+        .login-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #00000;
+            margin-bottom: 0.8rem;
+            text-align: center;
+        }
+        </style>
+        <div class="wave wave1"></div>
+        <div class="wave wave2"></div>
+    """, unsafe_allow_html=True)
+
+    # --- Logo and Title above login form ---
+
+   # --- Centered Logo and Title with Animation ---
+st.markdown("""
     <style>
-    /* ===== App Background ===== */
-    .stApp {
-        background: linear-gradient(135deg, #f5f7fa, #ffffff);
-        font-family: "Segoe UI", "Inter", sans-serif;
-        color: #1E1E2D;
-    }
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    /* ===== Sidebar ===== */
-    section[data-testid="stSidebar"] {
-        background-color: #ff9742; /* orange sidebar */
-        color: black;
-    }
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3 {
-        color: white;
-    }
-
-    /* ===== Sidebar Toggle ===== */
-    button[kind="header"] {
-        background-color: transparent !important;
-        color: white !important;
-        border: none !important;
-    }
-    [data-testid="stSidebarCollapseControl"] {
-        color: white !important;
-    }
-
-    /* ===== Titles & Headers ===== */
-    h1, .stMarkdown h1, div[data-testid="stMarkdownContainer"] h1 {
-        color: #011d6f !important; /* Promasidor Blue */
-        font-size: 40px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 1px !important;
-        border-bottom: 3px solid #F58220 !important; /* Orange underline */
-        padding-bottom: 5px !important;
-        margin-bottom: 20px !important;
-    }
-
-    h2 {
-        color: #F58220;
-        font-size: 28px;
-        font-weight: 600;
-        margin-top: 25px;
-    }
-    h3 {
-        color: #007AC2;
-        font-size: 22px;
-        font-weight: 500;
-    }
-
-    /* ===== Buttons ===== */
-    div.stButton > button {
-        background-color: #011d6f;
-        color: white;
-        border-radius: 6px;
-        border: none;
-        padding: 8px 16px;
-        font-weight: 500;
-        transition: background-color 0.3s ease;
-    }
-    div.stButton > button:hover {
-        background-color: #005a91;
-        cursor: pointer;
-    }
-
-    /* ===== DataFrames & Tables ===== */
-    .stDataFrame, .stTable {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 8px;
-        font-size: 14px;
-        color: #1E1E2D;
-    }
-
-    /* ===== Inputs ===== */
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stTextArea textarea {
-        border: 1px solid #D1D5DB;
-        border-radius: 4px;
-        padding: 6px;
-        color: #1E1E2D;
-        background-color: #fff;
-    }
-
-    /* ===== Metrics ===== */
-    div[data-testid="stMetricValue"] {
-        font-size: 22px;
-        font-weight: bold;
-        color: #007AC2;
-    }
-
-    /* ===== Hide Streamlit Branding ===== */
-    #MainMenu { visibility: hidden; }
-    footer { visibility: hidden; }
+        .login-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px; /* Space between logo and text */
+            margin-bottom: 30px;
+            animation: slideIn 1s ease-out forwards;
+        }
+        .login-header img {
+            height: 60px; /* Adjust logo size */
+            animation: slideIn 1s ease-out forwards;
+        }
+        .login-header .title-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #00000;
+            margin-bottom: 0.8rem;
+            text-align: center;
+        }
     </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
+    <div class="login-header">
+        <img src="https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png" alt="Logo">
+        <div class="title-text">SMART NON CONFORMANCE ANALYZER</div>
+    </div>
+""", unsafe_allow_html=True)
 
-# --- Call CSS styling ---
-inject_custom_css()
 
-# --- Page setup ---
-st.set_page_config(page_title='Smart NC Analyzer', layout='wide')
+# --- Login form ---
+authenticator.login(location="main")
 
-# --- User credentials ---
-users = {
-    "usernames": {
-        "admin": {"name": "Admin User", "password": "admin123"},
-        "user1": {"name": "User One", "password": "pass123"}
-    }
-}
-
-# --- Create authenticator ---
-authenticator = stauth.Authenticate(
-    credentials=users,
-    cookie_name="snca_cookie",
-    key="snca_key",
-    cookie_expiry_days=1
-)
-
-# --- Login form only (show header before login) ---
-if "authentication_status" not in st.session_state or not st.session_state["authentication_status"]:
-    col1, col2 = st.columns([2, 12])
-    with col1:
-        st.image(
-            "https://smartqaai.luckypaintingltd.ca/wp-content/uploads/2025/09/smart2.png",
-            width=200
-        )
-    with col2:
-        st.title('Smart Non-Conformance Analyzer')
-    st.markdown("---")
-
-# --- Center the login form (adjustable width) ---
-left_col, center_col, right_col = st.columns([1, 2, 1])
-with center_col:
-    authenticator.login(location="main")
-
-# --- Access the state ---
+# --- Access the state (after login) ---
 name = st.session_state.get("name")
 authentication_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 
-# Create columns for positioning messages
-left_col, center_col, right_col = st.columns([1, 2, 1])
-
 # --- Control access ---
 if authentication_status:
+    # Reset to normal background post-login
+    st.markdown("""
+        <style>
+        [data-testid="stAppViewContainer"] {
+            background: white;
+            color: black;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.success(f"Welcome {name}")
     run_snca_app()
 
 elif authentication_status == False:
-    with center_col:
-        st.error("Username/password is incorrect")
-
+    st.error("Username/password is incorrect")
 else:
-    with center_col:
-        st.warning("Please enter your username and password")
-
+    st.warning("Please enter your username and password")
 
