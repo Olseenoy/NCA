@@ -2369,7 +2369,6 @@ username = st.session_state.get("username")
 left_col, center_col, right_col = st.columns([1, 2, 1])
 
 if authentication_status:     
-    with left_col:
         st.success(f"Welcome {name}")
         run_snca_app()  
 
