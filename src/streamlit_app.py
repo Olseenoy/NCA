@@ -2267,10 +2267,10 @@ users = {
 
 # --- Create authenticator ---
 authenticator = stauth.Authenticate(
-    credentials=users,
-    cookie_name="snca_cookie",
-    key="snca_key",
-    cookie_expiry_days=1
+    users,            # credentials dictionary
+    "snca_cookie",    # cookie_name
+    "snca_key",       # key
+    1                 # cookie_expiry_days
 )
 
 
