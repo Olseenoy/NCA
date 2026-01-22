@@ -2257,11 +2257,15 @@ import streamlit_authenticator as stauth
 # --- Page Config ---
 st.set_page_config(page_title="Smart Non-Conformance Login", layout="wide")  
 
-# --- User credentials ---
+# --- Step 1: Create hashed passwords ---
+passwords = ["admin123", "pass123"]
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+# --- Step 2: User credentials dictionary ---
 users = {
     "usernames": {
-        "admin": {"name": "Admin User", "password": "admin123"},
-        "user1": {"name": "User One", "password": "pass123"}
+        "admin": {"name": "Admin User", "password": hashed_passwords[0]},
+        "user1": {"name": "User One", "password": hashed_passwords[1]}
     }
 }
 
