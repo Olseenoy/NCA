@@ -2357,23 +2357,27 @@ if not authentication_status:
 
     # --- Center the login form horizontally ---
 left_col, center_col, right_col = st.columns([1, 1, 1])
-
 with center_col:
-    name, authentication_status, username = authenticator.login(
-        "Login",
-        "main"
-    )
+    authenticator.login(location="main")
+
+
+# --- STATE AFTER LOGIN ---
+name = st.session_state.get("name")
+authentication_status = st.session_state.get("authentication_status")
+username = st.session_state.get("username")
 
 # --- Centered messages for access control ---
 left_col, center_col, right_col = st.columns([1, 1, 1])
 
-if authentication_status:
-    st.success(f"Welcome {name}")
-    run_snca_app()  # your main app function
-elif authentication_status is False:
+if authentication_status:     
+        st.success(f"Welcome {name}")
+        run_snca_app()  
+
+elif authentication_status == False:     
     with center_col:
-        st.error("Username/password is incorrect")
-else:
+        st.error("Username/password is incorrect") 
+
+else:     
     with center_col:
         st.warning("Please enter your username and password")
 
