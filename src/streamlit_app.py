@@ -2267,11 +2267,12 @@ users = {
 
 # --- Create authenticator ---
 authenticator = stauth.Authenticate(
-    credentials=users,
-    cookie_name="snca_cookie",
-    key="snca_key",
-    cookie_expiry_days=1
+    users,
+    "snca_cookie",
+    "snca_key",
+    1
 )
+
 
 # --- Access authentication state early ---
 authentication_status = st.session_state.get("authentication_status")  
