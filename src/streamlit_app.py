@@ -2357,8 +2357,13 @@ if not authentication_status:
 
     # --- Center the login form horizontally ---
 left_col, center_col, right_col = st.columns([1, 1, 1])
+
 with center_col:
-    authenticator.login(location="main")
+    name, authentication_status, username = authenticator.login(
+        "Login",
+        "main"
+    )
+
 
 # --- STATE AFTER LOGIN ---
 name = st.session_state.get("name")
